@@ -382,9 +382,13 @@ export default function ListingDetail() {
             <span className="text-sm text-gray-500">
               {listing.views} görüntülenme
             </span>
+            {/* Favori Butonu */}
             <button
-              className={`flex items-center space-x-1 p-2 rounded-lg transition-all duration-200 transform hover:scale-105 cursor-pointer ${
-                isFavorite ? 'text-red-500 bg-red-50' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'
+              type="button"
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 cursor-pointer border ${
+                isFavorite 
+                  ? 'text-red-500 bg-red-50 border-red-200' 
+                  : 'text-gray-500 hover:text-red-500 hover:bg-red-50 border-gray-200'
               }`}
               onClick={handleFavoriteToggle}
               title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
@@ -402,7 +406,7 @@ export default function ListingDetail() {
                   d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                 />
               </svg>
-              <span className="font-medium">{favoritesCount}</span>
+              <span className="font-medium text-sm">{favoritesCount}</span>
             </button>
           </div>
         </div>
@@ -412,36 +416,41 @@ export default function ListingDetail() {
           <span className="text-sm text-gray-600 font-medium">Paylaş:</span>
           <div className="flex items-center space-x-2">
             <button
+              type="button"
               onClick={shareToFacebook}
-              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg cursor-pointer"
               title="Facebook'ta Paylaş"
             >
               <Facebook className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={shareToTwitter}
-              className="p-2 bg-sky-500 text-white rounded-full hover:bg-sky-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+              className="p-2 bg-sky-500 text-white rounded-full hover:bg-sky-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg cursor-pointer"
               title="Twitter'da Paylaş"
             >
               <Twitter className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={shareToWhatsApp}
-              className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+              className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg cursor-pointer"
               title="WhatsApp'ta Paylaş"
             >
               <MessageCircle className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={shareToInstagram}
-              className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+              className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg cursor-pointer"
               title="Instagram'da Paylaş"
             >
               <Instagram className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={copyLink}
-              className="p-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+              className="p-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg cursor-pointer"
               title="Linki Kopyala"
             >
               <Share2 className="w-4 h-4" />
@@ -550,8 +559,9 @@ export default function ListingDetail() {
                     <span className="font-medium">{listing.seller.phone}</span>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => setShowPhone(true)}
-                      className="text-alo-orange hover:text-alo-dark-orange font-medium"
+                      className="text-alo-orange hover:text-alo-dark-orange font-medium cursor-pointer underline"
                     >
                       Telefonu Göster
                     </button>
@@ -570,10 +580,11 @@ export default function ListingDetail() {
             <div className="mt-6 space-y-4">
               {!showMessageForm ? (
                 <button
+                  type="button"
                   onClick={() => setShowMessageForm(true)}
-                  className="w-full bg-alo-orange text-white py-3 px-4 rounded-lg hover:bg-alo-dark-orange transition-colors font-medium"
+                  className="w-full bg-alo-orange text-white py-3 px-4 rounded-lg hover:bg-alo-dark-orange transition-colors font-medium cursor-pointer flex items-center justify-center"
                 >
-                  <MessageCircle className="w-4 h-4 inline mr-2" />
+                  <MessageCircle className="w-4 h-4 mr-2" />
                   Mesaj Gönder
                 </button>
               ) : (
@@ -633,7 +644,7 @@ export default function ListingDetail() {
                   <div className="flex space-x-2">
                     <button
                       type="submit"
-                      className="flex-1 bg-alo-orange text-white py-2 px-4 rounded-lg hover:bg-alo-dark-orange transition-colors font-medium"
+                      className="flex-1 bg-alo-orange text-white py-2 px-4 rounded-lg hover:bg-alo-dark-orange transition-colors font-medium cursor-pointer"
                     >
                       Gönder
                     </button>
@@ -647,7 +658,7 @@ export default function ListingDetail() {
                         setSenderName('');
                         setSenderEmail('');
                       }}
-                      className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                      className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium cursor-pointer"
                     >
                       İptal
                     </button>
