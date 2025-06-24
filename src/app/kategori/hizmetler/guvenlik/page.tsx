@@ -78,6 +78,9 @@ async function getListings() {
       images: listing.images ? JSON.parse(listing.images) : [],
       features: listing.features ? JSON.parse(listing.features) : [],
       premiumUntil: listing.premiumUntil ? listing.premiumUntil.toISOString() : undefined,
+      createdAt: listing.createdAt.toISOString(),
+      updatedAt: listing.updatedAt.toISOString(),
+      expiresAt: listing.expiresAt.toISOString(),
       user: {
         name: listing.user?.name || 'Bilinmeyen Kullanıcı'
       }
