@@ -8,161 +8,153 @@ import { useEffect, useState } from 'react'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 import { Wrench, Shield, Bell, Camera, UserCheck, Star, Users, Zap, Award, Clock, MapPin } from 'lucide-react'
+import { Suspense } from 'react'
+import { Metadata } from 'next'
+import { prisma } from '@/lib/prisma'
+import { ListingCard } from '@/components/listing-card'
+import { CreditCard, Fingerprint } from 'lucide-react'
 
-export default function GuvenlikPage() {
-  const [category, setCategory] = useState<any>(null)
-  const [subcategory, setSubcategory] = useState<any>(null)
-  const [mappedListings, setMappedListings] = useState<Listing[]>([])
+export const metadata: Metadata = {
+  title: 'Güvenlik Hizmetleri - Alo17',
+  description: 'Güvenlik görevlisi, güvenlik sistemleri, kamera sistemleri, alarm sistemleri ve daha fazlası',
+}
 
-  useEffect(() => {
-    const foundCategory = categories.find((cat) => cat.slug === 'hizmetler')
-    if (!foundCategory) return
-    setCategory(foundCategory)
-    
-    const foundSubcategory = foundCategory.subcategories?.find((sub) => sub.slug === 'guvenlik')
-    if (!foundSubcategory) return
-    setSubcategory(foundSubcategory)
-
-    // Listings data'sını doğru formata dönüştür
-    const mapped = rawListings
-      .filter(listing => 
-        listing.category.toLowerCase() === 'hizmetler' && 
-        (listing.subCategory?.toLowerCase() ?? '') === 'guvenlik'
-      )
-      
-    
-    setMappedListings(mapped)
-  }, [])
-
-  if (!category || !subcategory) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
-          <Link href="/" className="text-blue-600 hover:text-blue-800">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </div>
-    )
+const subSubcategories = [
+  {
+    name: 'Güvenlik Görevlisi',
+    icon: Shield,
+    slug: 'guvenlik-gorevlisi',
+    description: 'Deneyimli güvenlik görevlileri ve güvenlik hizmetleri'
+  },
+  {
+    name: 'Güvenlik Sistemi',
+    icon: Camera,
+    slug: 'guvenlik-sistemi',
+    description: 'Ev ve işyeri güvenlik sistemleri'
+  },
+  {
+    name: 'Kamera Sistemleri',
+    icon: Camera,
+    slug: 'kamera-sistemleri',
+    description: 'IP kamera ve dome kamera sistemleri'
+  },
+  {
+    name: 'Alarm Sistemleri',
+    icon: Bell,
+    slug: 'alarm-sistemleri',
+    description: 'Kablosuz ve merkezi bağlantılı alarm sistemleri'
+  },
+  {
+    name: 'Kartlı Geçiş',
+    icon: CreditCard,
+    slug: 'kartli-gecis',
+    description: 'RFID kartlı geçiş sistemleri'
+  },
+  {
+    name: 'Parmak İzi Sistemleri',
+    icon: Fingerprint,
+    slug: 'parmak-izi-sistemleri',
+    description: 'Parmak izi okuyucu ve hibrit sistemler'
   }
+]
+
+async function getListings() {
+  try {
+    const listings = await prisma.listing.findMany({
+      where: {
+        category: 'hizmetler',
+        subCategory: 'guvenlik',
+        approvalStatus: 'APPROVED',
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      include: {
+        user: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Prisma verisini Listing tipine dönüştür
+    return listings.map(listing => ({
+      ...listing,
+      subCategory: listing.subCategory || undefined,
+      subSubCategory: listing.subSubCategory || undefined,
+      images: listing.images ? JSON.parse(listing.images) : [],
+      features: listing.features ? JSON.parse(listing.features) : [],
+      user: {
+        name: listing.user?.name || 'Bilinmeyen Kullanıcı'
+      }
+    }));
+  } catch (error) {
+    console.error('Güvenlik ilanları yüklenirken hata:', error);
+    return [];
+  }
+}
+
+export default async function GuvenlikPage() {
+  const listings = await getListings()
 
   return (
-    <div className="container mx-auto py-8">
-      {/* Breadcrumb */}
-      <nav className="flex mb-8" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-1 md:space-x-3">
-          <li className="inline-flex items-center">
-            <Link href="/" className="text-gray-700 hover:text-blue-600">
-              Ana Sayfa
-            </Link>
-          </li>
-          <li>
-            <div className="flex items-center">
-              <span className="mx-2 text-gray-400">/</span>
-              <Link href={`/kategori/${category.slug}`} className="text-gray-700 hover:text-blue-600">
-                {category.name}
-              </Link>
-            </div>
-          </li>
-          <li aria-current="page">
-            <div className="flex items-center">
-              <span className="mx-2 text-gray-400">/</span>
-              <span className="text-gray-500">{subcategory.name}</span>
-            </div>
-          </li>
-        </ol>
-      </nav>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center mb-4">
+            <Shield className="h-8 w-8 text-alo-orange mr-3" />
+            <h1 className="text-3xl font-bold text-gray-900">Güvenlik Hizmetleri</h1>
+          </div>
+          <p className="text-lg text-gray-600">
+            Güvenlik görevlisi, güvenlik sistemleri, kamera sistemleri ve daha fazlası
+          </p>
+        </div>
 
-      <div className="flex gap-8">
-        {/* Sidebar */}
-        <aside className="w-64">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center">
-              <Shield className="w-5 h-5 text-blue-500 mr-2" />
-              Alt Kategoriler
-            </h2>
-            <ul className="space-y-2">
-              {subcategory.subcategories?.map((subsub: any) => (
-                <li key={subsub.slug}>
-                  <Link 
-                    href={`/kategori/${category.slug}/${subcategory.slug}/${subsub.slug}`}
-                    className="flex items-center text-gray-700 hover:text-blue-600 transition-colors"
-                  >
-                    <span className="mr-2">{subsub.icon}</span>
-                    {subsub.name}
-                  </Link>
-                </li>
+        {/* Alt Kategoriler */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Alt Kategoriler</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {subSubcategories.map((subcategory) => (
+              <a
+                key={subcategory.slug}
+                href={`/kategori/hizmetler/guvenlik/${subcategory.slug}`}
+                className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+              >
+                <div className="flex flex-col items-center text-center">
+                  <subcategory.icon className="h-8 w-8 text-alo-orange mb-2" />
+                  <h3 className="font-medium text-gray-900 text-sm">{subcategory.name}</h3>
+                  <p className="text-xs text-gray-500 mt-1">{subcategory.description}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* İlanlar */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Tüm Güvenlik İlanları ({listings.length})
+          </h2>
+          
+          {listings.length === 0 ? (
+            <div className="text-center py-12">
+              <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz ilan yok</h3>
+              <p className="text-gray-500">Bu kategoride henüz ilan bulunmuyor.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {listings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
               ))}
-            </ul>
-
-            <div className="mt-8">
-              <h3 className="font-semibold mb-3">Güvenlik Hizmetleri</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center">
-                  <Bell className="w-4 h-4 text-red-500 mr-2" />
-                  Alarm Sistemleri
-                </li>
-                <li className="flex items-center">
-                  <Camera className="w-4 h-4 text-blue-500 mr-2" />
-                  Kamera Sistemleri
-                </li>
-                <li className="flex items-center">
-                  <UserCheck className="w-4 h-4 text-green-500 mr-2" />
-                  Güvenlik Görevlisi
-                </li>
-                <li className="flex items-center">
-                  <Star className="w-4 h-4 text-yellow-500 mr-2" />
-                  Profesyonel Hizmet
-                </li>
-                <li className="flex items-center">
-                  <Users className="w-4 h-4 text-purple-500 mr-2" />
-                  Deneyimli Ekip
-                </li>
-                <li className="flex items-center">
-                  <Zap className="w-4 h-4 text-yellow-500 mr-2" />
-                  7/24 Hizmet
-                </li>
-                <li className="flex items-center">
-                  <Award className="w-4 h-4 text-green-500 mr-2" />
-                  Garantili Sistem
-                </li>
-              </ul>
             </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {subcategory.name} Hizmetleri
-            </h1>
-            <p className="text-gray-600">
-              Profesyonel güvenlik hizmetleri ile ev, ofis ve işyerinizi koruyun. Alarm, kamera ve güvenlik görevlisi hizmetleri.
-            </p>
-          </div>
-
-          {/* Featured Ads */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Öne Çıkan Güvenlik Hizmetleri</h2>
-            <FeaturedAds 
-              category={category.slug} 
-              subcategory={subcategory.slug} 
-              listings={mappedListings} 
-            />
-          </div>
-
-          {/* Latest Ads */}
-          <div>
-            <h2 className="text-xl font-semibold mb-4">En Yeni Güvenlik Hizmetleri</h2>
-            <LatestAds 
-              category={category.slug} 
-              subcategory={subcategory.slug} 
-              listings={mappedListings} 
-            />
-          </div>
-        </main>
+          )}
+        </div>
       </div>
     </div>
   )
