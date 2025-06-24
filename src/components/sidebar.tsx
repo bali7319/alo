@@ -16,36 +16,50 @@ import {
   Heart, 
   Palette, 
   Gift, 
-  Package 
+  Package,
+  Briefcase,
+  Wrench
 } from "lucide-react"
 
 const categoryIcons = {
+  is: Briefcase,
+  hizmetler: Wrench,
   elektronik: Smartphone,
   "ev-ve-bahce": Home,
   giyim: Shirt,
+  "moda-stil": Shirt,
   "anne-bebek": Baby,
+  "cocuk-dunyasi": Baby,
   "sporlar-oyunlar-eglenceler": Gamepad2,
   "egitim-kurslar": GraduationCap,
   "yemek-icecek": Utensils,
   "turizm-gecelemeler": Plane,
+  "turizm-konaklama": Plane,
   "saglik-guzellik": Heart,
   "sanat-hobi": Palette,
+  "hobi-sanat": Palette,
   "ucretsiz-gel-al": Gift,
   diger: Package
 }
 
 const categoryColors = {
+  is: "text-blue-500",
+  hizmetler: "text-green-500",
   elektronik: "text-blue-500",
   "ev-ve-bahce": "text-orange-500",
   giyim: "text-purple-500",
+  "moda-stil": "text-purple-500",
   "anne-bebek": "text-pink-500",
-  "sporlar-oyunlar-eglenceler": "text-emerald-500",
-  "egitim-kurslar": "text-cyan-500",
-  "yemek-icecek": "text-amber-500",
-  "turizm-gecelemeler": "text-teal-500",
-  "saglik-guzellik": "text-rose-500",
-  "sanat-hobi": "text-violet-500",
-  "ucretsiz-gel-al": "text-lime-500",
+  "cocuk-dunyasi": "text-pink-500",
+  "sporlar-oyunlar-eglenceler": "text-red-500",
+  "egitim-kurslar": "text-indigo-500",
+  "yemek-icecek": "text-yellow-500",
+  "turizm-gecelemeler": "text-cyan-500",
+  "turizm-konaklama": "text-cyan-500",
+  "saglik-guzellik": "text-red-500",
+  "sanat-hobi": "text-purple-500",
+  "hobi-sanat": "text-purple-500",
+  "ucretsiz-gel-al": "text-green-500",
   diger: "text-slate-500"
 }
 
