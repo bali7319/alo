@@ -95,3 +95,5 @@ Thumbs.db
 # Backup folders
 backup_*/
 backup_new/
+
+.vercel
