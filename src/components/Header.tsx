@@ -2,18 +2,26 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { User, Bell, LogOut, Settings, Heart, Plus } from "lucide-react"
+import { User, Bell, LogOut, Settings, Heart, Plus, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SearchBar } from './search-bar'
 import { useSession, signOut } from 'next-auth/react'
+import { usePathname } from 'next/navigation'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const { data: session, status } = useSession();
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' });
+  };
+
+  // Giriş gerektiren butonlar için callback URL oluştur
+  const createLoginUrl = (targetPath: string) => {
+    const currentPath = pathname;
+    return `/giris?callbackUrl=${encodeURIComponent(targetPath)}`;
   };
 
   return (
@@ -41,14 +49,44 @@ export default function Header() {
 
           {/* User Actions */}
           <div className="flex items-center space-x-2 lg:space-x-4">
+            {/* Favorilerim Butonu - Sadece giriş yapılmışsa göster */}
+            {session && (
+              <Link href="/favorilerim">
+                <Button variant="outline" className="hidden sm:flex items-center border-gray-300 hover:border-red-500 hover:text-red-500">
+                  <Heart className="h-4 w-4 mr-1" />
+                  <span className="hidden lg:inline">Favorilerim</span>
+                </Button>
+              </Link>
+            )}
+
+            {/* Mesajlarım Butonu - Sadece giriş yapılmışsa göster */}
+            {session && (
+              <Link href="/mesajlar">
+                <Button variant="outline" className="hidden sm:flex items-center border-gray-300 hover:border-blue-500 hover:text-blue-500">
+                  <MessageCircle className="h-4 w-4 mr-1" />
+                  <span className="hidden lg:inline">Mesajlarım</span>
+                </Button>
+              </Link>
+            )}
+
             {/* İlan Ver Butonu */}
-            <Link href="/ilan-ver">
-              <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium">
-                <Plus className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">İlan Ver</span>
-                <span className="sm:hidden">+</span>
-              </Button>
-            </Link>
+            {session ? (
+              <Link href="/ilan-ver">
+                <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium">
+                  <Plus className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">İlan Ver</span>
+                  <span className="sm:hidden">+</span>
+                </Button>
+              </Link>
+            ) : (
+              <Link href={createLoginUrl('/ilan-ver')}>
+                <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium">
+                  <Plus className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">İlan Ver</span>
+                  <span className="sm:hidden">+</span>
+                </Button>
+              </Link>
+            )}
 
             {/* Kullanıcı Menüsü */}
             {status === 'loading' ? (
@@ -95,6 +133,14 @@ export default function Header() {
                       <Heart className="h-4 w-4 mr-2" />
                       Favorilerim
                     </Link>
+                    <Link
+                      href="/mesajlar"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Mesajlarım
+                    </Link>
                     {session.user?.role === 'admin' && (
                       <Link
                         href="/admin"
@@ -116,7 +162,7 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <Link href="/giris">
+              <Link href={createLoginUrl(pathname || '/')}>
                 <Button variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600">
                   <User className="h-4 w-4 lg:mr-2" />
                   <span className="hidden lg:inline">Giriş Yap</span>

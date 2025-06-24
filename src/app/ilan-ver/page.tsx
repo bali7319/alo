@@ -9,7 +9,7 @@ export default function IlanVerPage() {
   const router = useRouter();
   const [images, setImages] = useState<File[]>([]);
   const [showPhone, setShowPhone] = useState(false);
-  const [phoneVisibility, setPhoneVisibility] = useState('public'); // 'public', 'private', 'contact'
+  const [phoneVisibility, setPhoneVisibility] = useState('public'); // 'public', 'private'
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
   const [selectedPlan, setSelectedPlan] = useState('none');
@@ -290,11 +290,15 @@ export default function IlanVerPage() {
       });
       
       if (!response.ok) {
+        console.error(`HTTP error! status: ${response.status}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
+        console.error('Response is not JSON, content-type:', contentType);
+        const text = await response.text();
+        console.error('Response text:', text.substring(0, 200));
         throw new Error('Response is not JSON');
       }
       
@@ -307,6 +311,9 @@ export default function IlanVerPage() {
       });
     } catch (error) {
       console.error('Admin ayarları yüklenirken hata:', error);
+      if (error instanceof SyntaxError) {
+        console.error('JSON parsing error - likely received HTML instead of JSON');
+      }
       // Hata durumunda varsayılan değerleri kullan
       setAdminSettings({
         featuredPrice: 50,
@@ -584,22 +591,6 @@ export default function IlanVerPage() {
                     <div className="flex items-center">
                       <Eye className="w-4 h-4 mr-2 text-green-500" />
                       <span className="text-sm">Herkese Açık</span>
-                      <span className="text-xs text-gray-500 ml-2">(Telefon numaranız herkese görünür)</span>
-                    </div>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="phoneVisibility"
-                      value="contact"
-                      checked={phoneVisibility === 'contact'}
-                      onChange={(e) => setPhoneVisibility(e.target.value)}
-                      className="mr-2"
-                    />
-                    <div className="flex items-center">
-                      <Eye className="w-4 h-4 mr-2 text-yellow-500" />
-                      <span className="text-sm">Sadece İletişim Kurulduğunda</span>
-                      <span className="text-xs text-gray-500 ml-2">(Mesaj gönderen kişiye görünür)</span>
                     </div>
                   </label>
                   <label className="flex items-center">
@@ -614,7 +605,6 @@ export default function IlanVerPage() {
                     <div className="flex items-center">
                       <EyeOff className="w-4 h-4 mr-2 text-red-500" />
                       <span className="text-sm">Gizli</span>
-                      <span className="text-xs text-gray-500 ml-2">(Telefon numaranız gizli kalır)</span>
                     </div>
                   </label>
                 </div>
@@ -940,12 +930,6 @@ export default function IlanVerPage() {
                       <>
                         <Eye className="w-4 h-4 text-green-500" />
                         <span className="text-sm text-gray-700">Telefon: {formData.phone || 'Belirtilmemiş'}</span>
-                      </>
-                    )}
-                    {phoneVisibility === 'contact' && (
-                      <>
-                        <Eye className="w-4 h-4 text-yellow-500" />
-                        <span className="text-sm text-gray-700">Telefon sadece iletişim kurulduğunda görünür</span>
                       </>
                     )}
                     {phoneVisibility === 'private' && (
