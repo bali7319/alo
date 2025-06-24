@@ -81,6 +81,7 @@ async function getListings() {
       createdAt: listing.createdAt.toISOString(),
       updatedAt: listing.updatedAt.toISOString(),
       expiresAt: listing.expiresAt.toISOString(),
+      phone: listing.phone || undefined,
       user: {
         id: listing.userId,
         name: listing.user?.name || 'Bilinmeyen Kullanıcı',
