@@ -50,7 +50,19 @@ export const categories: Category[] = [
     icon: Wrench,
     slug: "hizmetler",
     subcategories: [
-      { name: "Güvenlik", icon: "🔒", slug: "guvenlik" },
+      { 
+        name: "Güvenlik", 
+        icon: "🔒", 
+        slug: "guvenlik",
+        subcategories: [
+          { name: "Güvenlik Görevlisi", icon: "🛡️", slug: "guvenlik-gorevlisi" },
+          { name: "Güvenlik Sistemi", icon: "📹", slug: "guvenlik-sistemi" },
+          { name: "Kamera Sistemleri", icon: "📷", slug: "kamera-sistemleri" },
+          { name: "Alarm Sistemleri", icon: "🚨", slug: "alarm-sistemleri" },
+          { name: "Kartlı Geçiş", icon: "💳", slug: "kartli-gecis" },
+          { name: "Parmak İzi Sistemleri", icon: "👆", slug: "parmak-izi-sistemleri" }
+        ]
+      },
       { name: "Nakliyat", icon: "🚚", slug: "nakliyat" },
       { name: "Tasarım", icon: "🎨", slug: "tasarim" },
       { name: "Teknik Servis", icon: "🔧", slug: "teknik-servis" },
@@ -80,10 +92,29 @@ export const categories: Category[] = [
     subcategories: [
       { name: "Aydınlatma", icon: "💡", slug: "aydinlatma" },
       { name: "Bahçe Aletleri", icon: "🌱", slug: "bahce-aletleri" },
-      { name: "Beyaz Eşya", icon: "🏠", slug: "beyaz-esya" },
+      { 
+        name: "Beyaz Eşya", 
+        icon: "🏠", 
+        slug: "beyaz-esya",
+        subcategories: [
+          { name: "Buzdolabı & Dondurucu", icon: "🧊", slug: "buzdolabi-dondurucu" },
+          { name: "Çamaşır & Kurutma", icon: "👕", slug: "camasir-kurutma" },
+          { name: "Bulaşık Makinesi", icon: "🍽️", slug: "bulasik-makinesi" },
+          { name: "Fırın & Ocak", icon: "🔥", slug: "firin-ocak" },
+          { name: "Mikrodalga", icon: "⚡", slug: "mikrodalga" }
+        ]
+      },
       { name: "Dekorasyon", icon: "🖼️", slug: "dekorasyon" },
       { name: "Güvenlik", icon: "🔒", slug: "guvenlik" },
-      { name: "Isıtma/Soğutma", icon: "❄️", slug: "isitma-sogutma" },
+      { 
+        name: "Isıtma/Soğutma", 
+        icon: "❄️", 
+        slug: "isitma-sogutma",
+        subcategories: [
+          { name: "Klima & Isıtıcı", icon: "🌡️", slug: "klima-isitici" },
+          { name: "Soğutma Sistemleri", icon: "❄️", slug: "sogutma-sistemleri" }
+        ]
+      },
       { name: "Mobilya", icon: "🪑", slug: "mobilya" },
       { name: "Mutfak Gereçleri", icon: "🍳", slug: "mutfak-gerecleri" },
       { name: "Temizlik", icon: "🧹", slug: "temizlik" }
@@ -249,9 +280,7 @@ export const categories: Category[] = [
     icon: MoreHorizontal,
     slug: "diger",
     subcategories: [
-      { name: "Antika", icon: "🏺", slug: "antika" },
-      { name: "Koleksiyon", icon: "🏆", slug: "koleksiyon" },
-      { name: "Vintage", icon: "🕰️", slug: "vintage" }
+      { name: "Diğer", icon: "📦", slug: "diger" }
     ]
   }
 ] 

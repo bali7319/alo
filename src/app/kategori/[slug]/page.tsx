@@ -2,9 +2,10 @@ import { categories } from '@/lib/categories'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { listings as rawListings } from '@/lib/listings'
-import { Listing } from '@/types/listings'
 import { Home, Sparkles, Star, MapPin, Users, Clock, Shield, Award } from 'lucide-react'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 // generateStaticParams fonksiyonu ekle
 export async function generateStaticParams() {
@@ -41,10 +42,68 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   // Diğer kategoriler
   const otherCategories = categories.filter((cat) => cat.slug !== slug)
 
-  // Listings data'sını filtrele
-  const mappedListings = rawListings.filter(listing => 
-    listing.category.toLowerCase() === slug.toLowerCase()
-  )
+  // Kategori slug'ını kategori adına çevir
+  const categoryMap: { [key: string]: string } = {
+    'is': 'İş',
+    'hizmetler': 'Hizmetler',
+    'elektronik': 'Elektronik',
+    'ev-ve-bahce': 'Ev & Bahçe',
+    'giyim': 'Giyim',
+    'moda-stil': 'Moda & Stil',
+    'sporlar-oyunlar-eglenceler': 'Sporlar, Oyunlar ve Eğlenceler',
+    'anne-bebek': 'Anne & Bebek',
+    'cocuk-dunyasi': 'Çocuk Dünyası',
+    'egitim-kurslar': 'Eğitim & Kurslar',
+    'yemek-icecek': 'Yemek & İçecek',
+    'catering-ticaret': 'Catering & Ticaret',
+    'turizm-konaklama': 'Turizm & Konaklama',
+    'saglik-guzellik': 'Sağlık & Güzellik',
+    'sanat-hobi': 'Sanat & Hobi',
+    'ucretsiz-gel-al': 'Ücretsiz Gel Al',
+    'diger': 'Diğer'
+  };
+
+  const categoryName = categoryMap[slug];
+
+  // Veritabanından ilanları çek
+  const listings = await prisma.listing.findMany({
+    where: {
+      category: categoryName,
+      isActive: true,
+      approvalStatus: 'approved'
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const formattedListings = listings.map(listing => ({
+    id: listing.id,
+    title: listing.title,
+    price: listing.price,
+    location: listing.location,
+    category: listing.category,
+    subCategory: listing.subCategory || undefined,
+    description: listing.description,
+    images: JSON.parse(listing.images),
+    createdAt: listing.createdAt.toISOString(),
+    condition: listing.condition,
+    isPremium: listing.isPremium,
+    premiumUntil: listing.premiumUntil?.toISOString(),
+    expiresAt: listing.expiresAt.toISOString(),
+    views: listing.views,
+    user: {
+      ...listing.user,
+      name: listing.user?.name ?? undefined,
+    },
+  }));
 
   return (
     <div className="container mx-auto py-8">
@@ -139,7 +198,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             </h2>
             <FeaturedAds 
               category={foundCategory.slug} 
-              listings={mappedListings} 
+              listings={formattedListings} 
             />
           </div>
 
@@ -151,7 +210,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             </h2>
             <LatestAds 
               category={foundCategory.slug} 
-              listings={mappedListings} 
+              listings={formattedListings} 
             />
           </div>
         </main>
