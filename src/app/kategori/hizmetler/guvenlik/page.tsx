@@ -1,18 +1,7 @@
-"use client"
-
-import { categories } from '@/lib/categories'
-import { FeaturedAds } from '@/components/featured-ads'
-import { LatestAds } from '@/components/latest-ads'
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { listings as rawListings } from '@/lib/listings'
-import { Listing } from '@/types/listings'
-import { Wrench, Shield, Bell, Camera, UserCheck, Star, Users, Zap, Award, Clock, MapPin } from 'lucide-react'
-import { Suspense } from 'react'
 import { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import { ListingCard } from '@/components/listing-card'
-import { CreditCard, Fingerprint } from 'lucide-react'
+import { Shield, Camera, Bell, CreditCard, Fingerprint } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Güvenlik Hizmetleri - Alo17',
