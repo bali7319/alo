@@ -70,6 +70,9 @@ export const Sidebar = () => {
   const currentCategory = currentPath[1]
   const currentSubcategory = currentPath[2]
 
+  console.log("Categories:", categories.map(c => ({ name: c.name, slug: c.slug })))
+  console.log("Category Icons:", Object.keys(categoryIcons))
+
   return (
     <div className="w-64 bg-white p-4 border-r">
       <h2 className="text-lg font-semibold mb-4">Kategoriler</h2>
@@ -77,6 +80,9 @@ export const Sidebar = () => {
         {categories.map((category) => {
           const IconComponent = categoryIcons[category.slug as keyof typeof categoryIcons] || MoreHorizontal;
           const iconColor = categoryColors[category.slug as keyof typeof categoryColors] || "text-slate-500";
+          
+          console.log(`Category: ${category.name}, Slug: ${category.slug}, Icon: ${IconComponent.name}`)
+          
           return (
             <div key={category.slug}>
               <Link
