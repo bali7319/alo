@@ -8,6 +8,7 @@ import {
   Laptop, 
   Home, 
   Shirt, 
+  ShirtIcon,
   Baby, 
   Gamepad2, 
   GraduationCap, 
@@ -30,7 +31,7 @@ const categoryIcons = {
   elektronik: Smartphone,
   "ev-ve-bahce": Home,
   giyim: Shirt,
-  "moda-stil": Shirt,
+  "moda-stil": ShirtIcon,
   "anne-bebek": Baby,
   "cocuk-dunyasi": Baby,
   "egitim-kurslar": GraduationCap,
@@ -74,7 +75,7 @@ export const Sidebar = () => {
       <h2 className="text-lg font-semibold mb-4">Kategoriler</h2>
       <div className="space-y-2">
         {categories.map((category) => {
-          const IconComponent = categoryIcons[category.slug as keyof typeof categoryIcons] || Package;
+          const IconComponent = categoryIcons[category.slug as keyof typeof categoryIcons] || MoreHorizontal;
           const iconColor = categoryColors[category.slug as keyof typeof categoryColors] || "text-slate-500";
           return (
             <div key={category.slug}>
