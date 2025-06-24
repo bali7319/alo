@@ -1,0 +1,8 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="400" height="400" fill="#F3F4F6"/>
+<rect x="100" y="100" width="200" height="200" rx="10" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+<text x="200" y="150" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24" font-weight="bold">2x + 5 = 15</text>
+<text x="200" y="180" text-anchor="middle" fill="#374151" font-family="Arial" font-size="24" font-weight="bold">x = 5</text>
+<text x="200" y="220" text-anchor="middle" fill="#6B7280" font-family="Arial" font-size="16">Matematik Özel Ders</text>
+<text x="200" y="240" text-anchor="middle" fill="#6B7280" font-family="Arial" font-size="14">Lise & Üniversite</text>
+</svg> 
