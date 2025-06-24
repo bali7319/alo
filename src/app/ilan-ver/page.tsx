@@ -266,6 +266,9 @@ export default function IlanVerPage() {
         topPosition: false
       });
 
+      // Ana sayfaya yönlendir
+      router.push('/');
+
     } catch (error) {
       alert('İlan yayınlanırken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
