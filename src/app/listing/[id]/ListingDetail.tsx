@@ -170,6 +170,8 @@ export default function ListingDetail() {
   const [senderEmail, setSenderEmail] = useState('');
   const [messageSent, setMessageSent] = useState(false);
   const [error, setError] = useState('');
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoritesCount, setFavoritesCount] = useState(0);
 
   useEffect(() => {
     if (!params || !params.id) return;
@@ -179,6 +181,8 @@ export default function ListingDetail() {
     const foundListing = featuredListings.find(l => l.id === listingId);
     if (foundListing) {
       setListing(foundListing);
+      setIsFavorite(foundListing.isFavorite);
+      setFavoritesCount(foundListing.favorites);
     }
   }, [params]);
 
@@ -223,6 +227,18 @@ export default function ListingDetail() {
       setShowMessageForm(false);
     } catch (err) {
       setError('Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
+    }
+  };
+
+  const handleFavoriteToggle = () => {
+    setIsFavorite(!isFavorite);
+    setFavoritesCount(prev => isFavorite ? prev - 1 : prev + 1);
+    
+    // Kullanıcıya bildirim göster
+    if (!isFavorite) {
+      alert('İlan favorilerinize eklendi!');
+    } else {
+      alert('İlan favorilerinizden çıkarıldı!');
     }
   };
 
@@ -273,13 +289,15 @@ export default function ListingDetail() {
               {listing.views} görüntülenme
             </span>
             <button
-              className={`flex items-center space-x-1 ${
-                listing.isFavorite ? 'text-red-500' : 'text-gray-500'
+              className={`flex items-center space-x-1 p-2 rounded-lg transition-all duration-200 transform hover:scale-105 ${
+                isFavorite ? 'text-red-500 bg-red-50' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'
               }`}
+              onClick={handleFavoriteToggle}
+              title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
             >
               <svg
                 className="w-5 h-5"
-                fill={listing.isFavorite ? 'currentColor' : 'none'}
+                fill={isFavorite ? 'currentColor' : 'none'}
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
@@ -290,46 +308,46 @@ export default function ListingDetail() {
                   d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                 />
               </svg>
-              <span>{listing.favorites}</span>
+              <span className="font-medium">{favoritesCount}</span>
             </button>
           </div>
         </div>
         
         {/* Sosyal Medya Paylaşım Butonları */}
         <div className="mt-4 flex items-center space-x-2">
-          <span className="text-sm text-gray-600">Paylaş:</span>
+          <span className="text-sm text-gray-600 font-medium">Paylaş:</span>
           <div className="flex items-center space-x-2">
             <button
               onClick={shareToFacebook}
-              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
               title="Facebook'ta Paylaş"
             >
               <Facebook className="w-4 h-4" />
             </button>
             <button
               onClick={shareToTwitter}
-              className="p-2 bg-sky-500 text-white rounded-full hover:bg-sky-600 transition-colors"
+              className="p-2 bg-sky-500 text-white rounded-full hover:bg-sky-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
               title="Twitter'da Paylaş"
             >
               <Twitter className="w-4 h-4" />
             </button>
             <button
               onClick={shareToWhatsApp}
-              className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
+              className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
               title="WhatsApp'ta Paylaş"
             >
               <MessageCircle className="w-4 h-4" />
             </button>
             <button
               onClick={shareToInstagram}
-              className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 transition-colors"
+              className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
               title="Instagram'da Paylaş"
             >
               <Instagram className="w-4 h-4" />
             </button>
             <button
               onClick={copyLink}
-              className="p-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors"
+              className="p-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
               title="Linki Kopyala"
             >
               <Share2 className="w-4 h-4" />
@@ -430,82 +448,88 @@ export default function ListingDetail() {
                 <span className="text-gray-600">Üyelik:</span>
                 <span className="font-medium">{listing.seller.memberSince}</span>
               </div>
-              {listing.showPhone && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Telefon:</span>
-                  {showPhone ? (
-                    <span className="font-medium">{listing.seller.phone}</span>
-                  ) : (
-                    <button
-                      onClick={() => setShowPhone(true)}
-                      className="text-primary hover:text-primary-dark"
-                    >
-                      Telefonu Göster
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Telefon:</span>
+                {showPhone ? (
+                  <span className="font-medium">+90 555 123 45 67</span>
+                ) : (
+                  <button
+                    onClick={() => setShowPhone(true)}
+                    className="text-alo-orange hover:text-alo-dark-orange font-medium"
+                  >
+                    Telefonu Göster
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="mt-6 space-y-4">
               {!showMessageForm ? (
                 <button
                   onClick={() => setShowMessageForm(true)}
-                  className="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors"
+                  className="w-full bg-alo-orange text-white py-3 px-4 rounded-lg hover:bg-alo-dark-orange transition-colors font-medium"
                 >
+                  <MessageCircle className="w-4 h-4 inline mr-2" />
                   Mesaj Gönder
                 </button>
               ) : (
                 <form onSubmit={handleSendMessage} className="space-y-4">
                   {error && (
-                    <div className="text-red-500 text-sm">{error}</div>
+                    <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm border border-red-200">
+                      {error}
+                    </div>
                   )}
                   {messageSent && (
-                    <div className="text-green-500 text-sm">Mesajınız başarıyla gönderildi.</div>
+                    <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm border border-green-200">
+                      ✓ Mesajınız başarıyla gönderildi!
+                    </div>
                   )}
                   <div>
                     <label htmlFor="senderName" className="block text-sm font-medium text-gray-700 mb-1">
-                      Adınız Soyadınız
+                      Adınız Soyadınız *
                     </label>
                     <input
                       type="text"
                       id="senderName"
                       value={senderName}
                       onChange={(e) => setSenderName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-alo-orange focus:border-transparent"
                       placeholder="Adınız Soyadınız"
+                      required
                     />
                   </div>
                   <div>
                     <label htmlFor="senderEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                      E-posta Adresiniz
+                      E-posta Adresiniz *
                     </label>
                     <input
                       type="email"
                       id="senderEmail"
                       value={senderEmail}
                       onChange={(e) => setSenderEmail(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-alo-orange focus:border-transparent"
                       placeholder="ornek@email.com"
+                      required
                     />
                   </div>
                   <div>
                     <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                      Mesajınız
+                      Mesajınız *
                     </label>
                     <textarea
                       id="message"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-alo-orange focus:border-transparent"
                       placeholder="İlan sahibine mesajınızı yazın..."
+                      required
                     />
                   </div>
                   <div className="flex space-x-2">
                     <button
                       type="submit"
-                      className="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors"
+                      className="flex-1 bg-alo-orange text-white py-2 px-4 rounded-lg hover:bg-alo-dark-orange transition-colors font-medium"
                     >
                       Gönder
                     </button>
@@ -515,8 +539,11 @@ export default function ListingDetail() {
                         setShowMessageForm(false);
                         setError('');
                         setMessageSent(false);
+                        setMessage('');
+                        setSenderName('');
+                        setSenderEmail('');
                       }}
-                      className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                      className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                     >
                       İptal
                     </button>
