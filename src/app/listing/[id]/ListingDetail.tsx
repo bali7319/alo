@@ -64,7 +64,7 @@ const featuredListings: Listing[] = [
     condition: 'Sıfır',
     type: 'Satılık',
     status: 'active',
-    showPhone: false,
+    showPhone: true,
     isFavorite: false,
     views: 245,
     favorites: 12,
@@ -75,7 +75,7 @@ const featuredListings: Listing[] = [
       rating: 4.8,
       memberSince: '2023-01-15',
       location: 'İstanbul',
-      phone: ''
+      phone: '+90 555 123 45 67'
     },
     premiumFeatures: {
       isFeatured: true,
@@ -101,7 +101,7 @@ const featuredListings: Listing[] = [
     condition: 'İkinci El',
     type: 'Satılık',
     status: 'active',
-    showPhone: false,
+    showPhone: true,
     isFavorite: false,
     views: 180,
     favorites: 8,
@@ -112,7 +112,7 @@ const featuredListings: Listing[] = [
       rating: 4.5,
       memberSince: '2023-03-10',
       location: 'İzmir',
-      phone: ''
+      phone: '+90 555 987 65 43'
     },
     premiumFeatures: {
       isFeatured: false,
@@ -149,7 +149,7 @@ const featuredListings: Listing[] = [
       rating: 4.9,
       memberSince: '2023-02-01',
       location: 'Ankara',
-      phone: ''
+      phone: '+90 555 456 78 90'
     },
     premiumFeatures: {
       isFeatured: true,
@@ -205,8 +205,14 @@ export default function ListingDetail() {
     e.preventDefault();
     setError('');
 
-    if (!senderName.trim() || !senderEmail.trim() || !message.trim()) {
-      setError('Lütfen tüm alanları doldurun.');
+    // Form validasyonu
+    if (!senderName.trim()) {
+      setError('Lütfen adınızı ve soyadınızı girin.');
+      return;
+    }
+
+    if (!senderEmail.trim()) {
+      setError('Lütfen e-posta adresinizi girin.');
       return;
     }
 
@@ -215,17 +221,37 @@ export default function ListingDetail() {
       return;
     }
 
+    if (!message.trim()) {
+      setError('Lütfen mesajınızı yazın.');
+      return;
+    }
+
     try {
       // Burada mesaj gönderme API'si çağrılacak
       // Örnek olarak başarılı gönderim simüle ediyoruz
+      console.log('Mesaj gönderiliyor:', {
+        senderName,
+        senderEmail,
+        message,
+        listingId: listing.id,
+        listingTitle: listing.title
+      });
+      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setMessageSent(true);
       setMessage('');
       setSenderName('');
       setSenderEmail('');
-      setShowMessageForm(false);
+      
+      // 3 saniye sonra formu kapat
+      setTimeout(() => {
+        setShowMessageForm(false);
+        setError('');
+        setMessageSent(false);
+      }, 3000);
     } catch (err) {
+      console.error('Mesaj gönderme hatası:', err);
       setError('Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
     }
   };
@@ -244,35 +270,103 @@ export default function ListingDetail() {
 
   // Sosyal medya paylaşım fonksiyonları
   const shareToFacebook = () => {
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
+    try {
+      const url = encodeURIComponent(window.location.href);
+      const text = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
+      const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`;
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    } catch (error) {
+      console.error('Facebook paylaşım hatası:', error);
+      alert('Facebook paylaşımı açılamadı. Lütfen tekrar deneyin.');
+    }
   };
 
   const shareToTwitter = () => {
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
-    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+    try {
+      const url = encodeURIComponent(window.location.href);
+      const text = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
+      const shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    } catch (error) {
+      console.error('Twitter paylaşım hatası:', error);
+      alert('Twitter paylaşımı açılamadı. Lütfen tekrar deneyin.');
+    }
   };
 
   const shareToWhatsApp = () => {
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
-    window.open(`https://wa.me/?text=${text}%20${url}`, '_blank');
+    try {
+      const url = encodeURIComponent(window.location.href);
+      const text = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
+      const shareUrl = `https://wa.me/?text=${text}%20${url}`;
+      window.open(shareUrl, '_blank');
+    } catch (error) {
+      console.error('WhatsApp paylaşım hatası:', error);
+      alert('WhatsApp paylaşımı açılamadı. Lütfen tekrar deneyin.');
+    }
   };
 
   const shareToInstagram = () => {
-    // Instagram web paylaşımı için kopyalama
-    const text = `${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL\n\n${window.location.href}`;
-    navigator.clipboard.writeText(text).then(() => {
-      alert('İlan linki kopyalandı! Instagram\'da paylaşabilirsiniz.');
-    });
+    try {
+      // Instagram web paylaşımı için kopyalama
+      const text = `${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL\n\n${window.location.href}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('İlan linki kopyalandı! Instagram\'da paylaşabilirsiniz.');
+        }).catch(() => {
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = text;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          alert('İlan linki kopyalandı! Instagram\'da paylaşabilirsiniz.');
+        });
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('İlan linki kopyalandı! Instagram\'da paylaşabilirsiniz.');
+      }
+    } catch (error) {
+      console.error('Instagram paylaşım hatası:', error);
+      alert('Link kopyalanamadı. Lütfen tekrar deneyin.');
+    }
   };
 
   const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      alert('İlan linki kopyalandı!');
-    });
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          alert('İlan linki kopyalandı!');
+        }).catch(() => {
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = window.location.href;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          alert('İlan linki kopyalandı!');
+        });
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = window.location.href;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('İlan linki kopyalandı!');
+      }
+    } catch (error) {
+      console.error('Link kopyalama hatası:', error);
+      alert('Link kopyalanamadı. Lütfen tekrar deneyin.');
+    }
   };
 
   return (
@@ -281,7 +375,7 @@ export default function ListingDetail() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">{listing.title}</h1>
         <div className="mt-2 flex items-center justify-between">
-          <span className="text-2xl font-semibold text-primary">
+          <span className="text-2xl font-semibold text-alo-orange">
             {listing.price.toLocaleString('tr-TR')} TL
           </span>
           <div className="flex items-center space-x-4">
@@ -289,7 +383,7 @@ export default function ListingDetail() {
               {listing.views} görüntülenme
             </span>
             <button
-              className={`flex items-center space-x-1 p-2 rounded-lg transition-all duration-200 transform hover:scale-105 ${
+              className={`flex items-center space-x-1 p-2 rounded-lg transition-all duration-200 transform hover:scale-105 cursor-pointer ${
                 isFavorite ? 'text-red-500 bg-red-50' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'
               }`}
               onClick={handleFavoriteToggle}
@@ -448,19 +542,29 @@ export default function ListingDetail() {
                 <span className="text-gray-600">Üyelik:</span>
                 <span className="font-medium">{listing.seller.memberSince}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Telefon:</span>
-                {showPhone ? (
-                  <span className="font-medium">+90 555 123 45 67</span>
-                ) : (
-                  <button
-                    onClick={() => setShowPhone(true)}
-                    className="text-alo-orange hover:text-alo-dark-orange font-medium"
-                  >
-                    Telefonu Göster
-                  </button>
-                )}
-              </div>
+              {/* Telefon görünürlük seçenekleri */}
+              {listing.showPhone && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Telefon:</span>
+                  {showPhone ? (
+                    <span className="font-medium">{listing.seller.phone}</span>
+                  ) : (
+                    <button
+                      onClick={() => setShowPhone(true)}
+                      className="text-alo-orange hover:text-alo-dark-orange font-medium"
+                    >
+                      Telefonu Göster
+                    </button>
+                  )}
+                </div>
+              )}
+              {/* Telefon gizli ise sadece mesaj gönderme seçeneği */}
+              {!listing.showPhone && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">İletişim:</span>
+                  <span className="text-gray-500 text-xs">Sadece mesaj ile iletişim</span>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 space-y-4">
