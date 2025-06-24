@@ -35,10 +35,10 @@ export type PremiumFeature = {
 
 // İlan tipi
 export interface Listing {
-  id: string;
+  id: string | number;
   title: string;
   description: string;
-  price: number;
+  price: number | string;
   location: string;
   category: string;
   subCategory?: string;
@@ -52,6 +52,14 @@ export interface Listing {
     name?: string;
     email: string;
   };
+  // Kullanıcı ilanları için ek özellikler
+  plan?: string;
+  planName?: string;
+  planPrice?: number;
+  views?: number;
+  likes?: number;
+  status?: string;
+  phone?: string;
 }
 
 // Kategori Tipi

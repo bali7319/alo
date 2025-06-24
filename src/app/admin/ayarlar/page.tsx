@@ -87,7 +87,7 @@ export default function AdminAyarlarPage() {
       const data = await response.json();
       
       if (response.ok) {
-        alert('Ayarlar başarıyla güncellendi!');
+        alert('Ayarlar başarıyla güncellendi! İlan ver sayfasındaki fiyatlar otomatik olarak güncellenecek.');
       } else {
         alert('Hata: ' + data.error);
       }

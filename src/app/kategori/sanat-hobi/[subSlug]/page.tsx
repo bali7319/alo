@@ -1,6 +1,3 @@
-"use client"
-
-import { useParams } from "next/navigation";
 import { listings } from "@/lib/listings";
 import { ListingCard } from "@/components/listing-card";
 import { Listing } from "@/types/listings";
@@ -9,18 +6,25 @@ import Link from "next/link";
 import { FeaturedAds } from "@/components/featured-ads";
 import { LatestAds } from "@/components/latest-ads";
 
-export default function SanatHobiSubPage() {
-  const params = useParams() as { subSlug: string };
-  const subSlug = params.subSlug;
+// generateStaticParams fonksiyonu ekle
+export async function generateStaticParams() {
+  const sanatHobiCategory = categories.find(cat => cat.slug === 'sanat-hobi');
+  return sanatHobiCategory?.subcategories?.map((subcategory) => ({
+    subSlug: subcategory.slug,
+  })) || [];
+}
+
+export default async function SanatHobiSubPage({ params }: { params: Promise<{ subSlug: string }> }) {
+  const { subSlug } = await params;
 
   // Sanat & Hobi kategorisini bul
-  const sanatHobiCategory = categories.find(cat => cat.slug === 'hobi-sanat');
+  const sanatHobiCategory = categories.find(cat => cat.slug === 'sanat-hobi');
   const subcategory = sanatHobiCategory?.subcategories?.find(sub => sub.slug === subSlug);
 
   // İlgili alt kategorinin ilanlarını filtrele
   const filteredListings = listings
     .filter(listing => 
-      listing.category.toLowerCase() === 'hobi-sanat' && 
+      listing.category.toLowerCase() === 'sanat-hobi' && 
       (listing.subCategory?.toLowerCase() === subSlug.toLowerCase())
     )
     .map(listing => ({

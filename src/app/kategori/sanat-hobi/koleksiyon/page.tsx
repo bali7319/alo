@@ -22,18 +22,19 @@ export default function CollectionCategoryPage() {
     if (selectedType && listing.subCategory !== selectedType) return false
     if (priceRange) {
       const price = listing.price
+      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
       switch (priceRange) {
         case '0-100':
-          if (price > 100) return false
+          if (numericPrice > 100) return false
           break
         case '100-500':
-          if (price < 100 || price > 500) return false
+          if (numericPrice < 100 || numericPrice > 500) return false
           break
         case '500-1000':
-          if (price < 500 || price > 1000) return false
+          if (numericPrice < 500 || numericPrice > 1000) return false
           break
         case '1000+':
-          if (price < 1000) return false
+          if (numericPrice < 1000) return false
           break
       }
     }

@@ -1,18 +1,38 @@
-'use client'
-
-import { useParams } from 'next/navigation'
 import { listings } from '@/lib/listings'
 import { ListingCard } from '@/components/listing-card'
 
-export default function RestoranAltKategoriPage() {
-  const params = useParams();
-  const altKategori = params?.altKategori as string;
+// generateStaticParams fonksiyonu ekle
+export async function generateStaticParams() {
+  // Restoran alt kategorileri için statik parametreler oluştur
+  const altKategoriler = [
+    'turk-mutfagi',
+    'italyan-mutfagi',
+    'cin-mutfagi',
+    'japon-mutfagi',
+    'fast-food',
+    'pizza',
+    'burger',
+    'kebap',
+    'balik',
+    'vejetaryen',
+    'vegan',
+    'tatli',
+    'kahve',
+    'icecek'
+  ];
+  
+  return altKategoriler.map((altKategori) => ({
+    altKategori: altKategori,
+  }));
+}
+
+export default async function RestoranAltKategoriPage({ params }: { params: Promise<{ altKategori: string }> }) {
+  const { altKategori } = await params;
 
   // İlgili alt kategoriye ait restoran ilanlarını filtrele
   const filteredListings = listings.filter(listing =>
     listing.category === 'yemek-icecek' &&
-    listing.subcategory === 'restoranlar' &&
-    (listing.type === altKategori || listing.brand === altKategori)
+    listing.subCategory === 'restoranlar'
   );
 
   return (

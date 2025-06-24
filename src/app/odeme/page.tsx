@@ -59,6 +59,11 @@ function PaymentPageContent() {
   useEffect(() => {
     const initializePayment = async () => {
       try {
+        if (!searchParams) {
+          setError('Arama parametreleri bulunamadı');
+          setLoading(false);
+          return;
+        }
         // API'den PayTR token'ı al
         const response = await fetch('/api/payment/initialize', {
           method: 'POST',

@@ -1,6 +1,3 @@
-"use client"
-
-import { useParams } from "next/navigation";
 import { listings } from "@/lib/listings";
 import { ListingCard } from "@/components/listing-card";
 import { Listing } from "@/types/listings";
@@ -9,9 +6,22 @@ import Link from "next/link";
 import { FeaturedAds } from "@/components/featured-ads";
 import { LatestAds } from "@/components/latest-ads";
 
-export default function EvVeBahceSubPage() {
-  const params = useParams() as { subSlug: string };
-  const subSlug = params.subSlug;
+export async function generateStaticParams() {
+  const params: { subSlug: string }[] = [];
+  
+  // Ev & Bahçe kategorisinin alt kategorileri için statik parametreler oluştur
+  const evVeBahceCategory = categories.find(cat => cat.slug === 'ev-ve-bahce');
+  evVeBahceCategory?.subcategories?.forEach((subcategory) => {
+    params.push({
+      subSlug: subcategory.slug,
+    });
+  });
+  
+  return params;
+}
+
+export default async function EvVeBahceSubPage({ params }: { params: Promise<{ subSlug: string }> }) {
+  const { subSlug } = await params;
 
   // Ev & Bahçe kategorisini bul
   const evVeBahceCategory = categories.find(cat => cat.slug === 'ev-ve-bahce');

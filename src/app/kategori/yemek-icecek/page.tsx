@@ -31,18 +31,19 @@ export default function YemekIcecekPage() {
     if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
     if (priceRange) {
       const price = listing.price
+      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
       switch (priceRange) {
         case '0-200':
-          if (price > 200) return false
+          if (numericPrice > 200) return false
           break
         case '200-500':
-          if (price < 200 || price > 500) return false
+          if (numericPrice < 200 || numericPrice > 500) return false
           break
         case '500-1000':
-          if (price < 500 || price > 1000) return false
+          if (numericPrice < 500 || numericPrice > 1000) return false
           break
         case '1000+':
-          if (price < 1000) return false
+          if (numericPrice < 1000) return false
           break
       }
     }

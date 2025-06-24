@@ -49,18 +49,19 @@ export default function SporlarOyunlarEglencelerPage() {
     if (selectedCategory && listing.subCategory !== selectedCategory) return false
     if (priceRange) {
       const price = listing.price
+      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
       switch (priceRange) {
         case '0-5000':
-          if (price > 5000) return false
+          if (numericPrice > 5000) return false
           break
         case '5000-10000':
-          if (price < 5000 || price > 10000) return false
+          if (numericPrice < 5000 || numericPrice > 10000) return false
           break
         case '10000-20000':
-          if (price < 10000 || price > 20000) return false
+          if (numericPrice < 10000 || numericPrice > 20000) return false
           break
         case '20000+':
-          if (price < 20000) return false
+          if (numericPrice < 20000) return false
           break
       }
     }

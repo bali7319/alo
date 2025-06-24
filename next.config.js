@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
   images: {
     remotePatterns: [
       {
@@ -12,9 +10,6 @@ const nextConfig = {
     ],
     unoptimized: true
   },
-  // Static export için gerekli
-  skipTrailingSlashRedirect: true,
-  skipMiddlewareUrlNormalize: true,
   // Backup klasörlerini hariç tut
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     config.watchOptions = {

@@ -2,34 +2,33 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { Camera, Crown, Star, Check, Zap, TrendingUp, Eye, Clock } from 'lucide-react';
+import { Camera, Crown, Star, Check, Zap, TrendingUp, Eye, Clock, Plus, X, Sparkles } from 'lucide-react';
 import { categories, Category } from '@/lib/categories';
-import BillingForm from '@/components/BillingForm';
 
 export default function IlanVerPage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const [images, setImages] = useState<File[]>([]);
   const [showPhone, setShowPhone] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
-  const [selectedPremiumFeatures, setSelectedPremiumFeatures] = useState<{
-    featured: boolean;
-    urgent: boolean;
-    highlight: boolean;
-    top: boolean;
-    extended: boolean;
-    morePhotos: boolean;
-  }>({
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState('none');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOptionalFeatures, setShowOptionalFeatures] = useState(false);
+  const [optionalFeatures, setOptionalFeatures] = useState<Array<{key: string, value: string}>>([]);
+  const [newFeatureKey, setNewFeatureKey] = useState('');
+  const [newFeatureValue, setNewFeatureValue] = useState('');
+  const [adminSettings, setAdminSettings] = useState({
+    featuredPrice: 50,
+    urgentPrice: 30,
+    highlightPrice: 25,
+    topPrice: 75
+  });
+  const [premiumSettings, setPremiumSettings] = useState({
     featured: false,
     urgent: false,
     highlight: false,
-    top: false,
-    extended: false,
-    morePhotos: false
+    topPosition: false
   });
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -38,20 +37,11 @@ export default function IlanVerPage() {
     subCategory: '',
     location: '',
     phone: '',
+    termsAccepted: false,
   });
-  const [userProfile, setUserProfile] = useState<{
-    name: string;
-    email: string;
-    phone: string;
-    location: string;
-  } | null>(null);
-  const [profileLoaded, setProfileLoaded] = useState(false);
-  const [settings, setSettings] = useState<any>(null);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
-  const [billingData, setBillingData] = useState<any>(null);
 
-  // Varsayılan premium planlar (fallback)
-  const defaultPremiumPlans = {
+  // Varsayılan premium planlar
+  const premiumPlans = {
     none: {
       name: 'Ücretsiz',
       price: 0,
@@ -70,7 +60,6 @@ export default function IlanVerPage() {
         'İlan öne çıkarma',
         'Premium rozeti',
         '5 adet resim yükleme',
-        'Öncelikli destek',
         'Reklamsız deneyim'
       ]
     },
@@ -82,7 +71,6 @@ export default function IlanVerPage() {
         'İlan öne çıkarma',
         'Premium rozeti',
         '10 adet resim yükleme',
-        'Öncelikli destek',
         'Reklamsız deneyim',
         '1 ay bedava'
       ]
@@ -95,7 +83,6 @@ export default function IlanVerPage() {
         'İlan öne çıkarma',
         'Premium rozeti',
         'Sınırsız resim yükleme',
-        'Öncelikli destek',
         'Reklamsız deneyim',
         '3 ay bedava',
         'Özel destek hattı'
@@ -103,131 +90,59 @@ export default function IlanVerPage() {
     }
   };
 
-  // Dinamik premium planlar
-  const premiumPlans = settingsLoaded && settings ? {
-    none: defaultPremiumPlans.none,
-    monthly: {
-      ...defaultPremiumPlans.monthly,
-      price: settings.premiumPrice || 199,
-      duration: `${settings.premiumDuration || 30} gün`,
-      features: [
-        ...defaultPremiumPlans.monthly.features.slice(0,2),
-        `${settings.premiumMaxImages || 5} adet resim yükleme`,
-        ...defaultPremiumPlans.monthly.features.slice(3)
-      ]
+  // Premium özellik seçenekleri - Admin ayarlarından dinamik olarak
+  const premiumFeatures = [
+    {
+      id: 'featured',
+      name: 'Öne Çıkan İlan',
+      description: 'İlanınız ana sayfada öne çıkarılır',
+      price: adminSettings.featuredPrice,
+      icon: Star
     },
-    quarterly: {
-      ...defaultPremiumPlans.quarterly,
-      price: settings.featuredPrice || 494,
-      duration: `${settings.featuredDuration || 90} gün`,
-      features: [
-        ...defaultPremiumPlans.quarterly.features.slice(0,2),
-        `${settings.maxImages || 10} adet resim yükleme`,
-        ...defaultPremiumPlans.quarterly.features.slice(3)
-      ]
+    {
+      id: 'urgent',
+      name: 'Acil Satılık',
+      description: 'Acil satılık rozeti ile dikkat çekin',
+      price: adminSettings.urgentPrice,
+      icon: Zap
     },
-    yearly: {
-      ...defaultPremiumPlans.yearly,
-      price: settings.topPrice || 2179,
-      duration: `${settings.topDuration || 365} gün`,
-      features: [
-        ...defaultPremiumPlans.yearly.features.slice(0,2),
-        'Sınırsız resim yükleme',
-        ...defaultPremiumPlans.yearly.features.slice(3)
-      ]
+    {
+      id: 'highlight',
+      name: 'Renkli Vurgu',
+      description: 'İlanınız renkli çerçeve ile vurgulanır',
+      price: adminSettings.highlightPrice,
+      icon: Sparkles
+    },
+    {
+      id: 'topPosition',
+      name: 'Üst Sıralama',
+      description: 'Kategori sayfalarında üst sıralarda yer alın',
+      price: adminSettings.topPrice,
+      icon: TrendingUp
     }
-  } : defaultPremiumPlans;
+  ];
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/giris?callbackUrl=/ilan-ver');
-    } else if (status === 'authenticated' && !profileLoaded) {
-      loadUserProfile();
-    }
-  }, [status, router, profileLoaded]);
-
-  // Kategori seçildiğinde alt kategorileri sıfırla
-  useEffect(() => {
-    if (selectedCategory) {
-      setSelectedSubCategory(null);
-      setFormData(prev => ({ ...prev, subCategory: '' }));
-    }
-  }, [selectedCategory]);
-
-  // Ücretsiz Gel Al kategorisi seçildiğinde fiyatı otomatik ayarla
-  useEffect(() => {
-    if (formData.category === 'ucretsiz-gel-al') {
-      setFormData(prev => ({ ...prev, price: 'Ücretsiz' }));
-    } else if (formData.price === 'Ücretsiz') {
-      setFormData(prev => ({ ...prev, price: '' }));
-    }
-  }, [formData.category]);
-
-  // Profil bilgilerini yükle
-  const loadUserProfile = async () => {
-    try {
-      const response = await fetch('/api/user/profile');
-      if (response.ok) {
-        const data = await response.json();
-        setUserProfile(data);
-      }
-    } catch (error) {
-      console.error('Profil yüklenirken hata:', error);
-    } finally {
-      setProfileLoaded(true);
-    }
-  };
-
-  // Ayarları yükle
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch('/api/admin/settings');
-        if (response.ok) {
-          const data = await response.json();
-          setSettings(data);
-        }
-      } catch (error) {
-        console.error('Ayarlar yüklenirken hata:', error);
-      } finally {
-        setSettingsLoaded(true);
-      }
-    };
-
-    if (status === 'authenticated') {
-      fetchSettings();
-    }
-  }, [status]);
+  // Önceden tanımlanmış özellik seçenekleri
+  const predefinedFeatures = [
+    'Marka', 'Model', 'Renk', 'Boyut', 'Ağırlık', 'Malzeme', 'Garanti', 'Kullanım Süresi',
+    'Durum', 'Paket İçeriği', 'Teknik Özellikler', 'Enerji Sınıfı', 'Güç', 'Kapasite',
+    'Ölçüler', 'Stok Durumu', 'Teslimat', 'Ödeme Seçenekleri', 'İade Koşulları',
+    'Yıl', 'Kilometre', 'Yakıt Tipi', 'Vites', 'Motor Hacmi', 'Çekim', 'Kasa Tipi',
+    'Renk', 'Donanım', 'Servis Geçmişi', 'Sigorta', 'Muayene', 'Ruhsat', 'Fatura',
+    'Kullanım Durumu', 'Ekspertiz', 'Takas', 'Kredi', 'Nakit', 'Pazarlık Payı'
+  ];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const maxImages = selectedPremiumFeatures.top ? 20 : 
-                     selectedPremiumFeatures.highlight ? 10 : 
-                     selectedPremiumFeatures.urgent ? 5 : 3;
-    
-    if (images.length + files.length > maxImages) {
-      alert(`En fazla ${maxImages} adet resim yükleyebilirsiniz`);
-      return;
+    if (e.target.files) {
+      const newImages = Array.from(e.target.files);
+      setImages(prev => [...prev, ...newImages].slice(0, 10));
     }
-
-    const validFiles = files.filter(file => {
-      if (!file.type.startsWith('image/')) {
-        alert(`${file.name} bir resim dosyası değil`);
-        return false;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        alert(`${file.name} dosyası çok büyük (maksimum 5MB)`);
-        return false;
-      }
-      return true;
-    });
-
-    setImages(prev => [...prev, ...validFiles]);
   };
 
   const handleCategoryChange = (categorySlug: string) => {
     const category = categories.find(cat => cat.slug === categorySlug);
     setSelectedCategory(category || null);
+    setSelectedSubCategory(null);
     setFormData(prev => ({ ...prev, category: categorySlug, subCategory: '' }));
   };
 
@@ -237,593 +152,307 @@ export default function IlanVerPage() {
     setFormData(prev => ({ ...prev, subCategory: subCategorySlug }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Premium plan seçildiğinde fatura bilgileri kontrolü
-    if (selectedPremiumFeatures.top && !billingData) {
-      alert('Premium plan seçtiğiniz için fatura bilgilerini doldurmanız gerekiyor.');
-      return;
-    }
-    
-    const submitButton = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement;
-    const originalText = submitButton.textContent;
-    submitButton.disabled = true;
-    submitButton.textContent = 'İşleniyor...';
-
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('price', formData.category === 'ucretsiz-gel-al' ? 'Ücretsiz' : formData.price);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('subCategory', formData.subCategory);
-      formDataToSend.append('location', formData.location);
-      formDataToSend.append('phone', formData.phone);
-      formDataToSend.append('showPhone', showPhone.toString());
-      formDataToSend.append('isPremium', selectedPremiumFeatures.top ? 'true' : 'false');
-      formDataToSend.append('premiumFeatures', JSON.stringify(selectedPremiumFeatures));
-
-      images.forEach((image, index) => {
-        formDataToSend.append(`images`, image);
-      });
-
-      if (billingData) {
-        Object.entries(billingData).forEach(([key, value]) => {
-          formDataToSend.append(`billing_${key}`, value as string);
-        });
-      }
-
-      const response = await fetch('/api/listings', {
-        method: 'POST',
-        body: formDataToSend,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        
-        if (selectedPremiumFeatures.top) {
-          alert('Ödeme başarılı! İlanınız yayınlandı.');
-        } else {
-          alert('İlanınız başarıyla yayınlandı!');
-        }
-        
-        router.push('/');
-      } else {
-        const error = await response.json();
-        alert(error.message || 'İşlem sırasında bir hata oluştu');
-      }
-    } catch (error) {
-      console.error('İşlem hatası:', error);
-      alert('İşlem sırasında bir hata oluştu');
-    } finally {
-      submitButton.disabled = false;
-      submitButton.textContent = originalText;
+  const addOptionalFeature = () => {
+    if (newFeatureKey.trim() && newFeatureValue.trim()) {
+      setOptionalFeatures(prev => [...prev, { key: newFeatureKey.trim(), value: newFeatureValue.trim() }]);
+      setNewFeatureKey('');
+      setNewFeatureValue('');
     }
   };
 
-  const calculatePremiumFeaturesTotal = () => {
-    let total = 0;
-    if (selectedPremiumFeatures.featured) total += settings?.featuredPrice || 50;
-    if (selectedPremiumFeatures.urgent) total += settings?.urgentPrice || 30;
-    if (selectedPremiumFeatures.highlight) total += settings?.highlightPrice || 40;
-    if (selectedPremiumFeatures.top) total += settings?.topPrice || 60;
-    if (selectedPremiumFeatures.extended) total += settings?.extendedDurationPrice || 25;
-    if (selectedPremiumFeatures.morePhotos) total += settings?.morePhotosPrice || 19;
-    return total;
+  const removeOptionalFeature = (index: number) => {
+    setOptionalFeatures(prev => prev.filter((_, i) => i !== index));
   };
 
-  const getSelectedPremiumFeatures = () => {
-    const features: string[] = [];
-    if (selectedPremiumFeatures.featured) features.push('Öne Çıkan İlan');
-    if (selectedPremiumFeatures.urgent) features.push('Acil İlan');
-    if (selectedPremiumFeatures.highlight) features.push('Vurgulanmış İlan');
-    if (selectedPremiumFeatures.top) features.push('En Üstte İlan');
-    if (selectedPremiumFeatures.extended) features.push('Uzatılmış Süre');
-    if (selectedPremiumFeatures.morePhotos) features.push('Ek Fotoğraflar');
-    return features;
-  };
-
-  const togglePremiumFeature = (feature: 'featured' | 'urgent' | 'highlight' | 'top' | 'extended' | 'morePhotos') => {
-    setSelectedPremiumFeatures(prev => ({
+  const handlePremiumSettingChange = (settingId: string) => {
+    setPremiumSettings(prev => ({
       ...prev,
-      [feature]: !prev[feature]
+      [settingId]: !prev[settingId as keyof typeof prev]
     }));
   };
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
-        </div>
-      </div>
-    );
-  }
+  const calculateTotalPrice = () => {
+    const planPrice = premiumPlans[selectedPlan as keyof typeof premiumPlans].price;
+    const premiumFeaturesPrice = Object.entries(premiumSettings)
+      .filter(([_, enabled]) => enabled)
+      .reduce((total, [settingId]) => {
+        const feature = premiumFeatures.find(f => f.id === settingId);
+        return total + (feature?.price || 0);
+      }, 0);
+    return planPrice + premiumFeaturesPrice;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Form validasyonu
+      if (!formData.title || !formData.description || !formData.price || !formData.category || !formData.location || !formData.phone) {
+        alert('Lütfen tüm zorunlu alanları doldurun.');
+        return;
+      }
+
+      if (!formData.termsAccepted) {
+        alert('Kullanım koşullarını kabul etmelisiniz.');
+        return;
+      }
+
+      // Seçilen plan bilgisi
+      const selectedPlanData = premiumPlans[selectedPlan as keyof typeof premiumPlans];
+      
+      // İlan verilerini hazırla
+      const listingData = {
+        id: Date.now(), // Benzersiz ID
+        ...formData,
+        plan: selectedPlan,
+        planName: selectedPlanData.name,
+        planPrice: selectedPlanData.price,
+        premiumSettings: premiumSettings,
+        premiumFeaturesPrice: Object.entries(premiumSettings)
+          .filter(([_, enabled]) => enabled)
+          .reduce((total, [settingId]) => {
+            const feature = premiumFeatures.find(f => f.id === settingId);
+            return total + (feature?.price || 0);
+          }, 0),
+        totalPrice: calculateTotalPrice(),
+        images: images.length,
+        optionalFeatures: optionalFeatures,
+        createdAt: new Date().toISOString(),
+        isPremium: selectedPlan !== 'none',
+        // Demo için varsayılan değerler
+        views: 0,
+        likes: 0,
+        status: 'active'
+      };
+
+      // Mevcut ilanları localStorage'dan al
+      const existingListings = JSON.parse(localStorage.getItem('userListings') || '[]');
+      
+      // Yeni ilanı ekle
+      const updatedListings = [listingData, ...existingListings];
+      
+      // localStorage'a kaydet
+      localStorage.setItem('userListings', JSON.stringify(updatedListings));
+
+      // Demo için başarı mesajı
+      const successMessage = selectedPlan === 'none' 
+        ? 'İlanınız başarıyla yayınlandı! Ücretsiz plan ile 30 gün boyunca yayında kalacak.'
+        : `İlanınız başarıyla yayınlandı! ${selectedPlanData.name} planı ile ${selectedPlanData.duration} boyunca premium özelliklerle yayında kalacak.`;
+
+      alert(successMessage);
+      
+      // Form'u temizle
+      setFormData({
+        title: '',
+        description: '',
+        price: '',
+        category: '',
+        subCategory: '',
+        location: '',
+        phone: '',
+        termsAccepted: false,
+      });
+      setImages([]);
+      setSelectedCategory(null);
+      setSelectedSubCategory(null);
+      setSelectedPlan('none');
+      setOptionalFeatures([]);
+      setShowOptionalFeatures(false);
+      setPremiumSettings({
+        featured: false,
+        urgent: false,
+        highlight: false,
+        topPosition: false
+      });
+
+    } catch (error) {
+      alert('İlan yayınlanırken bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Admin ayarlarını yükle
+  const fetchAdminSettings = async () => {
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON');
+      }
+      
+      const settings = await response.json();
+      setAdminSettings({
+        featuredPrice: settings.featuredPrice || 50,
+        urgentPrice: settings.urgentPrice || 30,
+        highlightPrice: settings.highlightPrice || 25,
+        topPrice: settings.topPrice || 75
+      });
+    } catch (error) {
+      console.error('Admin ayarları yüklenirken hata:', error);
+      // Hata durumunda varsayılan değerleri kullan
+      setAdminSettings({
+        featuredPrice: 50,
+        urgentPrice: 30,
+        highlightPrice: 25,
+        topPrice: 75
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminSettings();
+    
+    // Her 30 saniyede bir admin ayarlarını kontrol et
+    const interval = setInterval(fetchAdminSettings, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4">
-        {/* Premium Plan Seçimi - Form dışında */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold flex items-center">
-              <Crown className="w-5 h-5 text-yellow-500 mr-2" />
-              Premium Plan Seçimi
-            </h2>
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">İlan Ver</h1>
+            <p className="text-gray-600">Ürününüzü veya hizmetinizi satışa çıkarın</p>
           </div>
-          
-          {/* Premium Planlar */}
-          <div className="mb-6">
-            <h3 className="text-md font-medium text-gray-800 mb-3">Premium Planlar</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+          {/* Premium Plans */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Crown className="w-5 h-5 text-yellow-500 mr-2" />
+              Premium Plan Seçin
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {Object.entries(premiumPlans).map(([key, plan]) => (
-                <div
-                  key={key}
-                  className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                    selectedPremiumFeatures.top
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300'
+                <div 
+                  key={key} 
+                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                    selectedPlan === key 
+                      ? 'border-blue-500 bg-blue-50 shadow-md' 
+                      : 'hover:shadow-md hover:border-gray-300'
                   }`}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.nativeEvent.stopImmediatePropagation();
-                    e.nativeEvent.preventDefault();
-                    togglePremiumFeature('top');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      togglePremiumFeature('top');
-                    }
-                  }}
-                  tabIndex={0}
-                  role="button"
-                  aria-pressed={selectedPremiumFeatures.top}
+                  onClick={() => setSelectedPlan(key)}
                 >
-                  {selectedPremiumFeatures.top && (
-                    <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-1">
-                      <Check className="w-3 h-3" />
-                    </div>
-                  )}
-                  <div className="text-center">
-                    <h3 className="font-semibold text-gray-900">{plan.name}</h3>
-                    <div className="mt-2">
-                      <span className="text-2xl font-bold text-blue-600">
-                        {plan.price === 0 ? 'Ücretsiz' : `${plan.price} ₺`}
-                      </span>
-                      {plan.price > 0 && (
-                        <span className="text-sm text-gray-500">/ {plan.duration}</span>
-                      )}
-                    </div>
-                    <ul className="mt-3 text-xs text-gray-600 space-y-1">
-                      {plan.features.slice(0, 3).map((feature, index) => (
-                        <li key={index} className="flex items-center">
-                          <Check className="w-3 h-3 text-green-500 mr-1 flex-shrink-0" />
-                          {feature}
-                        </li>
-                      ))}
-                      {plan.features.length > 3 && (
-                        <li className="text-blue-600">+{plan.features.length - 3} özellik daha</li>
-                      )}
-                    </ul>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-lg">{plan.name}</h3>
+                    {selectedPlan === key && (
+                      <Check className="w-5 h-5 text-blue-600" />
+                    )}
                   </div>
+                  <div className="text-2xl font-bold text-blue-600 mb-2">
+                    {plan.price === 0 ? 'Ücretsiz' : `₺${plan.price}`}
+                  </div>
+                  <div className="text-sm text-gray-500 mb-3">{plan.duration}</div>
+                  <ul className="space-y-1 text-sm">
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-center">
+                        <Check className="w-4 h-4 text-green-500 mr-2" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Premium Özellikler */}
-          <div className="mb-6">
-            <h3 className="text-md font-medium text-gray-800 mb-3">Premium Özellikler (İsteğe Bağlı)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Öne Çıkan İlan */}
-              <div
-                className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedPremiumFeatures.featured
-                    ? 'border-orange-500 bg-orange-50 shadow-md'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.nativeEvent.stopImmediatePropagation();
-                  e.nativeEvent.preventDefault();
-                  togglePremiumFeature('featured');
-                }}
-                onKeyDown={(e) => {
-                  if ((e.key === 'Enter' || e.key === ' ') && selectedPremiumFeatures.top) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    togglePremiumFeature('featured');
-                  }
-                }}
-                tabIndex={0}
-                role="button"
-                aria-pressed={selectedPremiumFeatures.featured}
-                aria-disabled={!selectedPremiumFeatures.top}
-              >
-                {selectedPremiumFeatures.featured && (
-                  <div className="absolute -top-2 -right-2 bg-orange-500 text-white rounded-full p-1">
-                    <Check className="w-3 h-3" />
-                  </div>
-                )}
-                <div className="text-center">
-                  <div className="flex justify-center mb-2">
-                    <Star className="w-6 h-6 text-orange-500" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">Öne Çıkan İlan</h3>
-                  <div className="mt-2">
-                    <span className="text-xl font-bold text-blue-600">
-                      {settings?.featuredPrice || 50} ₺
-                    </span>
-                    <span className="text-sm text-gray-500">/ {settings?.featuredDuration || 15} gün</span>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-600">
-                    İlanınız kategorisinde öne çıkarılır
-                  </p>
-                  {!selectedPremiumFeatures.top && (
-                    <p className="mt-1 text-xs text-red-500">Premium plan seçin</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Acil İlan */}
-              <div
-                className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedPremiumFeatures.urgent
-                    ? 'border-red-500 bg-red-50 shadow-md'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.nativeEvent.stopImmediatePropagation();
-                  e.nativeEvent.preventDefault();
-                  togglePremiumFeature('urgent');
-                }}
-                onKeyDown={(e) => {
-                  if ((e.key === 'Enter' || e.key === ' ') && selectedPremiumFeatures.top) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    togglePremiumFeature('urgent');
-                  }
-                }}
-                tabIndex={0}
-                role="button"
-                aria-pressed={selectedPremiumFeatures.urgent}
-                aria-disabled={!selectedPremiumFeatures.top}
-              >
-                {selectedPremiumFeatures.urgent && (
-                  <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1">
-                    <Check className="w-3 h-3" />
-                  </div>
-                )}
-                <div className="text-center">
-                  <div className="flex justify-center mb-2">
-                    <Zap className="w-6 h-6 text-red-500" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">Acil İlan</h3>
-                  <div className="mt-2">
-                    <span className="text-xl font-bold text-blue-600">
-                      {settings?.urgentPrice || 30} ₺
-                    </span>
-                    <span className="text-sm text-gray-500">/ {settings?.urgentDuration || 7} gün</span>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-600">
-                    İlanınız acil rozetiyle öne çıkarılır
-                  </p>
-                  {!selectedPremiumFeatures.top && (
-                    <p className="mt-1 text-xs text-red-500">Premium plan seçin</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Vurgulanmış İlan */}
-              <div
-                className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedPremiumFeatures.highlight
-                    ? 'border-purple-500 bg-purple-50 shadow-md'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.nativeEvent.stopImmediatePropagation();
-                  e.nativeEvent.preventDefault();
-                  togglePremiumFeature('highlight');
-                }}
-                onKeyDown={(e) => {
-                  if ((e.key === 'Enter' || e.key === ' ') && selectedPremiumFeatures.top) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    togglePremiumFeature('highlight');
-                  }
-                }}
-                tabIndex={0}
-                role="button"
-                aria-pressed={selectedPremiumFeatures.highlight}
-                aria-disabled={!selectedPremiumFeatures.top}
-              >
-                {selectedPremiumFeatures.highlight && (
-                  <div className="absolute -top-2 -right-2 bg-purple-500 text-white rounded-full p-1">
-                    <Check className="w-3 h-3" />
-                  </div>
-                )}
-                <div className="text-center">
-                  <div className="flex justify-center mb-2">
-                    <TrendingUp className="w-6 h-6 text-purple-500" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">Vurgulanmış İlan</h3>
-                  <div className="mt-2">
-                    <span className="text-xl font-bold text-blue-600">
-                      {settings?.highlightPrice || 40} ₺
-                    </span>
-                    <span className="text-sm text-gray-500">/ {settings?.highlightDuration || 10} gün</span>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-600">
-                    İlanınız renkli çerçeveyle vurgulanır
-                  </p>
-                  {!selectedPremiumFeatures.top && (
-                    <p className="mt-1 text-xs text-red-500">Premium plan seçin</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Uzatılmış Süre */}
-              <div
-                className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedPremiumFeatures.extended
-                    ? 'border-purple-500 bg-purple-50 shadow-md'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => togglePremiumFeature('extended')}
-                tabIndex={0}
-                role="button"
-                aria-pressed={selectedPremiumFeatures.extended}
-              >
-                {selectedPremiumFeatures.extended && (
-                  <div className="absolute -top-2 -right-2 bg-purple-500 text-white rounded-full p-1">
-                    <Check className="w-3 h-3" />
-                  </div>
-                )}
-                <div className="text-center">
-                  <div className="flex justify-center mb-2">
-                    <Clock className="w-6 h-6 text-purple-500" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">Uzatılmış Süre</h3>
-                  <div className="mt-2">
-                    <span className="text-xl font-bold text-blue-600">
-                      {settings?.extendedDurationPrice || 25} ₺
-                    </span>
-                    <span className="text-sm text-gray-500">/ 30 gün</span>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-600">
-                    İlanınız 30 gün daha uzatılır
-                  </p>
-                </div>
-              </div>
-
-              {/* Ek Fotoğraflar */}
-              <div
-                className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedPremiumFeatures.morePhotos
-                    ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => togglePremiumFeature('morePhotos')}
-                tabIndex={0}
-                role="button"
-                aria-pressed={selectedPremiumFeatures.morePhotos}
-              >
-                {selectedPremiumFeatures.morePhotos && (
-                  <div className="absolute -top-2 -right-2 bg-indigo-500 text-white rounded-full p-1">
-                    <Check className="w-3 h-3" />
-                  </div>
-                )}
-                <div className="text-center">
-                  <div className="flex justify-center mb-2">
-                    <Camera className="w-6 h-6 text-indigo-500" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">Ek Fotoğraflar</h3>
-                  <div className="mt-2">
-                    <span className="text-xl font-bold text-blue-600">
-                      {settings?.morePhotosPrice || 19} ₺
-                    </span>
-                    <span className="text-sm text-gray-500">/ 5 adet</span>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-600">
-                    5 adet daha fotoğraf ekleme hakkı
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Toplam Ödeme Özeti */}
-          {selectedPremiumFeatures.top && (
-            <div className="bg-white p-6 rounded-lg border border-blue-200 mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                <Crown className="w-5 h-5 text-yellow-500 mr-2" />
-                Ödeme Özeti
-              </h3>
+          {/* Premium İlan Ayarları */}
+          {selectedPlan !== 'none' && (
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Sparkles className="w-5 h-5 text-purple-500 mr-2" />
+                Premium İlan Ayarları
+              </h2>
+              <p className="text-gray-600 mb-4">
+                İlanınızı daha etkili hale getirmek için ek özellikler seçebilirsiniz.
+              </p>
               
-              <div className="space-y-3">
-                {/* Premium Plan */}
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <div>
-                    <span className="font-medium text-gray-700">{premiumPlans.none.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">({premiumPlans.none.duration})</span>
-                  </div>
-                  <span className="font-semibold text-blue-600">{premiumPlans.none.price} ₺</span>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {premiumFeatures.map((feature) => {
+                  const IconComponent = feature.icon;
+                  return (
+                    <div 
+                      key={feature.id}
+                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                        premiumSettings[feature.id as keyof typeof premiumSettings]
+                          ? 'border-purple-500 bg-purple-50 shadow-md' 
+                          : 'hover:shadow-md hover:border-gray-300'
+                      }`}
+                      onClick={() => handlePremiumSettingChange(feature.id)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <IconComponent className="w-5 h-5 text-purple-500 mr-2" />
+                          <h3 className="font-semibold text-sm">{feature.name}</h3>
+                        </div>
+                        {premiumSettings[feature.id as keyof typeof premiumSettings] && (
+                          <Check className="w-4 h-4 text-purple-600" />
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600 mb-2">{feature.description}</p>
+                      <div className="text-sm font-bold text-purple-600">₺{feature.price}</div>
+                    </div>
+                  );
+                })}
+              </div>
 
-                {/* Seçilen Premium Özellikler */}
-                {Object.values(selectedPremiumFeatures).some(f => f) && (
-                  <>
-                    {selectedPremiumFeatures.featured && (
-                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <div>
-                          <span className="font-medium text-gray-700">Öne Çıkan İlan</span>
-                          <span className="text-sm text-gray-500 ml-2">({settings?.featuredDuration || 15} gün)</span>
-                        </div>
-                        <span className="font-semibold text-blue-600">+{settings?.featuredPrice || 50} ₺</span>
-                      </div>
-                    )}
-                    
-                    {selectedPremiumFeatures.urgent && (
-                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <div>
-                          <span className="font-medium text-gray-700">Acil İlan</span>
-                          <span className="text-sm text-gray-500 ml-2">({settings?.urgentDuration || 7} gün)</span>
-                        </div>
-                        <span className="font-semibold text-blue-600">+{settings?.urgentPrice || 30} ₺</span>
-                      </div>
-                    )}
-                    
-                    {selectedPremiumFeatures.highlight && (
-                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <div>
-                          <span className="font-medium text-gray-700">Vurgulanmış İlan</span>
-                          <span className="text-sm text-gray-500 ml-2">({settings?.highlightDuration || 10} gün)</span>
-                        </div>
-                        <span className="font-semibold text-blue-600">+{settings?.highlightPrice || 40} ₺</span>
-                      </div>
-                    )}
-                    
-                    {selectedPremiumFeatures.extended && (
-                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <div>
-                          <span className="font-medium text-gray-700">Uzatılmış Süre</span>
-                          <span className="text-sm text-gray-500 ml-2">(30 gün)</span>
-                        </div>
-                        <span className="font-semibold text-blue-600">+{settings?.extendedDurationPrice || 25} ₺</span>
-                      </div>
-                    )}
-                    
-                    {selectedPremiumFeatures.morePhotos && (
-                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <div>
-                          <span className="font-medium text-gray-700">Ek Fotoğraflar</span>
-                          <span className="text-sm text-gray-500 ml-2">(5 adet)</span>
-                        </div>
-                        <span className="font-semibold text-blue-600">+{settings?.morePhotosPrice || 19} ₺</span>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Toplam */}
-                <div className="flex justify-between items-center py-3 border-t-2 border-blue-200">
-                  <span className="text-lg font-bold text-gray-800">Toplam</span>
-                  <span className="text-2xl font-bold text-blue-600">
-                    {premiumPlans.none.price + calculatePremiumFeaturesTotal()} ₺
-                  </span>
+              {/* Toplam Fiyat */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold">Toplam Premium Ücret:</span>
+                  <span className="text-2xl font-bold text-purple-600">₺{calculateTotalPrice()}</span>
                 </div>
-
-                {/* Bilgi Notu */}
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    💳 Ödeme işlemi güvenli bir şekilde gerçekleştirilecektir. 
-                    İlanınız ödeme sonrası otomatik olarak yayına alınacaktır.
-                  </p>
-                </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  Plan ücreti + seçilen özellikler
+                </p>
               </div>
             </div>
           )}
 
-          {/* Fatura Formu */}
-          {selectedPremiumFeatures.top && (
-            <div className="my-6">
-              <BillingForm
-                onSubmit={(data) => setBillingData(data)}
-                onCancel={() => setBillingData(null)}
-                hideButtons={true}
-              />
-            </div>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* İlan Bilgileri */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h2 className="text-lg font-semibold mb-4">İlan Bilgileri</h2>
+          {/* Form */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-6">İlan Bilgileri</h2>
             
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  İlan Başlığı <span className="text-red-500">*</span>
+                  İlan Başlığı *
                 </label>
                 <input
                   type="text"
+                  required
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="İlan başlığınızı girin"
-                  required
-                  maxLength={100}
                 />
               </div>
 
+              {/* Category */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Açıklama <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="İlan açıklamanızı detaylı bir şekilde yazın"
-                  rows={4}
-                  required
-                  maxLength={1000}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Kategori <span className="text-red-500">*</span>
+                  Kategori *
                 </label>
                 <select
+                  required
                   value={formData.category}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Kategori seçin</option>
                   {categories.map((category) => (
@@ -834,7 +463,8 @@ export default function IlanVerPage() {
                 </select>
               </div>
 
-              {selectedCategory?.subcategories && selectedCategory.subcategories.length > 0 && (
+              {/* Sub Category */}
+              {selectedCategory?.subcategories && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Alt Kategori
@@ -842,225 +472,332 @@ export default function IlanVerPage() {
                   <select
                     value={formData.subCategory}
                     onChange={(e) => handleSubCategoryChange(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Alt kategori seçin</option>
-                    {selectedCategory.subcategories.map((subCategory) => (
-                      <option key={subCategory.slug} value={subCategory.slug}>
-                        {subCategory.name}
+                    {selectedCategory.subcategories.map((sub) => (
+                      <option key={sub.slug} value={sub.slug}>
+                        {sub.name}
                       </option>
                     ))}
                   </select>
                 </div>
               )}
 
+              {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fiyat {formData.category !== 'ucretsiz-gel-al' && <span className="text-red-500">*</span>}
+                  Açıklama *
                 </label>
-                <input
-                  type="text"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder={formData.category === 'ucretsiz-gel-al' ? 'Ücretsiz' : 'Fiyat girin (örn: 1000)'}
-                  required={formData.category !== 'ucretsiz-gel-al'}
-                  disabled={formData.category === 'ucretsiz-gel-al'}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Konum <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Konum girin (örn: İstanbul, Kadıköy)"
+                <textarea
                   required
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ürün veya hizmetiniz hakkında detaylı bilgi verin"
                 />
               </div>
 
+              {/* Price */}
+              {formData.category !== 'ucretsiz-gel-al' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fiyat (TL) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={formData.price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Fiyat girin"
+                  />
+                </div>
+              )}
+              
+              {formData.category === 'ucretsiz-gel-al' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fiyat (TL)
+                  </label>
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500">
+                    Ücretsiz Gel Al kategorisi seçili - fiyat alanı gizli
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ücretsiz Gel Al kategorisinde fiyat belirtmenize gerek yoktur.
+                  </p>
+                </div>
+              )}
+
+              {/* Location */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefon Numarası <span className="text-red-500">*</span>
+                  Konum *
                 </label>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="showPhone"
-                      checked={showPhone}
-                      onChange={(e) => setShowPhone(e.target.checked)}
-                      className="mr-2"
-                      required
-                    />
-                    <label htmlFor="showPhone">Telefon numaramı göster</label>
-                  </div>
-                  
-                  {userProfile && userProfile.phone && (
-                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="text-sm text-blue-800 font-medium mb-1">
-                            📞 Profil bilgilerinizden telefon
-                          </p>
-                          <p className="text-xs text-blue-600">
-                            {userProfile.phone}
-                          </p>
-                        </div>
+                <input
+                  type="text"
+                  required
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Şehir, ilçe"
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Telefon *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="05XX XXX XX XX"
+                />
+              </div>
+
+              {/* Optional Features */}
+              <div className="border-t pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">İsteğe Bağlı Özellikler</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowOptionalFeatures(!showOptionalFeatures)}
+                    className="flex items-center text-blue-600 hover:text-blue-800"
+                  >
+                    {showOptionalFeatures ? (
+                      <>
+                        <X className="w-4 h-4 mr-1" />
+                        Gizle
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-1" />
+                        Özellik Ekle
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {showOptionalFeatures && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      Ürününüzün ek özelliklerini belirtmek için özellik ekleyebilirsiniz. (Örn: Marka, Model, Renk, Boyut vb.)
+                    </p>
+
+                    {/* Add New Feature */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Özellik Adı
+                        </label>
+                        <select
+                          value={newFeatureKey}
+                          onChange={(e) => setNewFeatureKey(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Özellik seçin</option>
+                          {predefinedFeatures.map((feature) => (
+                            <option key={feature} value={feature}>
+                              {feature}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Değer
+                        </label>
+                        <input
+                          type="text"
+                          value={newFeatureValue}
+                          onChange={(e) => setNewFeatureValue(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Özellik değeri"
+                        />
+                      </div>
+                      <div className="flex items-end">
                         <button
                           type="button"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, phone: userProfile.phone }));
-                            alert('Telefon numarası dolduruldu!');
-                          }}
-                          className="ml-3 px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                          onClick={addOptionalFeature}
+                          disabled={!newFeatureKey || !newFeatureValue}
+                          className={`w-full px-4 py-2 rounded-md transition-colors ${
+                            newFeatureKey && newFeatureValue
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
                         >
-                          Kullan
+                          Ekle
                         </button>
                       </div>
                     </div>
-                  )}
-                  
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '');
-                      if (value.length <= 10) {
-                        setFormData({ ...formData, phone: value });
-                      }
-                    }}
-                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Telefon numaranız (örn: 05551234567)"
-                    required
-                    maxLength={10}
-                  />
-                </div>
+
+                    {/* Custom Feature Input */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Özel Özellik
+                        </label>
+                        <input
+                          type="text"
+                          value={newFeatureKey}
+                          onChange={(e) => setNewFeatureKey(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Özel özellik adı"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Değer
+                        </label>
+                        <input
+                          type="text"
+                          value={newFeatureValue}
+                          onChange={(e) => setNewFeatureValue(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Özellik değeri"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={addOptionalFeature}
+                          disabled={!newFeatureKey || !newFeatureValue}
+                          className={`w-full px-4 py-2 rounded-md transition-colors ${
+                            newFeatureKey && newFeatureValue
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          Ekle
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Display Added Features */}
+                    {optionalFeatures.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Eklenen Özellikler:</h4>
+                        <div className="space-y-2">
+                          {optionalFeatures.map((feature, index) => (
+                            <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                              <div>
+                                <span className="font-medium text-gray-900">{feature.key}:</span>
+                                <span className="ml-2 text-gray-700">{feature.value}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeOptionalFeature(index)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
+              {/* Images */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Resimler <span className="text-red-500">*</span> 
-                  {(() => {
-                    const maxImages = selectedPremiumFeatures.top ? 20 : 
-                                     selectedPremiumFeatures.highlight ? 10 : 
-                                     selectedPremiumFeatures.urgent ? 5 : 3;
-                    return ` (En az 1, en fazla ${maxImages} adet)`;
-                  })()}
+                  Resimler
                 </label>
-                
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800 mb-3">
-                    📱 Mobil cihazlarda kamera erişimi için aşağıdaki seçenekleri kullanabilirsiniz:
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('camera-input')?.click()}
-                      className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                    >
-                      📷 Kamera ile Çek
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('gallery-input')?.click()}
-                      className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      🖼️ Galeriden Seç
-                    </button>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-600 mb-2">Resim yüklemek için tıklayın</p>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer"
+                  >
+                    Resim Seç
+                  </label>
+                </div>
+                {images.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {images.map((image, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(image)}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Terms and Conditions */}
+              <div className="border-t pt-6">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    required
+                    checked={formData.termsAccepted}
+                    onChange={(e) => setFormData(prev => ({ ...prev, termsAccepted: e.target.checked }))}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="terms" className="text-sm text-gray-700">
+                      <a 
+                        href="/kullanim-kosullari" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="font-medium text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Kullanım Koşulları
+                      </a>{' '}
+                      ve{' '}
+                      <a 
+                        href="/gizlilik-politikasi" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="font-medium text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Gizlilik Politikası
+                      </a>'nı okudum ve kabul ediyorum. *
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      İlanınızı yayınlayarak, platform kurallarına uygun olduğunu ve doğru bilgiler verdiğinizi onaylıyorsunuz.
+                    </p>
                   </div>
                 </div>
-
-                <input
-                  id="camera-input"
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <input
-                  id="gallery-input"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {images.map((image, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={URL.createObjectURL(image)}
-                        alt={`İlan resmi ${index + 1}`}
-                        className="w-full h-32 object-cover rounded"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setImages(images.filter((_, i) => i !== index))}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                  {(() => {
-                    const maxImages = selectedPremiumFeatures.top ? 20 : 
-                                     selectedPremiumFeatures.highlight ? 10 : 
-                                     selectedPremiumFeatures.urgent ? 5 : 3;
-                    return images.length < maxImages;
-                  })() && (
-                    <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                        capture="environment"
-                      />
-                      <Camera className="w-8 h-8 text-gray-400" />
-                      <span className="text-sm text-gray-500 mt-2">Resim Ekle</span>
-                    </label>
-                  )}
-                </div>
               </div>
-            </div>
 
-            <div className="flex justify-end space-x-4 mt-6">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                İptal
-              </button>
-              <button
-                type="submit"
-                disabled={
-                  !formData.title.trim() || 
-                  !formData.description.trim() || 
-                  !formData.category || 
-                  !formData.location.trim() || 
-                  !formData.phone.trim() || 
-                  images.length === 0 || 
-                  (selectedPremiumFeatures.top && formData.category !== 'ucretsiz-gel-al' && !formData.price.trim()) ||
-                  (selectedPremiumFeatures.top && !billingData)
-                }
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
-              >
-                {selectedPremiumFeatures.top 
-                  ? `Ödeme Yap ve İlanı Yayınla (${premiumPlans.none.price + calculatePremiumFeaturesTotal()} ₺)`
-                  : 'İlanı Yayınla'
-                }
-              </button>
-            </div>
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={!formData.termsAccepted || isSubmitting}
+                  className={`px-6 py-2 rounded-md transition-colors ${
+                    formData.termsAccepted && !isSubmitting
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isSubmitting ? 'Yayınlanıyor...' : 'İlanı Yayınla'}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

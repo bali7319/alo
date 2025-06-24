@@ -1,6 +1,3 @@
-"use client"
-
-import { useParams } from "next/navigation";
 import { listings } from "@/lib/listings";
 import { ListingCard } from "@/components/listing-card";
 import { Listing } from "@/types/listings";
@@ -9,9 +6,23 @@ import Link from "next/link";
 import { FeaturedAds } from "@/components/featured-ads";
 import { LatestAds } from "@/components/latest-ads";
 
-export default function ElektronikSubPage() {
-  const params = useParams() as { subSlug: string };
-  const subSlug = params.subSlug;
+// generateStaticParams fonksiyonu ekle
+export async function generateStaticParams() {
+  const params: { subSlug: string }[] = [];
+  
+  // Elektronik kategorisinin alt kategorileri için statik parametreler oluştur
+  const elektronikCategory = categories.find(cat => cat.slug === 'elektronik');
+  elektronikCategory?.subcategories?.forEach((subcategory) => {
+    params.push({
+      subSlug: subcategory.slug,
+    });
+  });
+  
+  return params;
+}
+
+export default async function ElektronikSubPage({ params }: { params: Promise<{ subSlug: string }> }) {
+  const { subSlug } = await params;
 
   // Elektronik kategorisini bul
   const elektronikCategory = categories.find(cat => cat.slug === 'elektronik');

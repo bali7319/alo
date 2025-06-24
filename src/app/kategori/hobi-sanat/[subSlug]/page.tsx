@@ -1,6 +1,3 @@
-"use client"
-
-import { useParams } from "next/navigation";
 import { listings } from "@/lib/listings";
 import { ListingCard } from "@/components/listing-card";
 import { Listing } from "@/types/listings";
@@ -14,47 +11,25 @@ const hobiSanatCategory = {
   slug: "hobi-sanat",
   icon: "🎨",
   subcategories: [
-    {
-      name: "Resim",
-      slug: "resim",
-      icon: "🎨"
-    },
-    {
-      name: "Müzik",
-      slug: "muzik",
-      icon: "🎵"
-    },
-    {
-      name: "Seramik",
-      slug: "seramik",
-      icon: "🏺"
-    },
-    {
-      name: "Fotoğrafçılık",
-      slug: "fotografcilik",
-      icon: "📸"
-    },
-    {
-      name: "El Sanatları",
-      slug: "el-sanatlari",
-      icon: "🧶"
-    },
-    {
-      name: "Koleksiyon",
-      slug: "koleksiyon",
-      icon: "📦"
-    },
-    {
-      name: "Diğer",
-      slug: "diger",
-      icon: "🎭"
-    }
+    { name: "Resim", slug: "resim", icon: "🎨" },
+    { name: "Müzik", slug: "muzik", icon: "🎵" },
+    { name: "Seramik", slug: "seramik", icon: "🏺" },
+    { name: "Fotoğrafçılık", slug: "fotografcilik", icon: "📸" },
+    { name: "El Sanatları", slug: "el-sanatlari", icon: "🧶" },
+    { name: "Koleksiyon", slug: "koleksiyon", icon: "📦" },
+    { name: "Diğer", slug: "diger", icon: "🎭" }
   ]
 }
 
-export default function HobiSanatSubPage() {
-  const params = useParams() as { subSlug: string };
-  const subSlug = params.subSlug;
+// generateStaticParams fonksiyonu ekle
+export async function generateStaticParams() {
+  return hobiSanatCategory.subcategories.map((subcategory) => ({
+    subSlug: subcategory.slug,
+  }));
+}
+
+export default async function HobiSanatSubPage({ params }: { params: Promise<{ subSlug: string }> }) {
+  const { subSlug } = await params;
 
   // Alt kategoriyi bul
   const subcategory = hobiSanatCategory.subcategories.find(sub => sub.slug === subSlug);

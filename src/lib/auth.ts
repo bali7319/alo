@@ -1,15 +1,10 @@
 import { NextAuthOptions } from 'next-auth';
-import { PrismaAdapter } from '@auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
-import { compare } from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
 import { JWT } from 'next-auth/jwt';
-import NextAuth from 'next-auth';
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -22,25 +17,26 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email ve şifre gerekli');
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user || !user.password) {
-          throw new Error('Kullanıcı bulunamadı');
+        // Test kullanıcısı kontrolü
+        if (credentials.email === 'test@alo17.tr' && credentials.password === 'test123') {
+          return {
+            id: 'test-user-1',
+            email: credentials.email,
+            name: 'Test Kullanıcı',
+          };
         }
 
-        const isPasswordValid = await compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          throw new Error('Geçersiz şifre');
+        // Admin kontrolü
+        if (credentials.email === 'admin@alo17.tr' && credentials.password === 'admin123') {
+          return {
+            id: 'admin-1',
+            email: credentials.email,
+            name: 'Admin',
+            role: 'admin'
+          };
         }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
+        throw new Error('Geçersiz email veya şifre');
       },
     }),
     GoogleProvider({
@@ -66,6 +62,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
+        token.role = user.role;
       }
       return token;
     },
@@ -74,11 +71,10 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
+        session.user.role = token.role as string;
       }
       return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-here-change-in-production',
-};
-
-export const { auth, signIn, signOut } = NextAuth(authOptions); 
+}; 

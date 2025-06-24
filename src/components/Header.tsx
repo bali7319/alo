@@ -2,17 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
 import { User, Bell, LogOut, Settings, Heart, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SearchBar } from './search-bar'
 
 export default function Header() {
-  const { data: session, status } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
+  // Static export modunda session yok, varsayılan olarak giriş yapmamış kullanıcı gösteriyoruz
+  const session = null;
+  const status = 'unauthenticated';
+
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/' });
+    // Static export modunda çıkış işlemi yapılamaz
+    console.log('Çıkış yapıldı');
   };
 
   return (
@@ -33,18 +37,13 @@ export default function Header() {
             </Link>
           </div>
 
+          {/* Arama Çubuğu - Desktop */}
+          <div className="hidden md:flex flex-1 max-w-md mx-8">
+            <SearchBar />
+          </div>
+
           {/* User Actions */}
           <div className="flex items-center space-x-2 lg:space-x-4">
-            {/* Bildirimler Butonu - Sadece giriş yapmış kullanıcılar için */}
-            {session && (
-              <Link href="/notifications">
-                <Button variant="outline" className="hidden md:flex border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white">
-                  <Bell className="h-4 w-4 mr-2" />
-                  Bildirimler
-                </Button>
-              </Link>
-            )}
-
             {/* İlan Ver Butonu */}
             <Link href="/ilan-ver">
               <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium">
@@ -54,90 +53,21 @@ export default function Header() {
               </Button>
             </Link>
 
-            {/* Kullanıcı Menüsü */}
-            {status === 'loading' ? (
-              // Yükleniyor durumu
-              <div className="animate-pulse">
-                <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-              </div>
-            ) : session ? (
-              // Giriş yapmış kullanıcı - Profil menüsü
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  className="border-gray-300 flex items-center space-x-2"
-                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                >
-                  <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-medium">
-                      {session.user?.name?.charAt(0) || session.user?.email?.charAt(0) || 'U'}
-                    </span>
-                  </div>
-                  <span className="hidden lg:inline text-sm">
-                    {session.user?.name || session.user?.email?.split('@')[0]}
-                  </span>
-                </Button>
-
-                {/* Profil Dropdown Menüsü */}
-                {isProfileMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                    <Link href="/profil" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 mr-2" />
-                        Profilim
-                      </div>
-                    </Link>
-                    <Link href="/favorilerim" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      <div className="flex items-center">
-                        <Heart className="h-4 w-4 mr-2" />
-                        Favorilerim
-                      </div>
-                    </Link>
-                    <Link href="/ilanlarim" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      <div className="flex items-center">
-                        <Plus className="h-4 w-4 mr-2" />
-                        İlanlarım
-                      </div>
-                    </Link>
-                    <Link href="/ayarlar" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      <div className="flex items-center">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Ayarlar
-                      </div>
-                    </Link>
-                    <hr className="my-1" />
-                    <button
-                      onClick={handleSignOut}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                    >
-                      <div className="flex items-center">
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Çıkış Yap
-                      </div>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              // Giriş yapmamış kullanıcı - Giriş butonu
-              <Link href="/giris">
-                <Button variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600">
-                  <User className="h-4 w-4 lg:mr-2" />
-                  <span className="hidden lg:inline">Giriş Yap</span>
-                </Button>
-              </Link>
-            )}
+            {/* Kullanıcı Menüsü - Static export modunda her zaman giriş yapmamış gösteriyoruz */}
+            <Link href="/giris">
+              <Button variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600">
+                <User className="h-4 w-4 lg:mr-2" />
+                <span className="hidden lg:inline">Giriş Yap</span>
+              </Button>
+            </Link>
           </div>
         </div>
-      </div>
 
-      {/* Dropdown menüsü dışına tıklandığında kapatma */}
-      {isProfileMenuOpen && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setIsProfileMenuOpen(false)}
-        />
-      )}
+        {/* Arama Çubuğu - Mobile */}
+        <div className="md:hidden py-4">
+          <SearchBar />
+        </div>
+      </div>
     </header>
   );
 } 

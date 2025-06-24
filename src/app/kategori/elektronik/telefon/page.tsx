@@ -39,18 +39,19 @@ export default function TelefonCategoryPage() {
     if (selectedBrand && listing.title.toLowerCase().indexOf(selectedBrand.toLowerCase()) === -1) return false
     if (priceRange) {
       const price = listing.price
+      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
       switch (priceRange) {
         case '0-5000':
-          if (price > 5000) return false
+          if (numericPrice > 5000) return false
           break
         case '5000-10000':
-          if (price < 5000 || price > 10000) return false
+          if (numericPrice < 5000 || numericPrice > 10000) return false
           break
         case '10000-20000':
-          if (price < 10000 || price > 20000) return false
+          if (numericPrice < 10000 || numericPrice > 20000) return false
           break
         case '20000+':
-          if (price < 20000) return false
+          if (numericPrice < 20000) return false
           break
       }
     }
@@ -180,9 +181,6 @@ export default function TelefonCategoryPage() {
           {/* Sıralama ve Sonuç Sayısı */}
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <span className="text-gray-600">
-                <strong>{filteredListings.length}</strong> telefon & tablet ilanı bulundu
-              </span>
               <select 
                 className="border rounded-md p-2 text-sm"
                 aria-label="Sıralama seçenekleri"

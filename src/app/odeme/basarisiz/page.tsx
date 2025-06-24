@@ -22,6 +22,11 @@ function PaymentFailedPageContent() {
   useEffect(() => {
     const handleFailedPayment = async () => {
       try {
+        if (!searchParams) {
+          setError('Arama parametreleri bulunamadı');
+          setLoading(false);
+          return;
+        }
         const merchant_oid = searchParams.get('merchant_oid');
         const failed_reason_msg = searchParams.get('failed_reason_msg');
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { categories } from "@/types/categories"
+import { categories } from "@/lib/categories"
 
 const categoryColors = {
   elektronik: "text-blue-500",

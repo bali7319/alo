@@ -1,59 +1,62 @@
-"use client"
-
 import { categories } from '@/lib/categories'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 import { Hotel, Plane, Car, Ship, Calendar, Star } from 'lucide-react'
 
-export default function TurizmAltAltKategoriPage() {
-  const params = useParams() as { subSlug: string, subsubslug: string }
-  const [category, setCategory] = useState<any>(null)
-  const [subcategory, setSubcategory] = useState<any>(null)
-  const [subSubcategory, setSubSubcategory] = useState<any>(null)
-  const [mappedListings, setMappedListings] = useState<Listing[]>([])
-  const [otherSubSubcategories, setOtherSubSubcategories] = useState<any[]>([])
+// generateStaticParams fonksiyonu ekle
+export async function generateStaticParams() {
+  const params: { subSlug: string; subsubslug: string }[] = [];
+  
+  // Turizm & Konaklama kategorisinin tüm alt kategorileri ve alt-alt kategorileri için statik parametreler oluştur
+  const foundCategory = categories.find((cat) => cat.slug === 'turizm-konaklama');
+  foundCategory?.subcategories?.forEach((subcategory) => {
+    subcategory.subcategories?.forEach((subSubcategory) => {
+      params.push({
+        subSlug: subcategory.slug,
+        subsubslug: subSubcategory.slug,
+      });
+    });
+  });
+  
+  return params;
+}
 
-  useEffect(() => {
-    const foundCategory = categories.find((cat) => cat.slug === 'turizm-konaklama')
-    if (!foundCategory) return
-    setCategory(foundCategory)
-    const foundSubcategory = foundCategory.subcategories?.find((sub: any) => sub.slug === params.subSlug)
-    if (!foundSubcategory) return
-    setSubcategory(foundSubcategory)
-    const foundSubSubcategory = foundSubcategory.subcategories?.find((subsub: any) => subsub.slug === params.subsubslug)
-    if (!foundSubSubcategory) return
-    setSubSubcategory(foundSubSubcategory)
-    setOtherSubSubcategories(foundSubcategory.subcategories?.filter((subsub: any) => subsub.slug !== params.subsubslug) || [])
-    const mapped = rawListings
-      .filter(listing => listing.category.toLowerCase() === 'turizm-konaklama' && listing.subCategory?.toLowerCase() === params.subSlug && listing.subSubCategory?.toLowerCase() === params.subsubslug)
-      .map(listing => ({
-        id: listing.id.toString(),
-        title: listing.title,
-        description: listing.description,
-        price: listing.price,
-        location: listing.location,
-        category: listing.category,
-        subCategory: listing.subCategory,
-        subSubCategory: listing.subSubCategory,
-        images: [''],
-        isPremium: listing.isPremium,
-        premiumUntil: listing.premiumUntil,
-        createdAt: listing.createdAt,
-        user: {
-          id: '',
-          name: listing.title,
-          email: '',
-        },
-      }))
-    setMappedListings(mapped)
-  }, [params])
-
-  if (!category || !subcategory || !subSubcategory) {
+export default async function TurizmAltAltKategoriPage({ params }: { params: Promise<{ subSlug: string, subsubslug: string }> }) {
+  const { subSlug, subsubslug } = await params;
+  
+  const foundCategory = categories.find((cat) => cat.slug === 'turizm-konaklama')
+  if (!foundCategory) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
+          <Link href="/kategori/turizm-konaklama" className="text-blue-600 hover:text-blue-800">
+            Turizm & Konaklama'ya dön
+          </Link>
+        </div>
+      </div>
+    )
+  }
+  
+  const foundSubcategory = foundCategory.subcategories?.find((sub: any) => sub.slug === subSlug)
+  if (!foundSubcategory) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Alt kategori bulunamadı</h1>
+          <Link href="/kategori/turizm-konaklama" className="text-blue-600 hover:text-blue-800">
+            Turizm & Konaklama'ya dön
+          </Link>
+        </div>
+      </div>
+    )
+  }
+  
+  const foundSubSubcategory = foundSubcategory.subcategories?.find((subsub: any) => subsub.slug === subsubslug)
+  if (!foundSubSubcategory) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -65,6 +68,30 @@ export default function TurizmAltAltKategoriPage() {
       </div>
     )
   }
+  
+  const otherSubSubcategories = foundSubcategory.subcategories?.filter((subsub: any) => subsub.slug !== subsubslug) || []
+  
+  const mappedListings = rawListings
+    .filter(listing => listing.category.toLowerCase() === 'turizm-konaklama' && listing.subCategory?.toLowerCase() === subSlug && listing.subSubCategory?.toLowerCase() === subsubslug)
+    .map(listing => ({
+      id: listing.id.toString(),
+      title: listing.title,
+      description: listing.description,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory,
+      subSubCategory: listing.subSubCategory,
+      images: [''],
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil,
+      createdAt: listing.createdAt,
+      user: {
+        id: '',
+        name: listing.title,
+        email: '',
+      },
+    }))
 
   const getIconComponent = (iconName: string) => {
     const iconMap: { [key: string]: any } = {
@@ -101,22 +128,22 @@ export default function TurizmAltAltKategoriPage() {
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
               <Link href="/kategori/turizm-konaklama" className="text-sm font-medium text-gray-700 hover:text-blue-600">
-                {category.name}
+                {foundCategory.name}
               </Link>
             </div>
           </li>
           <li>
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
-              <Link href={`/kategori/turizm-konaklama/${subcategory.slug}`} className="text-sm font-medium text-gray-700 hover:text-blue-600">
-                {subcategory.name}
+              <Link href={`/kategori/turizm-konaklama/${foundSubcategory.slug}`} className="text-sm font-medium text-gray-700 hover:text-blue-600">
+                {foundSubcategory.name}
               </Link>
             </div>
           </li>
           <li>
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
-              <span className="text-sm font-medium text-gray-500">{subSubcategory.name}</span>
+              <span className="text-sm font-medium text-gray-500">{foundSubSubcategory.name}</span>
             </div>
           </li>
         </ol>
@@ -126,11 +153,11 @@ export default function TurizmAltAltKategoriPage() {
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow">
-            {getIconComponent(subSubcategory.icon)}
+            {getIconComponent(typeof foundSubSubcategory.icon === 'string' ? foundSubSubcategory.icon : '🏨')}
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{subSubcategory.name}</h1>
-            <p className="text-gray-600 max-w-xl">{subSubcategory.description || `${subSubcategory.name} ile ilgili ilanlar burada.`}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{foundSubSubcategory.name}</h1>
+            <p className="text-gray-600 max-w-xl">{`${foundSubSubcategory.name} ile ilgili ilanlar burada.`}</p>
           </div>
         </div>
       </div>
@@ -141,11 +168,11 @@ export default function TurizmAltAltKategoriPage() {
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="font-semibold text-lg mb-4 text-gray-900">Alt Kategoriler</h2>
             <ul className="space-y-3">
-              {subcategory.subcategories?.map((subsub: any) => (
+              {foundSubcategory.subcategories?.map((subsub: any) => (
                 <li key={subsub.slug}>
                   <Link 
-                    href={`/kategori/turizm-konaklama/${subcategory.slug}/${subsub.slug}`}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors group ${subsub.slug === params.subsubslug ? 'bg-blue-100 font-bold text-blue-700' : 'hover:bg-blue-50'}`}
+                    href={`/kategori/turizm-konaklama/${foundSubcategory.slug}/${subsub.slug}`}
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors group ${subsub.slug === subsubslug ? 'bg-blue-100 font-bold text-blue-700' : 'hover:bg-blue-50'}`}
                   >
                     <div className="flex-shrink-0">
                       {getIconComponent(subsub.icon)}
@@ -172,8 +199,8 @@ export default function TurizmAltAltKategoriPage() {
             </div>
             <FeaturedAds 
               category="turizm-konaklama" 
-              subcategory={subcategory.slug}
-              subSubcategory={subSubcategory.slug}
+              subcategory={foundSubcategory.slug}
+              subSubcategory={foundSubSubcategory.slug}
               listings={mappedListings.filter(l => l.isPremium)} 
             />
           </section>
@@ -186,8 +213,8 @@ export default function TurizmAltAltKategoriPage() {
             </div>
             <LatestAds 
               category="turizm-konaklama" 
-              subcategory={subcategory.slug}
-              subSubcategory={subSubcategory.slug}
+              subcategory={foundSubcategory.slug}
+              subSubcategory={foundSubSubcategory.slug}
               listings={mappedListings} 
             />
           </section>

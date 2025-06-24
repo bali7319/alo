@@ -21,18 +21,19 @@ export default function CafesCategoryPage() {
     // if (selectedCuisine && listing.brand !== selectedCuisine) return false
     if (priceRange) {
       const price = listing.price
+      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
       switch (priceRange) {
         case '0-50':
-          if (price > 50) return false
+          if (numericPrice > 50) return false
           break
         case '50-100':
-          if (price < 50 || price > 100) return false
+          if (numericPrice < 50 || numericPrice > 100) return false
           break
         case '100-200':
-          if (price < 100 || price > 200) return false
+          if (numericPrice < 100 || numericPrice > 200) return false
           break
         case '200+':
-          if (price < 200) return false
+          if (numericPrice < 200) return false
           break
       }
     }
@@ -64,7 +65,7 @@ export default function CafesCategoryPage() {
                       type="checkbox"
                       className="mr-2"
                       checked={selectedCuisine === listing.id}
-                      onChange={() => setSelectedCuisine(selectedCuisine === listing.id ? null : listing.id)}
+                      onChange={() => setSelectedCuisine(selectedCuisine === listing.id ? null : String(listing.id))}
                     />
                     <span>{listing.title}</span>
                   </label>

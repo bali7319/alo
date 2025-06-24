@@ -1,57 +1,43 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
 import { Sidebar } from "@/components/sidebar"
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
-import { SearchBar } from '@/components/search-bar'
-import { Listing } from '@/types/listings'
+import { listings } from '@/lib/listings'
 import { Star, Eye, Clock, Camera, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 export default function Home() {
-  const [featuredListings, setFeaturedListings] = useState<Listing[]>([]);
-  const [latestListings, setLatestListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Static export modunda API çağrıları yapmıyoruz, doğrudan verileri kullanıyoruz
+  const staticListings = listings.filter(listing => listing.isPremium).slice(0, 6);
+  const staticLatestListings = [...listings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 12);
 
-  useEffect(() => {
-    const fetchListings = async () => {
-      try {
-        // Premium ilanları getir
-        const featuredResponse = await fetch('/api/listings?sortBy=isPremium&sortOrder=desc&limit=6');
-        const featuredData = await featuredResponse.json();
-        
-        // Son eklenen ilanları getir
-        const latestResponse = await fetch('/api/listings?sortBy=createdAt&sortOrder=desc&limit=12');
-        const latestData = await latestResponse.json();
-
-        setFeaturedListings(featuredData.listings || []);
-        setLatestListings(latestData.listings || []);
-      } catch (error) {
-        console.error('İlanları getirme hatası:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchListings();
-  }, []);
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        </div>
-      </main>
-    );
+  // localStorage'dan kullanıcı ilanlarını al
+  let userListings: any[] = [];
+  if (typeof window !== 'undefined') {
+    try {
+      userListings = JSON.parse(localStorage.getItem('userListings') || '[]');
+    } catch (error) {
+      console.error('localStorage okuma hatası:', error);
+      userListings = [];
+    }
   }
+
+  // Premium ilanları birleştir (kullanıcı ilanları önce)
+  const featuredListings = [
+    ...userListings.filter(listing => listing.isPremium),
+    ...staticListings
+  ].slice(0, 6);
+
+  // En yeni ilanları birleştir (kullanıcı ilanları önce)
+  const latestListings = [
+    ...userListings,
+    ...staticLatestListings
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 12);
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Hero Section with Search */}
+      {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
@@ -62,7 +48,6 @@ export default function Home() {
               Elektronik, giyim, ev eşyaları ve daha birçok kategoride ilan ver, keşfet veya satın al.
             </p>
           </div>
-          <SearchBar />
         </div>
       </section>
 

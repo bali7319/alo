@@ -1,53 +1,45 @@
-"use client"
-
 import { categories } from '@/lib/categories'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 import { Hotel, Plane, Car, Ship, Calendar, Star } from 'lucide-react'
 
-export default function TurizmAltKategoriPage() {
-  const params = useParams() as { subSlug: string }
-  const [category, setCategory] = useState<any>(null)
-  const [subcategory, setSubcategory] = useState<any>(null)
-  const [mappedListings, setMappedListings] = useState<Listing[]>([])
+// generateStaticParams fonksiyonu ekle
+export async function generateStaticParams() {
+  const params: { subSlug: string }[] = [];
+  
+  // Turizm & Konaklama kategorisinin alt kategorileri için statik parametreler oluştur
+  const foundCategory = categories.find((cat) => cat.slug === 'turizm-konaklama');
+  foundCategory?.subcategories?.forEach((subcategory) => {
+    params.push({
+      subSlug: subcategory.slug,
+    });
+  });
+  
+  return params;
+}
 
-  useEffect(() => {
-    const foundCategory = categories.find((cat) => cat.slug === 'turizm-konaklama')
-    if (!foundCategory) return
-    setCategory(foundCategory)
-    const foundSubcategory = foundCategory.subcategories?.find((sub: any) => sub.slug === params.subSlug)
-    if (!foundSubcategory) return
-    setSubcategory(foundSubcategory)
-    const mapped = rawListings
-      .filter(listing => listing.category.toLowerCase() === 'turizm-konaklama' && listing.subCategory?.toLowerCase() === params.subSlug)
-      .map(listing => ({
-        id: listing.id.toString(),
-        title: listing.title,
-        description: listing.description,
-        price: listing.price,
-        location: listing.location,
-        category: listing.category,
-        subCategory: listing.subCategory,
-        subSubCategory: undefined,
-        images: [''],
-        isPremium: listing.isPremium,
-        premiumUntil: listing.premiumUntil,
-        createdAt: listing.createdAt,
-        user: {
-          id: '',
-          name: listing.title,
-          email: '',
-        },
-      }))
-    setMappedListings(mapped)
-  }, [params])
-
-  if (!category || !subcategory) {
+export default async function TurizmAltKategoriPage({ params }: { params: Promise<{ subSlug: string }> }) {
+  const { subSlug } = await params;
+  
+  const foundCategory = categories.find((cat) => cat.slug === 'turizm-konaklama')
+  if (!foundCategory) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
+          <Link href="/kategori/turizm-konaklama" className="text-blue-600 hover:text-blue-800">
+            Turizm & Konaklama'ya dön
+          </Link>
+        </div>
+      </div>
+    )
+  }
+  
+  const foundSubcategory = foundCategory.subcategories?.find((sub: any) => sub.slug === subSlug)
+  if (!foundSubcategory) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -59,6 +51,28 @@ export default function TurizmAltKategoriPage() {
       </div>
     )
   }
+  
+  const mappedListings = rawListings
+    .filter(listing => listing.category.toLowerCase() === 'turizm-konaklama' && listing.subCategory?.toLowerCase() === subSlug)
+    .map(listing => ({
+      id: listing.id.toString(),
+      title: listing.title,
+      description: listing.description,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory,
+      subSubCategory: undefined,
+      images: [''],
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil,
+      createdAt: listing.createdAt,
+      user: {
+        id: '',
+        name: listing.title,
+        email: '',
+      },
+    }))
 
   const getIconComponent = (iconName: string) => {
     const iconMap: { [key: string]: any } = {
@@ -95,14 +109,14 @@ export default function TurizmAltKategoriPage() {
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
               <Link href="/kategori/turizm-konaklama" className="text-sm font-medium text-gray-700 hover:text-blue-600">
-                {category.name}
+                {foundCategory.name}
               </Link>
             </div>
           </li>
           <li>
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
-              <span className="text-sm font-medium text-gray-500">{subcategory.name}</span>
+              <span className="text-sm font-medium text-gray-500">{foundSubcategory.name}</span>
             </div>
           </li>
         </ol>
@@ -112,11 +126,11 @@ export default function TurizmAltKategoriPage() {
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow">
-            {getIconComponent(subcategory.icon)}
+            {getIconComponent(typeof foundSubcategory.icon === 'string' ? foundSubcategory.icon : '🏨')}
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{subcategory.name}</h1>
-            <p className="text-gray-600 max-w-xl">{subcategory.description || `${subcategory.name} ile ilgili ilanlar burada.`}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{foundSubcategory.name}</h1>
+            <p className="text-gray-600 max-w-xl">{`${foundSubcategory.name} ile ilgili ilanlar burada.`}</p>
           </div>
         </div>
       </div>
@@ -127,14 +141,14 @@ export default function TurizmAltKategoriPage() {
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="font-semibold text-lg mb-4 text-gray-900">Alt Kategoriler</h2>
             <ul className="space-y-3">
-              {category.subcategories?.map((sub: any) => (
+              {foundCategory.subcategories?.map((sub: any) => (
                 <li key={sub.slug}>
                   <Link 
                     href={`/kategori/turizm-konaklama/${sub.slug}`}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors group ${sub.slug === params.subSlug ? 'bg-blue-100 font-bold text-blue-700' : 'hover:bg-blue-50'}`}
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors group ${sub.slug === subSlug ? 'bg-blue-100 font-bold text-blue-700' : 'hover:bg-blue-50'}`}
                   >
                     <div className="flex-shrink-0">
-                      {getIconComponent(sub.icon)}
+                      {getIconComponent(typeof sub.icon === 'string' ? sub.icon : '🏨')}
                     </div>
                     <div className="flex-1">
                       <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
@@ -158,7 +172,7 @@ export default function TurizmAltKategoriPage() {
             </div>
             <FeaturedAds 
               category="turizm-konaklama" 
-              subcategory={subcategory.slug}
+              subcategory={foundSubcategory.slug}
               listings={mappedListings.filter(l => l.isPremium)} 
             />
           </section>
@@ -171,7 +185,7 @@ export default function TurizmAltKategoriPage() {
             </div>
             <LatestAds 
               category="turizm-konaklama" 
-              subcategory={subcategory.slug}
+              subcategory={foundSubcategory.slug}
               listings={mappedListings} 
             />
           </section>

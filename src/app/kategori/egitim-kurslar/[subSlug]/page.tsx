@@ -1,6 +1,3 @@
-"use client"
-
-import { useParams } from "next/navigation";
 import { listings } from "@/lib/listings";
 import { ListingCard } from "@/components/listing-card";
 import { Listing } from "@/types/listings";
@@ -9,13 +6,40 @@ import Link from "next/link";
 import { FeaturedAds } from "@/components/featured-ads";
 import { LatestAds } from "@/components/latest-ads";
 
-export default function EgitimKurslarSubPage() {
-  const params = useParams() as { subSlug: string };
-  const subSlug = params.subSlug;
+// generateStaticParams fonksiyonu ekle
+export async function generateStaticParams() {
+  const params: { subSlug: string }[] = [];
+  
+  // Eğitim & Kurslar kategorisinin alt kategorileri için statik parametreler oluştur
+  const egitimKurslarCategory = categories.find(cat => cat.slug === 'egitim-kurslar');
+  egitimKurslarCategory?.subcategories?.forEach((subcategory) => {
+    params.push({
+      subSlug: subcategory.slug,
+    });
+  });
+  
+  return params;
+}
+
+export default async function EgitimKurslarSubPage({ params }: { params: Promise<{ subSlug: string }> }) {
+  const { subSlug } = await params;
 
   // Eğitim & Kurslar kategorisini bul
   const egitimKurslarCategory = categories.find(cat => cat.slug === 'egitim-kurslar');
   const subcategory = egitimKurslarCategory?.subcategories?.find(sub => sub.slug === subSlug);
+
+  if (!subcategory) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Alt kategori bulunamadı</h1>
+          <Link href="/kategori/egitim-kurslar" className="text-blue-600 hover:text-blue-800">
+            Eğitim ve Kurslar'a Dön
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // İlgili alt kategorinin ilanlarını filtrele
   const filteredListings = listings
@@ -38,19 +62,6 @@ export default function EgitimKurslarSubPage() {
       createdAt: listing.createdAt,
       user: listing.user,
     }));
-
-  if (!subcategory) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Alt kategori bulunamadı</h1>
-          <Link href="/kategori/egitim-kurslar" className="text-blue-600 hover:text-blue-800">
-            Eğitim ve Kurslar'a Dön
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   // Diğer alt kategoriler
   const otherSubcategories = egitimKurslarCategory?.subcategories?.filter(sub => sub.slug !== subSlug) || [];
@@ -87,7 +98,7 @@ export default function EgitimKurslarSubPage() {
                       className="flex items-center space-x-2 p-2 rounded hover:bg-gray-100 transition-colors"
                     >
                       <span className="text-lg">
-                        {typeof subsub.icon === 'string' ? subsub.icon : <subsub.icon className="w-5 h-5" />}
+                        {typeof subsub.icon === 'string' ? subsub.icon : '•'}
                       </span>
                       <span>{subsub.name}</span>
                     </Link>
@@ -108,7 +119,7 @@ export default function EgitimKurslarSubPage() {
                     className="flex items-center space-x-2 p-2 rounded hover:bg-gray-100 transition-colors"
                   >
                     <span className="text-lg">
-                      {typeof sub.icon === 'string' ? sub.icon : <sub.icon className="w-5 h-5" />}
+                      {typeof sub.icon === 'string' ? sub.icon : '•'}
                     </span>
                     <span>{sub.name}</span>
                   </Link>

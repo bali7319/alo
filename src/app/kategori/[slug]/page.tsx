@@ -1,44 +1,31 @@
-'use client'
-
 import { categories } from '@/lib/categories'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
-import { useEffect, useState } from 'react'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 import { Home, Sparkles, Star, MapPin, Users, Clock, Shield, Award } from 'lucide-react'
 
-export default function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const [mappedListings, setMappedListings] = useState<Listing[]>([])
-  const [category, setCategory] = useState<any>(null)
-  const [otherCategories, setOtherCategories] = useState<any[]>([])
+// generateStaticParams fonksiyonu ekle
+export async function generateStaticParams() {
+  const params: { slug: string }[] = [];
+  
+  // Tüm kategoriler için statik parametreler oluştur
+  categories.forEach((category) => {
+    params.push({
+      slug: category.slug,
+    });
+  });
+  
+  return params;
+}
 
-  useEffect(() => {
-    (async () => {
-      const { slug } = await params;
+export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
 
-      // Ana kategoriyi bul
-      const foundCategory = categories.find((cat) => cat.slug === slug)
-      if (!foundCategory) return
-
-      // Diğer kategoriler
-      const others = categories.filter((cat) => cat.slug !== slug)
-
-      setCategory(foundCategory)
-      setOtherCategories(others)
-
-      // Listings data'sını filtrele
-      const filtered = rawListings.filter(listing => 
-        listing.category.toLowerCase() === slug.toLowerCase()
-      )
-      
-      setMappedListings(filtered)
-    })();
-  }, [params])
-
-  if (!category) {
+  // Ana kategoriyi bul
+  const foundCategory = categories.find((cat) => cat.slug === slug)
+  if (!foundCategory) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -50,6 +37,14 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
       </div>
     )
   }
+
+  // Diğer kategoriler
+  const otherCategories = categories.filter((cat) => cat.slug !== slug)
+
+  // Listings data'sını filtrele
+  const mappedListings = rawListings.filter(listing => 
+    listing.category.toLowerCase() === slug.toLowerCase()
+  )
 
   return (
     <div className="container mx-auto py-8">
@@ -65,7 +60,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
           <li aria-current="page">
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
-              <span className="text-gray-500">{category.name}</span>
+              <span className="text-gray-500">{foundCategory.name}</span>
             </div>
           </li>
         </ol>
@@ -86,7 +81,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
                     href={`/kategori/${cat.slug}`}
                     className="flex items-center text-gray-700 hover:text-blue-600 transition-colors"
                   >
-                    <span className="mr-2 text-lg">{cat.icon}</span>
+                    <span className="mr-2 text-lg">{typeof cat.icon === 'string' ? cat.icon : '•'}</span>
                     {cat.name}
                   </Link>
                 </li>
@@ -128,11 +123,11 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
         <main className="flex-1">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-              <span className="mr-3 text-2xl">{category.icon}</span>
-              {category.name}
+              <span className="mr-3 text-2xl">{typeof foundCategory.icon === 'string' ? foundCategory.icon : '•'}</span>
+              {foundCategory.name}
             </h1>
             <p className="text-gray-600">
-              {category.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
+              {foundCategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
             </p>
           </div>
 
@@ -140,10 +135,10 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Star className="w-5 h-5 text-yellow-500 mr-2" />
-              Öne Çıkan {category.name}
+              Öne Çıkan {foundCategory.name}
             </h2>
             <FeaturedAds 
-              category={category.slug} 
+              category={foundCategory.slug} 
               listings={mappedListings} 
             />
           </div>
@@ -152,10 +147,10 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Clock className="w-5 h-5 text-blue-500 mr-2" />
-              Son Eklenen {category.name}
+              Son Eklenen {foundCategory.name}
             </h2>
             <LatestAds 
-              category={category.slug} 
+              category={foundCategory.slug} 
               listings={mappedListings} 
             />
           </div>

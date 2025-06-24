@@ -1,51 +1,34 @@
-'use client'
-
 import { categories } from '@/lib/categories'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
-import { useEffect, useState } from 'react'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 import { Home, Sparkles, Star, MapPin, Users, Clock, Shield, Award } from 'lucide-react'
 
-export default function SubCategoryPage({ params }: { params: Promise<{ slug: string; subSlug: string }> }) {
-  const [mappedListings, setMappedListings] = useState<Listing[]>([])
-  const [category, setCategory] = useState<any>(null)
-  const [subcategory, setSubcategory] = useState<any>(null)
-  const [otherSubcategories, setOtherSubcategories] = useState<any[]>([])
+// generateStaticParams fonksiyonu ekle
+export async function generateStaticParams() {
+  const params: { slug: string; subSlug: string }[] = [];
+  
+  // Tüm kategoriler ve alt kategoriler için statik parametreler oluştur
+  categories.forEach((category) => {
+    category.subcategories?.forEach((subcategory) => {
+      params.push({
+        slug: category.slug,
+        subSlug: subcategory.slug,
+      });
+    });
+  });
+  
+  return params;
+}
 
-  useEffect(() => {
-    (async () => {
-      const { slug, subSlug } = await params;
+export default async function SubCategoryPage({ params }: { params: Promise<{ slug: string; subSlug: string }> }) {
+  const { slug, subSlug } = await params;
 
-      // Ana kategoriyi bul
-      const foundCategory = categories.find((cat) => cat.slug === slug)
-      if (!foundCategory) return
-
-      // Alt kategoriyi bul
-      const foundSubcategory = foundCategory.subcategories?.find((sub) => sub.slug === subSlug)
-      if (!foundSubcategory) return
-
-      // Diğer alt kategoriler
-      const otherSubs = foundCategory.subcategories?.filter((sub) => sub.slug !== subSlug) || []
-
-      setCategory(foundCategory)
-      setSubcategory(foundSubcategory)
-      setOtherSubcategories(otherSubs)
-
-      // Listings data'sını filtrele
-      const filtered = rawListings.filter(listing => 
-        listing.category.toLowerCase() === slug.toLowerCase() && 
-        listing.subCategory?.toLowerCase() === subSlug.toLowerCase()
-      )
-      
-      setMappedListings(filtered)
-    })();
-  }, [params])
-
-  if (!category || !subcategory) {
+  // Ana kategoriyi bul
+  const foundCategory = categories.find((cat) => cat.slug === slug)
+  if (!foundCategory) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -57,6 +40,30 @@ export default function SubCategoryPage({ params }: { params: Promise<{ slug: st
       </div>
     )
   }
+
+  // Alt kategoriyi bul
+  const foundSubcategory = foundCategory.subcategories?.find((sub) => sub.slug === subSlug)
+  if (!foundSubcategory) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Alt kategori bulunamadı</h1>
+          <Link href="/" className="text-blue-600 hover:text-blue-800">
+            Ana sayfaya dön
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // Diğer alt kategoriler
+  const otherSubcategories = foundCategory.subcategories?.filter((sub) => sub.slug !== subSlug) || []
+
+  // Listings data'sını filtrele
+  const mappedListings = rawListings.filter(listing => 
+    listing.category.toLowerCase() === slug.toLowerCase() && 
+    listing.subCategory?.toLowerCase() === subSlug.toLowerCase()
+  )
 
   return (
     <div className="container mx-auto py-8">
@@ -72,15 +79,15 @@ export default function SubCategoryPage({ params }: { params: Promise<{ slug: st
           <li>
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
-              <Link href={`/kategori/${category.slug}`} className="text-gray-700 hover:text-blue-600">
-                {category.name}
+              <Link href={`/kategori/${foundCategory.slug}`} className="text-gray-700 hover:text-blue-600">
+                {foundCategory.name}
               </Link>
             </div>
           </li>
           <li aria-current="page">
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
-              <span className="text-gray-500">{subcategory.name}</span>
+              <span className="text-gray-500">{foundSubcategory.name}</span>
             </div>
           </li>
         </ol>
@@ -92,16 +99,16 @@ export default function SubCategoryPage({ params }: { params: Promise<{ slug: st
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <Sparkles className="w-5 h-5 text-blue-500 mr-2" />
-              Diğer {category.name} Kategorileri
+              Diğer {foundCategory.name} Kategorileri
             </h2>
             <ul className="space-y-2">
               {otherSubcategories.map((sub: any) => (
                 <li key={sub.slug}>
                   <Link 
-                    href={`/kategori/${category.slug}/${sub.slug}`}
+                    href={`/kategori/${foundCategory.slug}/${sub.slug}`}
                     className="flex items-center text-gray-700 hover:text-blue-600 transition-colors"
                   >
-                    <span className="mr-2 text-lg">{sub.icon}</span>
+                    <span className="mr-2 text-lg">{typeof sub.icon === 'string' ? sub.icon : '•'}</span>
                     {sub.name}
                   </Link>
                 </li>
@@ -143,11 +150,11 @@ export default function SubCategoryPage({ params }: { params: Promise<{ slug: st
         <main className="flex-1">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-              <span className="mr-3 text-2xl">{subcategory.icon}</span>
-              {subcategory.name}
+              <span className="mr-3 text-2xl">{typeof foundSubcategory.icon === 'string' ? foundSubcategory.icon : '•'}</span>
+              {foundSubcategory.name}
             </h1>
             <p className="text-gray-600">
-              {subcategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
+              {foundSubcategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
             </p>
           </div>
 
@@ -155,11 +162,11 @@ export default function SubCategoryPage({ params }: { params: Promise<{ slug: st
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Star className="w-5 h-5 text-yellow-500 mr-2" />
-              Öne Çıkan {subcategory.name}
+              Öne Çıkan {foundSubcategory.name}
             </h2>
             <FeaturedAds 
-              category={category.slug} 
-              subcategory={subcategory.slug} 
+              category={foundCategory.slug} 
+              subcategory={foundSubcategory.slug} 
               listings={mappedListings} 
             />
           </div>
@@ -168,11 +175,11 @@ export default function SubCategoryPage({ params }: { params: Promise<{ slug: st
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Clock className="w-5 h-5 text-blue-500 mr-2" />
-              Son Eklenen {subcategory.name}
+              Son Eklenen {foundSubcategory.name}
             </h2>
             <LatestAds 
-              category={category.slug} 
-              subcategory={subcategory.slug} 
+              category={foundCategory.slug} 
+              subcategory={foundSubcategory.slug} 
               listings={mappedListings} 
             />
           </div>

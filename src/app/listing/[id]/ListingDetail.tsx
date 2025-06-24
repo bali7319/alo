@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay, Thumbs } from 'swiper/modules';
+import { Share2, Facebook, Twitter, MessageCircle, Instagram } from 'lucide-react';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
@@ -171,15 +172,15 @@ export default function ListingDetail() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!params || !params.id) return;
     // URL'den ilan ID'sini al
     const listingId = params.id as string;
-    
     // Örnek veriden ilanı bul
     const foundListing = featuredListings.find(l => l.id === listingId);
     if (foundListing) {
       setListing(foundListing);
     }
-  }, [params.id]);
+  }, [params]);
 
   if (!listing) {
     return (
@@ -225,6 +226,39 @@ export default function ListingDetail() {
     }
   };
 
+  // Sosyal medya paylaşım fonksiyonları
+  const shareToFacebook = () => {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
+  };
+
+  const shareToTwitter = () => {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
+    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+  };
+
+  const shareToWhatsApp = () => {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
+    window.open(`https://wa.me/?text=${text}%20${url}`, '_blank');
+  };
+
+  const shareToInstagram = () => {
+    // Instagram web paylaşımı için kopyalama
+    const text = `${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL\n\n${window.location.href}`;
+    navigator.clipboard.writeText(text).then(() => {
+      alert('İlan linki kopyalandı! Instagram\'da paylaşabilirsiniz.');
+    });
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      alert('İlan linki kopyalandı!');
+    });
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* İlan Başlığı ve Fiyat */}
@@ -257,6 +291,48 @@ export default function ListingDetail() {
                 />
               </svg>
               <span>{listing.favorites}</span>
+            </button>
+          </div>
+        </div>
+        
+        {/* Sosyal Medya Paylaşım Butonları */}
+        <div className="mt-4 flex items-center space-x-2">
+          <span className="text-sm text-gray-600">Paylaş:</span>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={shareToFacebook}
+              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+              title="Facebook'ta Paylaş"
+            >
+              <Facebook className="w-4 h-4" />
+            </button>
+            <button
+              onClick={shareToTwitter}
+              className="p-2 bg-sky-500 text-white rounded-full hover:bg-sky-600 transition-colors"
+              title="Twitter'da Paylaş"
+            >
+              <Twitter className="w-4 h-4" />
+            </button>
+            <button
+              onClick={shareToWhatsApp}
+              className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
+              title="WhatsApp'ta Paylaş"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </button>
+            <button
+              onClick={shareToInstagram}
+              className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 transition-colors"
+              title="Instagram'da Paylaş"
+            >
+              <Instagram className="w-4 h-4" />
+            </button>
+            <button
+              onClick={copyLink}
+              className="p-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors"
+              title="Linki Kopyala"
+            >
+              <Share2 className="w-4 h-4" />
             </button>
           </div>
         </div>

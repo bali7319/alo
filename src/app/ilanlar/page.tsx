@@ -3,13 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Search, Filter, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 
 export default function IlanlarPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
 
   // Örnek ilan verileri
   const ilanlar = [
@@ -31,13 +29,6 @@ export default function IlanlarPage() {
       category: 'emlak',
       createdAt: '2024-03-19'
     }
-  ];
-
-  const categories = [
-    { id: 'arac', name: 'Araç' },
-    { id: 'emlak', name: 'Emlak' },
-    { id: 'elektronik', name: 'Elektronik' },
-    { id: 'diger', name: 'Diğer' }
   ];
 
   const handleIlanClick = (ilanId: number) => {
@@ -62,42 +53,6 @@ export default function IlanlarPage() {
         >
           Yeni İlan Ver
         </button>
-      </div>
-
-      {/* Arama ve Filtreler */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-8">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="İlan ara..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg"
-              />
-              <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-2 border rounded-lg"
-            >
-              <option value="">Tüm Kategoriler</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            <button className="flex items-center gap-2 px-4 py-2 border rounded-lg">
-              <Filter className="w-5 h-5" />
-              <span>Filtreler</span>
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* İlan Listesi */}

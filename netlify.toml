@@ -1,16 +1,12 @@
 [build]
   command = "npm run build"
-  publish = "out"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
+# Security headers
 [[headers]]
   for = "/*"
   [headers.values]
@@ -19,13 +15,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-# API routes için
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-
-# Static files için
+# Static files için cache
 [[headers]]
   for = "/images/*"
   [headers.values]

@@ -1,37 +1,23 @@
-'use client'
-
 import { categories } from '@/lib/categories'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 import { Lightbulb, Zap, Moon } from 'lucide-react'
 
 export default function AydinlatmaPage() {
-  const [category, setCategory] = useState<any>(null)
-  const [subcategory, setSubcategory] = useState<any>(null)
-  const [mappedListings, setMappedListings] = useState<Listing[]>([])
+  // Server-side data fetching
+  const foundCategory = categories.find((cat) => cat.slug === 'ev-ve-bahce')
+  const foundSubcategory = foundCategory?.subcategories?.find((sub) => sub.slug === 'aydinlatma')
+  
+  const aydinlatmaListings: Listing[] = rawListings
+    .filter(listing => 
+      listing.category.toLowerCase() === 'ev-ve-bahce' && 
+      (listing.subCategory?.toLowerCase() ?? '') === 'aydinlatma'
+    )
 
-  useEffect(() => {
-    const foundCategory = categories.find((cat) => cat.slug === 'ev-ve-bahce')
-    if (!foundCategory) return
-    setCategory(foundCategory)
-    
-    const foundSubcategory = foundCategory.subcategories?.find((sub) => sub.slug === 'aydinlatma')
-    if (!foundSubcategory) return
-    setSubcategory(foundSubcategory)
-
-    const aydinlatmaListings: Listing[] = rawListings
-      .filter(listing => 
-        listing.category.toLowerCase() === 'ev-ve-bahce' && 
-        (listing.subCategory?.toLowerCase() ?? '') === 'aydinlatma'
-      )
-    setMappedListings(aydinlatmaListings)
-  }, [])
-
-  if (!category || !subcategory) {
+  if (!foundCategory || !foundSubcategory) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -57,15 +43,15 @@ export default function AydinlatmaPage() {
           <li>
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
-              <Link href={`/kategori/${category.slug}`} className="text-gray-700 hover:text-blue-600">
-                {category.name}
+              <Link href={`/kategori/${foundCategory.slug}`} className="text-gray-700 hover:text-blue-600">
+                {foundCategory.name}
               </Link>
             </div>
           </li>
           <li aria-current="page">
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
-              <span className="text-gray-500">{subcategory.name}</span>
+              <span className="text-gray-500">{foundSubcategory.name}</span>
             </div>
           </li>
         </ol>
@@ -80,13 +66,13 @@ export default function AydinlatmaPage() {
               Alt Kategoriler
             </h2>
             <ul className="space-y-2">
-              {subcategory.subcategories?.map((subsub: any) => (
+              {foundSubcategory.subcategories?.map((subsub: any) => (
                 <li key={subsub.slug}>
                   <Link 
-                    href={`/kategori/${category.slug}/${subcategory.slug}/${subsub.slug}`}
+                    href={`/kategori/${foundCategory.slug}/${foundSubcategory.slug}/${subsub.slug}`}
                     className="flex items-center text-gray-700 hover:text-yellow-600 transition-colors"
                   >
-                    <span className="mr-2">{subsub.icon}</span>
+                    <span className="mr-2">{typeof subsub.icon === 'string' ? subsub.icon : '•'}</span>
                     {subsub.name}
                   </Link>
                 </li>
@@ -117,7 +103,7 @@ export default function AydinlatmaPage() {
         <main className="flex-1">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {subcategory.name}
+              {foundSubcategory.name}
             </h1>
             <p className="text-gray-600">
               Modern aydınlatma çözümleri ve lambalar
@@ -128,9 +114,9 @@ export default function AydinlatmaPage() {
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Öne Çıkan Aydınlatma İlanları</h2>
             <FeaturedAds 
-              category={category.slug} 
-              subcategory={subcategory.slug} 
-              listings={mappedListings} 
+              category={foundCategory.slug} 
+              subcategory={foundSubcategory.slug} 
+              listings={aydinlatmaListings} 
             />
           </div>
 
@@ -138,9 +124,9 @@ export default function AydinlatmaPage() {
           <div>
             <h2 className="text-xl font-semibold mb-4">En Yeni Aydınlatma İlanları</h2>
             <LatestAds 
-              category={category.slug} 
-              subcategory={subcategory.slug} 
-              listings={mappedListings} 
+              category={foundCategory.slug} 
+              subcategory={foundSubcategory.slug} 
+              listings={aydinlatmaListings} 
             />
           </div>
         </main>
