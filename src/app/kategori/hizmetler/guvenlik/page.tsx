@@ -82,7 +82,9 @@ async function getListings() {
       updatedAt: listing.updatedAt.toISOString(),
       expiresAt: listing.expiresAt.toISOString(),
       user: {
-        name: listing.user?.name || 'Bilinmeyen Kullanıcı'
+        id: listing.userId,
+        name: listing.user?.name || 'Bilinmeyen Kullanıcı',
+        email: ''
       }
     }));
   } catch (error) {
