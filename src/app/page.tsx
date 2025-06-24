@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Sidebar } from "@/components/sidebar"
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
@@ -8,32 +9,38 @@ import { Star, Eye, Clock, Camera, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 export default function Home() {
-  // Static export modunda API çağrıları yapmıyoruz, doğrudan verileri kullanıyoruz
-  const staticListings = listings.filter(listing => listing.isPremium).slice(0, 6);
-  const staticLatestListings = [...listings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 12);
+  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
+  const [latestListings, setLatestListings] = useState<any[]>([]);
 
-  // localStorage'dan kullanıcı ilanlarını al
-  let userListings: any[] = [];
-  if (typeof window !== 'undefined') {
+  useEffect(() => {
+    // Static verileri hazırla
+    const staticListings = listings.filter(listing => listing.isPremium).slice(0, 6);
+    const staticLatestListings = [...listings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 12);
+
+    // localStorage'dan kullanıcı ilanlarını al
+    let userListings: any[] = [];
     try {
       userListings = JSON.parse(localStorage.getItem('userListings') || '[]');
     } catch (error) {
       console.error('localStorage okuma hatası:', error);
       userListings = [];
     }
-  }
 
-  // Premium ilanları birleştir (kullanıcı ilanları önce)
-  const featuredListings = [
-    ...userListings.filter(listing => listing.isPremium),
-    ...staticListings
-  ].slice(0, 6);
+    // Premium ilanları birleştir (kullanıcı ilanları önce)
+    const featured = [
+      ...userListings.filter(listing => listing.isPremium),
+      ...staticListings
+    ].slice(0, 6);
 
-  // En yeni ilanları birleştir (kullanıcı ilanları önce)
-  const latestListings = [
-    ...userListings,
-    ...staticLatestListings
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 12);
+    // En yeni ilanları birleştir (kullanıcı ilanları önce)
+    const latest = [
+      ...userListings,
+      ...staticLatestListings
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 12);
+
+    setFeaturedListings(featured);
+    setLatestListings(latest);
+  }, []);
 
   return (
     <main className="min-h-screen bg-gray-50">
