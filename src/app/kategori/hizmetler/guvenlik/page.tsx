@@ -77,6 +77,7 @@ async function getListings() {
       subSubCategory: listing.subSubCategory || undefined,
       images: listing.images ? JSON.parse(listing.images) : [],
       features: listing.features ? JSON.parse(listing.features) : [],
+      premiumUntil: listing.premiumUntil ? listing.premiumUntil.toISOString() : undefined,
       user: {
         name: listing.user?.name || 'Bilinmeyen Kullanıcı'
       }
