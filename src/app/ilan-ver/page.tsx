@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Crown, Star, Check, Zap, TrendingUp, Eye, Clock, Plus, X, Sparkles } from 'lucide-react';
+import { Camera, Crown, Star, Check, Zap, TrendingUp, Eye, Clock, Plus, X, Sparkles, EyeOff } from 'lucide-react';
 import { categories, Category } from '@/lib/categories';
 
 export default function IlanVerPage() {
   const router = useRouter();
   const [images, setImages] = useState<File[]>([]);
   const [showPhone, setShowPhone] = useState(false);
+  const [phoneVisibility, setPhoneVisibility] = useState('public'); // 'public', 'private', 'contact'
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
   const [selectedPlan, setSelectedPlan] = useState('none');
@@ -17,6 +18,7 @@ export default function IlanVerPage() {
   const [optionalFeatures, setOptionalFeatures] = useState<Array<{key: string, value: string}>>([]);
   const [newFeatureKey, setNewFeatureKey] = useState('');
   const [newFeatureValue, setNewFeatureValue] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
   const [adminSettings, setAdminSettings] = useState({
     featuredPrice: 50,
     urgentPrice: 30,
@@ -205,6 +207,7 @@ export default function IlanVerPage() {
       const listingData = {
         id: Date.now(), // Benzersiz ID
         ...formData,
+        phoneVisibility: phoneVisibility, // Telefon görünürlüğü bilgisini ekle
         plan: selectedPlan,
         planName: selectedPlanData.name,
         planPrice: selectedPlanData.price,
@@ -563,6 +566,60 @@ export default function IlanVerPage() {
                 />
               </div>
 
+              {/* Phone Visibility */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Telefon Görünürlüğü
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="phoneVisibility"
+                      value="public"
+                      checked={phoneVisibility === 'public'}
+                      onChange={(e) => setPhoneVisibility(e.target.value)}
+                      className="mr-2"
+                    />
+                    <div className="flex items-center">
+                      <Eye className="w-4 h-4 mr-2 text-green-500" />
+                      <span className="text-sm">Herkese Açık</span>
+                      <span className="text-xs text-gray-500 ml-2">(Telefon numaranız herkese görünür)</span>
+                    </div>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="phoneVisibility"
+                      value="contact"
+                      checked={phoneVisibility === 'contact'}
+                      onChange={(e) => setPhoneVisibility(e.target.value)}
+                      className="mr-2"
+                    />
+                    <div className="flex items-center">
+                      <Eye className="w-4 h-4 mr-2 text-yellow-500" />
+                      <span className="text-sm">Sadece İletişim Kurulduğunda</span>
+                      <span className="text-xs text-gray-500 ml-2">(Mesaj gönderen kişiye görünür)</span>
+                    </div>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="phoneVisibility"
+                      value="private"
+                      checked={phoneVisibility === 'private'}
+                      onChange={(e) => setPhoneVisibility(e.target.value)}
+                      className="mr-2"
+                    />
+                    <div className="flex items-center">
+                      <EyeOff className="w-4 h-4 mr-2 text-red-500" />
+                      <span className="text-sm">Gizli</span>
+                      <span className="text-xs text-gray-500 ml-2">(Telefon numaranız gizli kalır)</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               {/* Optional Features */}
               <div className="border-t pt-6">
                 <div className="flex items-center justify-between mb-4">
@@ -784,8 +841,15 @@ export default function IlanVerPage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <div className="flex justify-end">
+              {/* Submit Buttons */}
+              <div className="flex justify-end space-x-4">
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="px-6 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+                >
+                  {showPreview ? 'Önizlemeyi Kapat' : 'Önizle'}
+                </button>
                 <button
                   type="submit"
                   disabled={!formData.termsAccepted || isSubmitting}
@@ -802,6 +866,156 @@ export default function IlanVerPage() {
           </div>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">İlan Önizlemesi</h2>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Title */}
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{formData.title || 'İlan Başlığı'}</h1>
+                  <p className="text-lg font-semibold text-blue-600 mt-2">
+                    {formData.price ? `₺${formData.price}` : 'Fiyat Belirtilmemiş'}
+                  </p>
+                </div>
+
+                {/* Images */}
+                {images.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Resimler</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {images.map((image, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={URL.createObjectURL(image)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Açıklama</h3>
+                  <p className="text-gray-700 whitespace-pre-wrap">
+                    {formData.description || 'Açıklama girilmemiş'}
+                  </p>
+                </div>
+
+                {/* Category */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Kategori</h3>
+                  <p className="text-gray-700">
+                    {selectedCategory?.name || 'Kategori seçilmemiş'}
+                    {selectedSubCategory && ` > ${selectedSubCategory.name}`}
+                  </p>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Konum</h3>
+                  <p className="text-gray-700">{formData.location || 'Konum belirtilmemiş'}</p>
+                </div>
+
+                {/* Phone Visibility */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">İletişim</h3>
+                  <div className="flex items-center space-x-2">
+                    {phoneVisibility === 'public' && (
+                      <>
+                        <Eye className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-700">Telefon: {formData.phone || 'Belirtilmemiş'}</span>
+                      </>
+                    )}
+                    {phoneVisibility === 'contact' && (
+                      <>
+                        <Eye className="w-4 h-4 text-yellow-500" />
+                        <span className="text-sm text-gray-700">Telefon sadece iletişim kurulduğunda görünür</span>
+                      </>
+                    )}
+                    {phoneVisibility === 'private' && (
+                      <>
+                        <EyeOff className="w-4 h-4 text-red-500" />
+                        <span className="text-sm text-gray-700">Telefon gizli</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Optional Features */}
+                {optionalFeatures.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Özellikler</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {optionalFeatures.map((feature, index) => (
+                        <div key={index} className="bg-gray-50 p-2 rounded">
+                          <span className="font-medium text-gray-900">{feature.key}:</span>
+                          <span className="ml-2 text-gray-700">{feature.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Premium Features */}
+                {selectedPlan !== 'none' && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Premium Özellikler</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {premiumSettings.featured && (
+                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">Öne Çıkan</span>
+                      )}
+                      {premiumSettings.urgent && (
+                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm">Acil Satılık</span>
+                      )}
+                      {premiumSettings.highlight && (
+                        <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">Vurgulu</span>
+                      )}
+                      {premiumSettings.topPosition && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">Üst Sıralama</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end space-x-4">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                >
+                  Kapat
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPreview(false);
+                    // Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Düzenlemeye Devam Et
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

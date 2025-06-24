@@ -3,14 +3,43 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { categories } from "@/lib/categories"
+import { 
+  Smartphone, 
+  Laptop, 
+  Home, 
+  Shirt, 
+  Baby, 
+  Gamepad2, 
+  GraduationCap, 
+  Utensils, 
+  Plane, 
+  Heart, 
+  Palette, 
+  Gift, 
+  Package 
+} from "lucide-react"
+
+const categoryIcons = {
+  elektronik: Smartphone,
+  "ev-ve-bahce": Home,
+  giyim: Shirt,
+  "anne-bebek": Baby,
+  "sporlar-oyunlar-eglenceler": Gamepad2,
+  "egitim-kurslar": GraduationCap,
+  "yemek-icecek": Utensils,
+  "turizm-gecelemeler": Plane,
+  "saglik-guzellik": Heart,
+  "sanat-hobi": Palette,
+  "ucretsiz-gel-al": Gift,
+  diger: Package
+}
 
 const categoryColors = {
   elektronik: "text-blue-500",
-  "bilgisayarlar-ofis-ekipmanlari": "text-indigo-500",
-  "ev-bahce": "text-orange-500",
+  "ev-ve-bahce": "text-orange-500",
   giyim: "text-purple-500",
   "anne-bebek": "text-pink-500",
-  "spor-oyunlar-eglenceler": "text-emerald-500",
+  "sporlar-oyunlar-eglenceler": "text-emerald-500",
   "egitim-kurslar": "text-cyan-500",
   "yemek-icecek": "text-amber-500",
   "turizm-gecelemeler": "text-teal-500",
@@ -32,7 +61,8 @@ export const Sidebar = () => {
       <h2 className="text-lg font-semibold mb-4">Kategoriler</h2>
       <div className="space-y-2">
         {categories.map((category) => {
-          const iconColor = categoryColors[category.slug as keyof typeof categoryColors]
+          const IconComponent = categoryIcons[category.slug as keyof typeof categoryIcons] || Package;
+          const iconColor = categoryColors[category.slug as keyof typeof categoryColors] || "text-slate-500";
           return (
             <div key={category.slug}>
               <Link
@@ -43,9 +73,7 @@ export const Sidebar = () => {
                     : "text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                <span className={`text-lg ${currentCategory === category.slug ? "text-blue-600" : iconColor}`}>
-                  {typeof category.icon === 'string' ? category.icon : '📦'}
-                </span>
+                <IconComponent className={`w-5 h-5 ${currentCategory === category.slug ? "text-blue-600" : iconColor}`} />
                 <span>{category.name}</span>
               </Link>
               {isCategoryPage &&
