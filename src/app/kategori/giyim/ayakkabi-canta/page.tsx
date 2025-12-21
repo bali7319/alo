@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function ShoesBagsCategoryPage() {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [condition, setCondition] = useState<string | null>(null)
+    const [condition, setCondition] = useState<string | null>(null)
   const [size, setSize] = useState<string | null>(null)
   const [type, setType] = useState<string | null>(null)
 

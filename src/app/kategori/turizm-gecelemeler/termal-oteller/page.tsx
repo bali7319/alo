@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function ThermalHotelsCategoryPage() {
   const [selectedType, setSelectedType] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [location, setLocation] = useState<string | null>(null)
+    const [location, setLocation] = useState<string | null>(null)
   const [features, setFeatures] = useState<string[]>([])
 
   // Termal otel ilanlarını filtrele
@@ -24,24 +23,6 @@ export default function ThermalHotelsCategoryPage() {
   const filteredListings = thermalHotelListings.filter(listing => {
     if (selectedType && listing.subCategory !== selectedType) return false
     if (location && listing.location !== location) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-2000':
-          if (numericPrice > 2000) return false
-          break
-        case '2000-5000':
-          if (numericPrice < 2000 || numericPrice > 5000) return false
-          break
-        case '5000-10000':
-          if (numericPrice < 5000 || numericPrice > 10000) return false
-          break
-        case '10000+':
-          if (numericPrice < 10000) return false
-          break
-      }
-    }
     return true
   })
 

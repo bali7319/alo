@@ -14,9 +14,7 @@ const subcategories = [
 
 export default function KulaklikCategoryPage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-
-  // Kulaklık ilanlarını filtrele
+    // Kulaklık ilanlarını filtrele
   const kulaklikListings: Listing[] = listings
     .filter(listing => 
       listing.category === 'elektronik' && 
@@ -26,24 +24,6 @@ export default function KulaklikCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = kulaklikListings.filter(listing => {
     if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-5000':
-          if (numericPrice > 5000) return false
-          break
-        case '5000-10000':
-          if (numericPrice < 5000 || numericPrice > 10000) return false
-          break
-        case '10000-20000':
-          if (numericPrice < 10000 || numericPrice > 20000) return false
-          break
-        case '20000+':
-          if (numericPrice < 20000) return false
-          break
-      }
-    }
     return true
   })
 

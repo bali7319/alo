@@ -16,9 +16,7 @@ const subcategories = [
 
 export default function GiyimCategoryPage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-
-  // Giyim ilanlarını filtrele ve types/listings.ts formatına dönüştür
+    // Giyim ilanlarını filtrele ve types/listings.ts formatına dönüştür
   const giyimListings: Listing[] = listings
     .filter(listing => 
       listing.category === 'giyim'
@@ -28,24 +26,6 @@ export default function GiyimCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = giyimListings.filter(listing => {
     if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-5000':
-          if (numericPrice > 5000) return false
-          break
-        case '5000-10000':
-          if (numericPrice < 5000 || numericPrice > 10000) return false
-          break
-        case '10000-20000':
-          if (numericPrice < 10000 || numericPrice > 20000) return false
-          break
-        case '20000+':
-          if (numericPrice < 20000) return false
-          break
-      }
-    }
     return true
   })
 

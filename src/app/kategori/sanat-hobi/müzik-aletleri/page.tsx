@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function MusicalInstrumentsCategoryPage() {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [category, setCategory] = useState<string | null>(null)
+    const [category, setCategory] = useState<string | null>(null)
   const [condition, setCondition] = useState<string | null>(null)
 
   // Müzik aletlerini filtrele

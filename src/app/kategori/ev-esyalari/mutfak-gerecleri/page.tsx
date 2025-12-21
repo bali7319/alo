@@ -8,8 +8,7 @@ import { useState } from 'react'
 
 export default function KitchenwareCategoryPage() {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [condition, setCondition] = useState<string | null>(null)
+    const [condition, setCondition] = useState<string | null>(null)
 
   // Mutfak gereçleri ilanlarını filtrele
   const kitchenwareListings: Listing[] = listings
@@ -22,24 +21,6 @@ export default function KitchenwareCategoryPage() {
   const filteredListings = kitchenwareListings.filter(listing => {
     if (selectedBrand && undefined !== selectedBrand) return false
     if (condition && undefined !== condition) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-5000':
-          if (numericPrice > 5000) return false
-          break
-        case '5000-10000':
-          if (numericPrice < 5000 || numericPrice > 10000) return false
-          break
-        case '10000-20000':
-          if (numericPrice < 10000 || numericPrice > 20000) return false
-          break
-        case '20000+':
-          if (numericPrice < 20000) return false
-          break
-      }
-    }
     return true
   })
 

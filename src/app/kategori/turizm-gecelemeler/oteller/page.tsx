@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function HotelsCategoryPage() {
   const [selectedStar, setSelectedStar] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [location, setLocation] = useState<string | null>(null)
+    const [location, setLocation] = useState<string | null>(null)
   const [features, setFeatures] = useState<string[]>([])
 
   // Otel ilanlarını filtrele

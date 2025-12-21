@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function HobbyCoursesCategoryPage() {
   const [selectedType, setSelectedType] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [location, setLocation] = useState<string | null>(null)
+    const [location, setLocation] = useState<string | null>(null)
 
   // Hobi kurslarını filtrele
   const courseListings = listings.filter(listing => 

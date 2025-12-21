@@ -14,8 +14,7 @@ const hotelTypes = [
 
 export default function OtelCategoryPage() {
   const [selectedType, setSelectedType] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [features, setFeatures] = useState<string[]>([])
+    const [features, setFeatures] = useState<string[]>([])
 
   // Otel ilanlarını filtrele
   const otelListings = listings.filter(listing => 

@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function KidsClothingCategoryPage() {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [condition, setCondition] = useState<string | null>(null)
+    const [condition, setCondition] = useState<string | null>(null)
   const [size, setSize] = useState<string | null>(null)
   const [ageGroup, setAgeGroup] = useState<string | null>(null)
 

@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function CollectionCategoryPage() {
   const [selectedType, setSelectedType] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [condition, setCondition] = useState<string | null>(null)
+    const [condition, setCondition] = useState<string | null>(null)
   const [era, setEra] = useState<string | null>(null)
 
   // Koleksiyon ürünlerini filtrele

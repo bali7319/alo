@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function FastFoodCategoryPage() {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [features, setFeatures] = useState<string[]>([])
+    const [features, setFeatures] = useState<string[]>([])
 
   // Fast food ilanlarını filtrele
   const fastFoodListings = listings.filter(listing => 

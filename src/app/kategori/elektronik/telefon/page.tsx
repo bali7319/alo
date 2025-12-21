@@ -24,9 +24,7 @@ const brands = [
 export default function TelefonCategoryPage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-
-  // Telefon ilanlarını filtrele
+    // Telefon ilanlarını filtrele
   const telefonListings: Listing[] = listings
     .filter(listing => 
       listing.category === 'elektronik' && 
@@ -37,24 +35,6 @@ export default function TelefonCategoryPage() {
   const filteredListings = telefonListings.filter(listing => {
     if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
     if (selectedBrand && listing.title.toLowerCase().indexOf(selectedBrand.toLowerCase()) === -1) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-5000':
-          if (numericPrice > 5000) return false
-          break
-        case '5000-10000':
-          if (numericPrice < 5000 || numericPrice > 10000) return false
-          break
-        case '10000-20000':
-          if (numericPrice < 10000 || numericPrice > 20000) return false
-          break
-        case '20000+':
-          if (numericPrice < 20000) return false
-          break
-      }
-    }
     return true
   })
 

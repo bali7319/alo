@@ -17,9 +17,7 @@ const subcategories = [
 
 export default function YemekIcecekPage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-
-  // Yemek-icecek ilanlarını filtrele ve types/listings.ts formatına dönüştür
+    // Yemek-icecek ilanlarını filtrele ve types/listings.ts formatına dönüştür
   const yemekIcecekListings: Listing[] = listings
     .filter(listing => 
       listing.category === 'yemek-icecek'

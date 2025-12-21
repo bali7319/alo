@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function ArtCoursesCategoryPage() {
   const [selectedArtType, setSelectedArtType] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [location, setLocation] = useState<string | null>(null)
+    const [location, setLocation] = useState<string | null>(null)
   const [courseType, setCourseType] = useState<string | null>(null)
 
   // Sanat kursu ilanlarını filtrele
@@ -25,24 +24,6 @@ export default function ArtCoursesCategoryPage() {
     // if (selectedArtType && listing.brand !== selectedArtType) return false
     if (location && listing.location !== location) return false
     // if (courseType && !listing.features.includes(courseType)) return false
-    if (priceRange) {
-      const price = listing.price;
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price);
-      switch (priceRange) {
-        case '0-2000':
-          if (numericPrice > 2000) return false;
-          break;
-        case '2000-5000':
-          if (numericPrice < 2000 || numericPrice > 5000) return false;
-          break;
-        case '5000-10000':
-          if (numericPrice < 5000 || numericPrice > 10000) return false;
-          break;
-        case '10000+':
-          if (numericPrice < 10000) return false;
-          break;
-      }
-    }
     return true;
   });
 

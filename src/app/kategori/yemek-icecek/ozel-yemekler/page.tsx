@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function OzelYemeklerCategoryPage() {
   const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [features, setFeatures] = useState<string[]>([])
+    const [features, setFeatures] = useState<string[]>([])
 
   // Özel yemekler ilanlarını filtrele
   const ozelYemeklerListings = listings.filter(listing => 

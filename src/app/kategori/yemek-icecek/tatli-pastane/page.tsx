@@ -7,8 +7,7 @@ import { useState } from 'react'
 
 export default function TatliPastaneCategoryPage() {
   const [selectedType, setSelectedType] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-  const [features, setFeatures] = useState<string[]>([])
+    const [features, setFeatures] = useState<string[]>([])
 
   // Tatlı-pastane ilanlarını filtrele
   const tatliPastaneListings = listings.filter(listing => 

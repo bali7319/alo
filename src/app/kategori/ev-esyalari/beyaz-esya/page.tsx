@@ -7,9 +7,7 @@ import { useState } from 'react'
 import { Listing } from '@/types/listings'
 
 export default function WhiteGoodsCategoryPage() {
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-
-  // Beyaz eşya ilanlarını filtrele
+    // Beyaz eşya ilanlarını filtrele
   const beyazEsyaListings: Listing[] = rawListings
     .filter(listing => 
       listing.category === 'ev-esyalari' && 

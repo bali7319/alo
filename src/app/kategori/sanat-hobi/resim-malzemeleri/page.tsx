@@ -7,9 +7,7 @@ import { useState } from 'react'
 import { Listing } from '@/types/listings'
 
 export default function ArtSuppliesCategoryPage() {
-  const [priceRange, setPriceRange] = useState<string | null>(null)
-
-  // Resim malzemelerini filtrele
+    // Resim malzemelerini filtrele
   const artSuppliesListings: Listing[] = listings
     .filter(listing =>
       listing.category === 'sanat-hobi' &&
