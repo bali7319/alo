@@ -184,66 +184,102 @@ export default function IlanVerPage() {
     return planPrice + premiumFeaturesPrice;
   };
 
+  // Resimleri base64'e çevir
+  const convertImagesToBase64 = async (files: File[]): Promise<string[]> => {
+    const promises = files.map((file) => {
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    });
+    return Promise.all(promises);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
       // Form validasyonu
-      if (!formData.title || !formData.description || !formData.price || !formData.category || !formData.location || !formData.phone) {
+      if (!formData.title || !formData.description || !formData.price || !formData.category || !formData.location) {
         alert('Lütfen tüm zorunlu alanları doldurun.');
+        setIsSubmitting(false);
         return;
       }
 
       if (!formData.termsAccepted) {
         alert('Kullanım koşullarını kabul etmelisiniz.');
+        setIsSubmitting(false);
         return;
       }
+
+      // Resimleri base64'e çevir
+      const imageUrls = images.length > 0 
+        ? await convertImagesToBase64(images)
+        : ['/images/placeholder.jpg'];
+
+      // Kategori adını bul
+      const categoryObj = categories.find(cat => cat.slug === formData.category);
+      const categoryName = categoryObj?.name || formData.category;
+      
+      // Alt kategori adını bul
+      const subCategoryObj = categoryObj?.subcategories?.find(sub => sub.slug === formData.subCategory);
+      const subCategoryName = subCategoryObj?.name || formData.subCategory || null;
 
       // Seçilen plan bilgisi
       const selectedPlanData = premiumPlans[selectedPlan as keyof typeof premiumPlans];
       
+      // Premium özellikleri hazırla
+      const enabledPremiumFeatures = Object.entries(premiumSettings)
+        .filter(([_, enabled]) => enabled)
+        .map(([key]) => key);
+
       // İlan verilerini hazırla
       const listingData = {
-        id: Date.now(), // Benzersiz ID
-        ...formData,
-        phoneVisibility: phoneVisibility, // Telefon görünürlüğü bilgisini ekle
-        plan: selectedPlan,
-        planName: selectedPlanData.name,
-        planPrice: selectedPlanData.price,
-        premiumSettings: premiumSettings,
-        premiumFeaturesPrice: Object.entries(premiumSettings)
-          .filter(([_, enabled]) => enabled)
-          .reduce((total, [settingId]) => {
-            const feature = premiumFeatures.find(f => f.id === settingId);
-            return total + (feature?.price || 0);
-          }, 0),
-        totalPrice: calculateTotalPrice(),
-        images: images.length,
-        optionalFeatures: optionalFeatures,
-        createdAt: new Date().toISOString(),
+        title: formData.title,
+        description: formData.description,
+        price: formData.price,
+        category: categoryName,
+        subCategory: subCategoryName,
+        subSubCategory: null,
+        location: formData.location,
+        phone: formData.phone || null,
+        showPhone: phoneVisibility === 'public',
+        images: imageUrls,
+        features: optionalFeatures.length > 0 
+          ? optionalFeatures.map(f => `${f.key}: ${f.value}`)
+          : [],
+        condition: 'Yeni', // Varsayılan
+        brand: null,
+        model: null,
+        year: null,
         isPremium: selectedPlan !== 'none',
-        // Demo için varsayılan değerler
-        views: 0,
-        likes: 0,
-        status: 'active'
+        premiumFeatures: enabledPremiumFeatures.length > 0 ? enabledPremiumFeatures : null,
+        premiumUntil: selectedPlan !== 'none' 
+          ? new Date(Date.now() + (selectedPlanData.duration.includes('30') ? 30 : 60) * 24 * 60 * 60 * 1000).toISOString()
+          : null,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 gün sonra
       };
 
-      // Mevcut ilanları localStorage'dan al
-      const existingListings = JSON.parse(localStorage.getItem('userListings') || '[]');
-      
-      // Yeni ilanı ekle
-      const updatedListings = [listingData, ...existingListings];
-      
-      // localStorage'a kaydet
-      localStorage.setItem('userListings', JSON.stringify(updatedListings));
+      // API'ye gönder
+      const response = await fetch('/api/listings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(listingData),
+      });
 
-      // Demo için başarı mesajı
-      const successMessage = selectedPlan === 'none' 
-        ? 'İlanınız başarıyla yayınlandı! Ücretsiz plan ile 30 gün boyunca yayında kalacak.'
-        : `İlanınız başarıyla yayınlandı! ${selectedPlanData.name} planı ile ${selectedPlanData.duration} boyunca premium özelliklerle yayında kalacak.`;
+      const data = await response.json();
 
-      alert(successMessage);
+      if (!response.ok) {
+        throw new Error(data.error || 'İlan oluşturulurken bir hata oluştu');
+      }
+
+      // Başarı mesajı
+      alert('İlanınız başarıyla oluşturuldu. Moderatör onayından sonra yayınlanacaktır.');
       
       // Form'u temizle
       setFormData({
@@ -269,11 +305,12 @@ export default function IlanVerPage() {
         topPosition: false
       });
 
-      // Ana sayfaya yönlendir
-      router.push('/');
+      // İlanlarım sayfasına yönlendir
+      router.push('/ilanlarim');
 
-    } catch (error) {
-      alert('İlan yayınlanırken bir hata oluştu. Lütfen tekrar deneyin.');
+    } catch (error: any) {
+      console.error('İlan oluşturma hatası:', error);
+      alert(error.message || 'İlan yayınlanırken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setIsSubmitting(false);
     }

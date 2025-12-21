@@ -93,7 +93,7 @@ model Listing {
   expiresAt   DateTime
   views       Int      @default(0)
   isActive    Boolean  @default(true)
-  approvalStatus String @default("approved") // onayda, approved, rejected
+  approvalStatus String @default("pending") // pending, approved, rejected
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      String

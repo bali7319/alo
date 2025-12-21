@@ -102,6 +102,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://alo17.tr',
   },
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({

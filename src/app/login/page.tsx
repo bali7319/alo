@@ -131,18 +131,12 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="mt-6">
             <button
               onClick={() => signIn('google', { callbackUrl: '/' })}
               className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
             >
               Google ile Giriş Yap
-            </button>
-            <button
-              onClick={() => signIn('apple', { callbackUrl: '/' })}
-              className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-            >
-              Apple ile Giriş Yap
             </button>
           </div>
         </div>

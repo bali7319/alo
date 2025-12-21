@@ -1,47 +1,108 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import { Sidebar } from "@/components/sidebar"
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
-import { listings } from '@/lib/listings'
+import { PrismaClient } from '@prisma/client'
 import { Star, Eye, Clock, Camera, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
+const prisma = new PrismaClient();
+
+// Sayfayı dinamik yap (cache'i devre dışı bırak)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // SEO için metadata layout.tsx'te tanımlı
-export default function Home() {
-  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
-  const [latestListings, setLatestListings] = useState<any[]>([]);
+export default async function Home() {
+  // Veritabanından ilanları çek
+  let featuredListings: any[] = [];
+  let latestListings: any[] = [];
 
-  useEffect(() => {
-    // Static verileri hazırla
-    const staticListings = listings.filter(listing => listing.isPremium).slice(0, 6);
-    const staticLatestListings = [...listings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 12);
+  try {
+    // Premium ilanları çek
+    const premiumListings = await prisma.listing.findMany({
+      where: {
+        isPremium: true,
+        isActive: true,
+        approvalStatus: 'approved'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+    });
 
-    // localStorage'dan kullanıcı ilanlarını al
-    let userListings: any[] = [];
-    try {
-      userListings = JSON.parse(localStorage.getItem('userListings') || '[]');
-    } catch (error) {
-      console.error('localStorage okuma hatası:', error);
-      userListings = [];
-    }
+    // En yeni ilanları çek
+    const latest = await prisma.listing.findMany({
+      where: {
+        isActive: true,
+        approvalStatus: 'approved'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 12,
+    });
 
-    // Premium ilanları birleştir (kullanıcı ilanları önce)
-    const featured = [
-      ...userListings.filter(listing => listing.isPremium),
-      ...staticListings
-    ].slice(0, 6);
+    // Format listings
+    featuredListings = premiumListings.map(listing => ({
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory || undefined,
+      description: listing.description,
+      images: JSON.parse(listing.images || '[]'),
+      createdAt: listing.createdAt.toISOString(),
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil?.toISOString(),
+      user: {
+        id: listing.user.id,
+        name: listing.user.name || undefined,
+        email: listing.user.email,
+      },
+    }));
 
-    // En yeni ilanları birleştir (kullanıcı ilanları önce)
-    const latest = [
-      ...userListings,
-      ...staticLatestListings
-    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 12);
-
-    setFeaturedListings(featured);
-    setLatestListings(latest);
-  }, []);
+    latestListings = latest.map(listing => ({
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory || undefined,
+      description: listing.description,
+      images: JSON.parse(listing.images || '[]'),
+      createdAt: listing.createdAt.toISOString(),
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil?.toISOString(),
+      user: {
+        id: listing.user.id,
+        name: listing.user.name || undefined,
+        email: listing.user.email,
+      },
+    }));
+  } catch (error) {
+    console.error('Database error:', error);
+    // Hata durumunda boş liste
+    featuredListings = [];
+    latestListings = [];
+  } finally {
+    await prisma.$disconnect();
+  }
 
   return (
     <main className="min-h-screen bg-gray-50">

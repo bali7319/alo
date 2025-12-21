@@ -90,7 +90,12 @@ export default function Header() {
 
             {/* Kullanıcı Menüsü */}
             {status === 'loading' ? (
-              <div className="animate-pulse bg-gray-200 h-9 w-20 rounded"></div>
+              <Link href={createLoginUrl(pathname || '/')}>
+                <Button variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600">
+                  <User className="h-4 w-4 lg:mr-2" />
+                  <span className="hidden lg:inline">Giriş Yap</span>
+                </Button>
+              </Link>
             ) : session ? (
               <div className="relative">
                 <button
@@ -165,7 +170,7 @@ export default function Header() {
               <Link href={createLoginUrl(pathname || '/')}>
                 <Button variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600">
                   <User className="h-4 w-4 lg:mr-2" />
-                  <span className="hidden lg:inline">Giriş Yap</span>
+                  <span className="hidden sm:inline">Giriş Yap</span>
                 </Button>
               </Link>
             )}
