@@ -1,11 +1,11 @@
 module.exports = {
   apps: [{
     name: 'alo17',
-    script: 'npm',
+    script: './node_modules/.bin/next',
     args: 'start',
-    cwd: process.cwd(),
-    instances: 2, // CPU core sayısına göre ayarlayın (1-4 arası önerilir)
-    exec_mode: 'cluster',
+    cwd: '/var/www/alo17',
+    instances: 1, // Next.js kendi cluster desteği var, PM2 cluster mode ile çakışabilir
+    exec_mode: 'fork', // cluster yerine fork kullan
     env: {
       NODE_ENV: 'production',
       PORT: 3000
