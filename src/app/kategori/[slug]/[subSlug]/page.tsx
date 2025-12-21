@@ -118,25 +118,33 @@ export default async function SubCategoryPage({ params }: { params: Promise<{ sl
   const categoryName = categoryMap[slug];
   const subCategoryName = subCategoryMap[subSlug];
 
-  // Veritabanından ilanları çek
-  const listings = await prisma.listing.findMany({
-    where: {
-      category: categoryName,
-      subCategory: subCategoryName,
-      isActive: true,
-      approvalStatus: 'approved'
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+  // Veritabanından ilanları çek (build sırasında hata olursa boş liste)
+  let listings: Awaited<ReturnType<typeof prisma.listing.findMany<{
+    include: { user: { select: { id: true; name: true; email: true } } }
+  }>>> = [];
+  try {
+    listings = await prisma.listing.findMany({
+      where: {
+        category: categoryName,
+        subCategory: subCategoryName,
+        isActive: true,
+        approvalStatus: 'approved'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (error) {
+    // Build sırasında veritabanı bağlantısı yoksa boş liste
+    console.warn('Database connection failed during build, using empty listings');
+  }
 
   const formattedListings = listings.map(listing => ({
     id: listing.id,

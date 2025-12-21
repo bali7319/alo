@@ -1,4 +1,20 @@
 import React from 'react';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Hakkımızda - Alo17',
+  description: 'Alo17, Çanakkale\'nin en büyük ve güvenilir ilan sitesi. 2024 yılında kurulan platformumuz, Çanakkale halkının ihtiyaçlarını karşılamak ve yerel ekonomiyi desteklemek amacıyla hizmet vermektedir.',
+  keywords: ['alo17 hakkında', 'çanakkale ilan sitesi', 'alo17 misyon', 'alo17 vizyon', 'güvenilir ilan sitesi'],
+  openGraph: {
+    title: 'Hakkımızda - Alo17',
+    description: 'Alo17, Çanakkale\'nin en büyük ve güvenilir ilan sitesi.',
+    url: 'https://alo17.tr/hakkimizda',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://alo17.tr/hakkimizda',
+  },
+};
 
 export default function HakkimizdaPage() {
   return (

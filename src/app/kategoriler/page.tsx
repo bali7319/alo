@@ -1,5 +1,31 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Kategoriler - Tüm İlan Kategorileri | Alo17',
+  description: 'Çanakkale\'de tüm ilan kategorilerini keşfedin. İş, elektronik, giyim, ev eşyaları, araç ve daha fazlası. İhtiyacınız olan ürün veya hizmeti bulun.',
+  keywords: [
+    'kategoriler',
+    'ilan kategorileri',
+    'çanakkale kategoriler',
+    'tüm kategoriler',
+    'alo17 kategoriler',
+    'iş ilanları',
+    'elektronik',
+    'giyim',
+    'ev eşyaları'
+  ],
+  openGraph: {
+    title: 'Kategoriler - Tüm İlan Kategorileri | Alo17',
+    description: 'Çanakkale\'de tüm ilan kategorilerini keşfedin. İş, elektronik, giyim ve daha fazlası.',
+    url: 'https://alo17.tr/kategoriler',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://alo17.tr/kategoriler',
+  },
+};
 
 // Basit kategoriler listesi
 const categories = [

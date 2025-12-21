@@ -32,8 +32,76 @@ import Footer from '@/components/footer'
 // })
 
 export const metadata: Metadata = {
-  title: 'Alo17 - Ev Hizmetleri ve Daha Fazlası',
-  description: 'Ev hizmetleri, eğitim, sağlık ve daha fazlası için güvenilir platform',
+  metadataBase: new URL('https://alo17.tr'),
+  title: {
+    default: 'Alo17 - Çanakkale\'nin En Büyük İlan Sitesi',
+    template: '%s | Alo17'
+  },
+  description: 'Çanakkale\'de ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul. Elektronik, giyim, ev eşyaları, araba ve daha fazlası için güvenilir platform.',
+  keywords: [
+    'alo17',
+    'çanakkale ilan',
+    'ikinci el',
+    'satılık',
+    'kiralık',
+    'iş ilanları',
+    'elektronik',
+    'giyim',
+    'ev eşyaları',
+    'araç',
+    'emlak',
+    'çanakkale',
+    'ücretsiz ilan',
+    'ilan sitesi'
+  ],
+  authors: [{ name: 'Alo17' }],
+  creator: 'Alo17',
+  publisher: 'Alo17',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'tr_TR',
+    url: 'https://alo17.tr',
+    siteName: 'Alo17',
+    title: 'Alo17 - Çanakkale\'nin En Büyük İlan Sitesi',
+    description: 'Çanakkale\'de ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul. Elektronik, giyim, ev eşyaları ve daha fazlası.',
+    images: [
+      {
+        url: '/images/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Alo17 - İlan Sitesi',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Alo17 - Çanakkale\'nin En Büyük İlan Sitesi',
+    description: 'Çanakkale\'de ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul.',
+    images: ['/images/og-image.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    // Google Search Console verification code buraya eklenecek
+    // google: 'your-google-verification-code',
+  },
+  alternates: {
+    canonical: 'https://alo17.tr',
+  },
 }
 
 export default function RootLayout({

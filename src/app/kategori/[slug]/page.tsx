@@ -4,6 +4,7 @@ import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
 import { Home, Sparkles, Star, MapPin, Users, Clock, Shield, Award } from 'lucide-react'
 import { PrismaClient } from '@prisma/client'
+import { Metadata } from 'next'
 
 const prisma = new PrismaClient()
 
@@ -19,6 +20,88 @@ export async function generateStaticParams() {
   });
   
   return params;
+}
+
+// SEO Metadata
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const foundCategory = categories.find((cat) => cat.slug === slug);
+  
+  if (!foundCategory) {
+    return {
+      title: 'Kategori Bulunamadı',
+    };
+  }
+
+  const categoryMap: { [key: string]: string } = {
+    'is': 'İş',
+    'hizmetler': 'Hizmetler',
+    'elektronik': 'Elektronik',
+    'ev-ve-bahce': 'Ev & Bahçe',
+    'giyim': 'Giyim',
+    'moda-stil': 'Moda & Stil',
+    'sporlar-oyunlar-eglenceler': 'Sporlar, Oyunlar ve Eğlenceler',
+    'anne-bebek': 'Anne & Bebek',
+    'cocuk-dunyasi': 'Çocuk Dünyası',
+    'egitim-kurslar': 'Eğitim & Kurslar',
+    'yemek-icecek': 'Yemek & İçecek',
+    'catering-ticaret': 'Catering & Ticaret',
+    'turizm-konaklama': 'Turizm & Konaklama',
+    'saglik-guzellik': 'Sağlık & Güzellik',
+    'sanat-hobi': 'Sanat & Hobi',
+    'ucretsiz-gel-al': 'Ücretsiz Gel Al',
+    'diger': 'Diğer'
+  };
+
+  const categoryName = categoryMap[slug] || foundCategory.name;
+  
+  // İlan sayısını al (build sırasında hata olursa 0 döndür)
+  let listingCount = 0;
+  try {
+    listingCount = await prisma.listing.count({
+      where: {
+        category: categoryName,
+        isActive: true,
+        approvalStatus: 'approved'
+      }
+    });
+  } catch (error) {
+    // Build sırasında veritabanı bağlantısı yoksa varsayılan değer
+    console.warn('Database connection failed during build, using default count');
+  }
+
+  const title = `${categoryName} İlanları - Çanakkale | Alo17`;
+  const description = `Çanakkale'de ${categoryName} kategorisinde ${listingCount} aktif ilan. Ücretsiz ilan ver, ikinci el ${categoryName.toLowerCase()} al-sat. En iyi fiyatlar ve güvenilir satıcılar.`;
+
+  return {
+    title,
+    description,
+    keywords: [
+      categoryName.toLowerCase(),
+      `${categoryName} çanakkale`,
+      `ikinci el ${categoryName.toLowerCase()}`,
+      `satılık ${categoryName.toLowerCase()}`,
+      `çanakkale ${categoryName.toLowerCase()} ilanları`,
+      'alo17',
+      'çanakkale ilan'
+    ],
+    openGraph: {
+      title,
+      description,
+      url: `https://alo17.tr/kategori/${slug}`,
+      siteName: 'Alo17',
+      locale: 'tr_TR',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    alternates: {
+      canonical: `https://alo17.tr/kategori/${slug}`,
+    },
+  };
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -65,24 +148,32 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   const categoryName = categoryMap[slug];
 
-  // Veritabanından ilanları çek
-  const listings = await prisma.listing.findMany({
-    where: {
-      category: categoryName,
-      isActive: true,
-      approvalStatus: 'approved'
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+  // Veritabanından ilanları çek (build sırasında hata olursa boş liste)
+  let listings: Awaited<ReturnType<typeof prisma.listing.findMany<{
+    include: { user: { select: { id: true; name: true; email: true } } }
+  }>>> = [];
+  try {
+    listings = await prisma.listing.findMany({
+      where: {
+        category: categoryName,
+        isActive: true,
+        approvalStatus: 'approved'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (error) {
+    // Build sırasında veritabanı bağlantısı yoksa boş liste
+    console.warn('Database connection failed during build, using empty listings');
+  }
 
   const formattedListings = listings.map(listing => ({
     id: listing.id,

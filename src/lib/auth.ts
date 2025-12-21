@@ -3,6 +3,10 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
 import { JWT } from 'next-auth/jwt';
+import { PrismaClient } from '@prisma/client';
+import { compare } from 'bcryptjs';
+
+const prisma = new PrismaClient();
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -17,26 +21,36 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email ve şifre gerekli');
         }
 
-        // Test kullanıcısı kontrolü
-        if (credentials.email === 'test@alo17.tr' && credentials.password === 'test123') {
-          return {
-            id: 'test-user-1',
-            email: credentials.email,
-            name: 'Test Kullanıcı',
-          };
-        }
+        try {
+          // Veritabanından kullanıcıyı bul
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
 
-        // Admin kontrolü
-        if (credentials.email === 'admin@alo17.tr' && credentials.password === 'admin123') {
-          return {
-            id: 'admin-1',
-            email: credentials.email,
-            name: 'Admin',
-            role: 'admin'
-          };
-        }
+          if (!user || !user.password) {
+            throw new Error('Geçersiz email veya şifre');
+          }
 
-        throw new Error('Geçersiz email veya şifre');
+          // Şifreyi kontrol et
+          const isPasswordValid = await compare(credentials.password, user.password);
+
+          if (!isPasswordValid) {
+            throw new Error('Geçersiz email veya şifre');
+          }
+
+          // Admin kontrolü (email'e göre)
+          const isAdmin = credentials.email === 'admin@alo17.tr';
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name || 'Kullanıcı',
+            role: isAdmin ? 'admin' : 'user',
+          };
+        } catch (error) {
+          console.error('Auth error:', error);
+          throw new Error('Geçersiz email veya şifre');
+        }
       },
     }),
     GoogleProvider({

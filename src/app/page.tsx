@@ -8,6 +8,7 @@ import { listings } from '@/lib/listings'
 import { Star, Eye, Clock, Camera, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
+// SEO için metadata layout.tsx'te tanımlı
 export default function Home() {
   const [featuredListings, setFeaturedListings] = useState<any[]>([]);
   const [latestListings, setLatestListings] = useState<any[]>([]);
@@ -44,6 +45,28 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      {/* Structured Data (JSON-LD) for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Alo17",
+            "url": "https://alo17.tr",
+            "description": "Çanakkale'nin en büyük ilan sitesi",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://alo17.tr/ilanlar?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          })
+        }}
+      />
+      
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-16">
         <div className="container mx-auto px-4">
