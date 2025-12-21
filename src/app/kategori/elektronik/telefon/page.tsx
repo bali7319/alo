@@ -137,28 +137,6 @@ export default function TelefonCategoryPage() {
               </div>
             </div>
 
-            {/* Fiyat Aralığı Filtresi */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-3">Fiyat Aralığı</h3>
-              <div className="space-y-2">
-                {[
-                  { value: '0-5000', label: '0 - 5.000 TL' },
-                  { value: '5000-10000', label: '5.000 - 10.000 TL' },
-                  { value: '10000-20000', label: '10.000 - 20.000 TL' },
-                  { value: '20000+', label: '20.000 TL ve üzeri' }
-                ].map(range => (
-                  <label key={range.value} className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="mr-2 rounded"
-                      checked={priceRange === range.value}
-                      onChange={() => setPriceRange(priceRange === range.value ? null : range.value)}
-                    />
-                    <span className="text-sm">{range.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
 
             {/* Filtreleri Temizle */}
             {(selectedSubcategory || selectedBrand || priceRange) && (

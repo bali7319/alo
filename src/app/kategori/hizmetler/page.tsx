@@ -79,36 +79,6 @@ export default function HizmetlerPage() {
                 </li>
               ))}
             </ul>
-
-            <div className="mt-8">
-              <h3 className="font-semibold mb-3">Hizmet Özellikleri</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center">
-                  <Star className="w-4 h-4 text-yellow-500 mr-2" />
-                  Profesyonel Hizmet
-                </li>
-                <li className="flex items-center">
-                  <Users className="w-4 h-4 text-blue-500 mr-2" />
-                  Deneyimli Ekip
-                </li>
-                <li className="flex items-center">
-                  <Zap className="w-4 h-4 text-yellow-500 mr-2" />
-                  Hızlı Hizmet
-                </li>
-                <li className="flex items-center">
-                  <Award className="w-4 h-4 text-green-500 mr-2" />
-                  Garantili Hizmet
-                </li>
-                <li className="flex items-center">
-                  <Clock className="w-4 h-4 text-purple-500 mr-2" />
-                  7/24 Destek
-                </li>
-                <li className="flex items-center">
-                  <MapPin className="w-4 h-4 text-red-500 mr-2" />
-                  Tüm Bölgeler
-                </li>
-              </ul>
-            </div>
           </div>
         </aside>
 

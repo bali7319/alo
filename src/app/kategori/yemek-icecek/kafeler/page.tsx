@@ -106,28 +106,7 @@ export default function CafesCategoryPage() {
               </div>
             </div>
 
-            {/* Fiyat Aralığı Filtresi */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-2">Ortalama Kişi Başı</h3>
-              <div className="space-y-2">
-                {[
-                  { value: '0-50', label: '0 - 50 TL' },
-                  { value: '50-100', label: '50 - 100 TL' },
-                  { value: '100-200', label: '100 - 200 TL' },
-                  { value: '200+', label: '200 TL ve üzeri' }
-                ].map(range => (
-                  <label key={range.value} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="mr-2"
-                      checked={priceRange === range.value}
-                      onChange={() => setPriceRange(priceRange === range.value ? null : range.value)}
-                    />
-                    <span>{range.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            
           </div>
         </div>
 

@@ -131,28 +131,7 @@ export default function MusicalInstrumentsCategoryPage() {
               </div>
             </div>
 
-            {/* Fiyat Aralığı Filtresi */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-2">Fiyat Aralığı</h3>
-              <div className="space-y-2">
-                {[
-                  { value: '0-1000', label: '0 - 1.000 TL' },
-                  { value: '1000-5000', label: '1.000 - 5.000 TL' },
-                  { value: '5000-10000', label: '5.000 - 10.000 TL' },
-                  { value: '10000+', label: '10.000 TL ve üzeri' }
-                ].map(range => (
-                  <label key={range.value} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="mr-2"
-                      checked={priceRange === range.value}
-                      onChange={() => setPriceRange(priceRange === range.value ? null : range.value)}
-                    />
-                    <span>{range.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            
           </div>
         </div>
 

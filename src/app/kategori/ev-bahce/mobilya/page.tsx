@@ -80,28 +80,6 @@ export default function MobilyaCategoryPage() {
 
             <h2 className="text-lg font-semibold mb-4">Filtreler</h2>
 
-            {/* Fiyat Aralığı Filtresi */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-2">Fiyat Aralığı</h3>
-              <div className="space-y-2">
-                {[
-                  { value: '0-5000', label: '0 - 5.000 TL' },
-                  { value: '5000-10000', label: '5.000 - 10.000 TL' },
-                  { value: '10000-20000', label: '10.000 - 20.000 TL' },
-                  { value: '20000+', label: '20.000 TL ve üzeri' }
-                ].map(range => (
-                  <label key={range.value} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="mr-2"
-                      checked={priceRange === range.value}
-                      onChange={() => setPriceRange(priceRange === range.value ? null : range.value)}
-                    />
-                    <span>{range.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
 
             {/* Durum Filtresi */}
             <div className="mb-6">

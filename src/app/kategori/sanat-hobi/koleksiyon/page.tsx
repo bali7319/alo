@@ -142,28 +142,7 @@ export default function CollectionCategoryPage() {
               </div>
             </div>
 
-            {/* Fiyat Aralığı Filtresi */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-2">Fiyat Aralığı</h3>
-              <div className="space-y-2">
-                {[
-                  { value: '0-100', label: '0 - 100 TL' },
-                  { value: '100-500', label: '100 - 500 TL' },
-                  { value: '500-1000', label: '500 - 1.000 TL' },
-                  { value: '1000+', label: '1.000 TL ve üzeri' }
-                ].map(range => (
-                  <label key={range.value} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="mr-2"
-                      checked={priceRange === range.value}
-                      onChange={() => setPriceRange(priceRange === range.value ? null : (range.value ?? ''))}
-                    />
-                    <span>{range.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            
           </div>
         </div>
 

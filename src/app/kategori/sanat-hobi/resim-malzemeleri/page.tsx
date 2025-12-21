@@ -55,28 +55,7 @@ export default function ArtSuppliesCategoryPage() {
           <div className="bg-white rounded-lg shadow-sm p-4">
             <h2 className="text-lg font-semibold mb-4">Filtreler</h2>
             
-            {/* Fiyat Aralığı Filtresi */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-2">Fiyat Aralığı</h3>
-              <div className="space-y-2">
-                {[
-                  { value: '0-100', label: '0 - 100 TL' },
-                  { value: '100-500', label: '100 - 500 TL' },
-                  { value: '500-1000', label: '500 - 1.000 TL' },
-                  { value: '1000+', label: '1.000 TL ve üzeri' }
-                ].map(range => (
-                  <label key={range.value} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="mr-2"
-                      checked={priceRange === range.value}
-                      onChange={() => setPriceRange(priceRange === range.value ? null : range.value)}
-                    />
-                    <span>{range.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            
           </div>
         </div>
 

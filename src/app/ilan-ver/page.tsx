@@ -272,6 +272,13 @@ export default function IlanVerPage() {
         body: JSON.stringify(listingData),
       });
 
+      // Response'un JSON olup olmadığını kontrol et
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error('Sunucu hatası: ' + (text.substring(0, 100) || 'Bilinmeyen hata'));
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
