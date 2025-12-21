@@ -96,4 +96,8 @@ Thumbs.db
 backup_*/
 backup_new/
 
+# Build artifacts
+.next.zip
+.next.backup/
+
 .vercel
