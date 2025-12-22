@@ -27,8 +27,6 @@ export default function YemekIcecekPage() {
   // Filtreleme fonksiyonu
   const filteredListings = yemekIcecekListings.filter(listing => {
     if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
-    
-    }
     return true
   })
 

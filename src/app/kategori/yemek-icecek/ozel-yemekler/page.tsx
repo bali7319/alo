@@ -19,12 +19,7 @@ export default function OzelYemeklerCategoryPage() {
   // const cuisines = Array.from(new Set(ozelYemeklerListings.map(listing => listing.brand)))
 
   // Filtreleme fonksiyonu
-  const filteredListings = ozelYemeklerListings.filter(listing => {
-    // if (selectedCuisine && listing.brand !== selectedCuisine) return false
-    
-    }
-    return true
-  })
+  const filteredListings = ozelYemeklerListings
 
   return (
     <div className="container mx-auto px-4 py-8">

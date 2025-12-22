@@ -25,8 +25,6 @@ export default function OtelCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = otelListings.filter(listing => {
     if (selectedType && listing.subCategory !== selectedType) return false
-    
-    }
     return true
   })
 

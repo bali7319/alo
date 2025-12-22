@@ -25,8 +25,6 @@ export default function CosmeticsCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = cosmeticsListings.filter(listing => {
     if (category && listing.subCategory !== category) return false
-    
-    }
     return true
   })
 

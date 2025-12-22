@@ -23,8 +23,6 @@ export default function HotelsCategoryPage() {
   const filteredListings = hotelListings.filter(listing => {
     if (selectedStar && listing.subCategory !== selectedStar) return false
     if (location && listing.location !== location) return false
-    
-    }
     return true
   })
 

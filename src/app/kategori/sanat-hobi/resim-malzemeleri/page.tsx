@@ -16,11 +16,7 @@ export default function ArtSuppliesCategoryPage() {
     
 
   // Filtreleme fonksiyonu
-  const filteredListings = artSuppliesListings.filter(listing => {
-    
-    }
-    return true
-  })
+  const filteredListings = artSuppliesListings
 
   return (
     <div className="container mx-auto px-4 py-8">

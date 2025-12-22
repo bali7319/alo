@@ -16,12 +16,7 @@ export default function CafesCategoryPage() {
   )
 
   // Filtreleme fonksiyonu
-  const filteredListings = kafeListings.filter(listing => {
-    // if (selectedCuisine && listing.brand !== selectedCuisine) return false
-    
-    }
-    return true
-  })
+  const filteredListings = kafeListings
 
   return (
     <div className="container mx-auto px-4 py-8">

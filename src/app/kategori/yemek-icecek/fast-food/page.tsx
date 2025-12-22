@@ -21,9 +21,6 @@ export default function FastFoodCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = fastFoodListings.filter(listing => {
     if (selectedBrand && listing.subCategory !== selectedBrand) return false
-    if (features.length > 0) return true // Features filtresini kaldırıyoruz çünkü Listing tipinde yok
-    
-    }
     return true
   })
 

@@ -19,12 +19,7 @@ export default function RestaurantsCategoryPage() {
   // const cuisines = Array.from(new Set(restaurantListings.map(listing => listing.brand)))
 
   // Filtreleme fonksiyonu
-  const filteredListings = restaurantListings.filter(listing => {
-    // if (selectedCuisine && listing.brand !== selectedCuisine) return false
-    
-    }
-    return true
-  })
+  const filteredListings = restaurantListings
 
   return (
     <div className="container mx-auto px-4 py-8">

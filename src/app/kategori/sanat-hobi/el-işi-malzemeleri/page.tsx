@@ -27,8 +27,6 @@ export default function CraftSuppliesCategoryPage() {
     if (selectedBrand && listing.subCategory !== selectedBrand) return false
     if (category && listing.subCategory !== category) return false
     if (condition && listing.subCategory !== condition) return false
-    
-    }
     return true
   })
 

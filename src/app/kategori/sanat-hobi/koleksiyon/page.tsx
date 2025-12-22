@@ -19,8 +19,6 @@ export default function CollectionCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = collectionListings.filter(listing => {
     if (selectedType && listing.subCategory !== selectedType) return false
-    
-    }
     return true
   })
 

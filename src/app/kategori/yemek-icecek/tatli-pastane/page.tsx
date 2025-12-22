@@ -19,12 +19,7 @@ export default function TatliPastaneCategoryPage() {
   // const types = Array.from(new Set(tatliPastaneListings.map(listing => listing.brand)))
 
   // Filtreleme fonksiyonu
-  const filteredListings = tatliPastaneListings.filter(listing => {
-    // if (selectedType && listing.brand !== selectedType) return false
-    
-    }
-    return true
-  })
+  const filteredListings = tatliPastaneListings
 
   return (
     <div className="container mx-auto px-4 py-8">

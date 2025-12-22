@@ -22,8 +22,6 @@ export default function SpaCenterCategoryPage() {
   const filteredListings = spaListings.filter(listing => {
     if (selectedType && listing.subCategory !== selectedType) return false
     if (location && listing.location !== location) return false
-    
-    }
     return true
   })
 
