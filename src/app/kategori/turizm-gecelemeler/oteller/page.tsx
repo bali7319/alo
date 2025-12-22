@@ -23,23 +23,7 @@ export default function HotelsCategoryPage() {
   const filteredListings = hotelListings.filter(listing => {
     if (selectedStar && listing.subCategory !== selectedStar) return false
     if (location && listing.location !== location) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-1000':
-          if (numericPrice > 1000) return false
-          break
-        case '1000-2000':
-          if (numericPrice < 1000 || numericPrice > 2000) return false
-          break
-        case '2000-5000':
-          if (numericPrice < 2000 || numericPrice > 5000) return false
-          break
-        case '5000+':
-          if (numericPrice < 5000) return false
-          break
-      }
+    
     }
     return true
   })

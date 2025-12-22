@@ -21,23 +21,7 @@ export default function TatliPastaneCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = tatliPastaneListings.filter(listing => {
     // if (selectedType && listing.brand !== selectedType) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-50':
-          if (numericPrice > 50) return false
-          break
-        case '50-100':
-          if (numericPrice < 50 || numericPrice > 100) return false
-          break
-        case '100-200':
-          if (numericPrice < 100 || numericPrice > 200) return false
-          break
-        case '200+':
-          if (numericPrice < 200) return false
-          break
-      }
+    
     }
     return true
   })

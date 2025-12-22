@@ -24,7 +24,6 @@ export default function TakimSporlariPage() {
   // Filtreleri temizle
   const clearFilters = () => {
     setSelectedSubcategory(null)
-    setPriceRange(null)
     setCondition(null)
   }
 

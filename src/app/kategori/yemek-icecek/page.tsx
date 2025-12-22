@@ -27,23 +27,7 @@ export default function YemekIcecekPage() {
   // Filtreleme fonksiyonu
   const filteredListings = yemekIcecekListings.filter(listing => {
     if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-200':
-          if (numericPrice > 200) return false
-          break
-        case '200-500':
-          if (numericPrice < 200 || numericPrice > 500) return false
-          break
-        case '500-1000':
-          if (numericPrice < 500 || numericPrice > 1000) return false
-          break
-        case '1000+':
-          if (numericPrice < 1000) return false
-          break
-      }
+    
     }
     return true
   })

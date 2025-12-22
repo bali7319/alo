@@ -20,7 +20,6 @@ export default function AyakkabiCategoryPage() {
   // Filtreleri temizle
   const clearFilters = () => {
     setSelectedSubcategory(null)
-    setPriceRange(null)
     setCondition(null)
   }
 

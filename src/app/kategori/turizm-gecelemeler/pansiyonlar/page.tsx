@@ -23,23 +23,7 @@ export default function GuesthousesCategoryPage() {
   const filteredListings = guesthouseListings.filter(listing => {
     if (selectedType && listing.subCategory !== selectedType) return false
     if (location && listing.location !== location) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-500':
-          if (numericPrice > 500) return false
-          break
-        case '500-1000':
-          if (numericPrice < 500 || numericPrice > 1000) return false
-          break
-        case '1000-2000':
-          if (numericPrice < 1000 || numericPrice > 2000) return false
-          break
-        case '2000+':
-          if (numericPrice < 2000) return false
-          break
-      }
+    
     }
     return true
   })

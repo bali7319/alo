@@ -19,23 +19,7 @@ export default function CollectionCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = collectionListings.filter(listing => {
     if (selectedType && listing.subCategory !== selectedType) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-100':
-          if (numericPrice > 100) return false
-          break
-        case '100-500':
-          if (numericPrice < 100 || numericPrice > 500) return false
-          break
-        case '500-1000':
-          if (numericPrice < 500 || numericPrice > 1000) return false
-          break
-        case '1000+':
-          if (numericPrice < 1000) return false
-          break
-      }
+    
     }
     return true
   })

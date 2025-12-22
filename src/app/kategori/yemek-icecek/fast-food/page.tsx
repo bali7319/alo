@@ -22,23 +22,7 @@ export default function FastFoodCategoryPage() {
   const filteredListings = fastFoodListings.filter(listing => {
     if (selectedBrand && listing.subCategory !== selectedBrand) return false
     if (features.length > 0) return true // Features filtresini kaldırıyoruz çünkü Listing tipinde yok
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-50':
-          if (numericPrice > 50) return false
-          break
-        case '50-100':
-          if (numericPrice < 50 || numericPrice > 100) return false
-          break
-        case '100-200':
-          if (numericPrice < 100 || numericPrice > 200) return false
-          break
-        case '200+':
-          if (numericPrice < 200) return false
-          break
-      }
+    
     }
     return true
   })

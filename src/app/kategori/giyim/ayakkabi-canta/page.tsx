@@ -26,23 +26,7 @@ export default function ShoesBagsCategoryPage() {
     if (condition && listing.subCategory !== condition) return false
     if (size) return true // Size filtresini kaldırıyoruz çünkü features yok
     if (type) return true // Type filtresini kaldırıyoruz çünkü features yok
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-500':
-          if (numericPrice > 500) return false
-          break
-        case '500-1000':
-          if (numericPrice < 500 || numericPrice > 1000) return false
-          break
-        case '1000-2000':
-          if (numericPrice < 1000 || numericPrice > 2000) return false
-          break
-        case '2000+':
-          if (numericPrice < 2000) return false
-          break
-      }
+    
     }
     return true
   })

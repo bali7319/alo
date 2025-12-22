@@ -119,12 +119,11 @@ export default function TelefonCategoryPage() {
 
 
             {/* Filtreleri Temizle */}
-            {(selectedSubcategory || selectedBrand || priceRange) && (
+            {(selectedSubcategory || selectedBrand) && (
               <button
                 onClick={() => {
                   setSelectedSubcategory(null)
                   setSelectedBrand(null)
-                  setPriceRange(null)
                 }}
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-md text-sm transition-colors"
               >

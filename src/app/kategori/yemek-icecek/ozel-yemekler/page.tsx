@@ -21,23 +21,7 @@ export default function OzelYemeklerCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = ozelYemeklerListings.filter(listing => {
     // if (selectedCuisine && listing.brand !== selectedCuisine) return false
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-200':
-          if (numericPrice > 200) return false
-          break
-        case '200-500':
-          if (numericPrice < 200 || numericPrice > 500) return false
-          break
-        case '500-1000':
-          if (numericPrice < 500 || numericPrice > 1000) return false
-          break
-        case '1000+':
-          if (numericPrice < 1000) return false
-          break
-      }
+    
     }
     return true
   })

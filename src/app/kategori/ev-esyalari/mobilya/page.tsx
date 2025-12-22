@@ -16,23 +16,7 @@ export default function FurnitureCategoryPage() {
 
   // Filtreleme fonksiyonu
   const filteredListings = mobilyaListings.filter(listing => {
-    if (priceRange) {
-      const price = listing.price
-      const numericPrice = typeof price === 'string' ? parseFloat(price) : Number(price)
-      switch (priceRange) {
-        case '0-10000':
-          if (numericPrice > 10000) return false
-          break
-        case '10000-20000':
-          if (numericPrice < 10000 || numericPrice > 20000) return false
-          break
-        case '20000-30000':
-          if (numericPrice < 20000 || numericPrice > 30000) return false
-          break
-        case '30000+':
-          if (numericPrice < 30000) return false
-          break
-      }
+    
     }
     return true
   })
