@@ -26,7 +26,7 @@ export default function PaymentSuccessPage() {
           
           <div className="space-y-4">
             <Link
-              href="/profil/ilanlarim"
+              href="/ilanlarim"
               className="block w-full bg-alo-orange text-white px-6 py-3 rounded-lg font-semibold hover:bg-alo-light-orange transition-colors"
             >
               İlanlarımı Görüntüle

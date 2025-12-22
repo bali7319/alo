@@ -3,9 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
-import { listingTypes } from '@/types/listings';
 
 // PayTR için gerekli tipler
 interface PayTRFormData {
@@ -29,17 +27,16 @@ interface PayTRFormData {
   test_mode: number;
 }
 
-// Örnek veri - Gerçek uygulamada API'den gelecek
-const listing = {
-  id: 1,
-  title: 'iPhone 14 Pro Max 256GB',
-  price: '45.000',
-  type: listingTypes.PREMIUM,
-  premiumFeatures: {
-    price: 149.00,
-    duration: 30,
-  }
-};
+// Listing interface
+interface ListingData {
+  id: string;
+  title: string;
+  price: number;
+  premiumFeatures?: {
+    price: number;
+    duration: number;
+  };
+}
 
 export default function PaymentPage() {
   return (
@@ -55,6 +52,8 @@ function PaymentPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<PayTRFormData | null>(null);
+  const [listing, setListing] = useState<ListingData | null>(null);
+  const [amount, setAmount] = useState<number>(0);
 
   useEffect(() => {
     const initializePayment = async () => {
@@ -64,6 +63,27 @@ function PaymentPageContent() {
           setLoading(false);
           return;
         }
+
+        const listingId = searchParams.get('listingId');
+        const paymentAmount = searchParams.get('amount');
+
+        if (!listingId) {
+          setError('İlan ID bulunamadı');
+          setLoading(false);
+          return;
+        }
+
+        // İlan bilgilerini al
+        const listingResponse = await fetch(`/api/listings/${listingId}`);
+        if (listingResponse.ok) {
+          const listingData = await listingResponse.json();
+          setListing(listingData.listing);
+        }
+
+        // Ödeme tutarını belirle
+        const paymentAmountValue = paymentAmount ? parseFloat(paymentAmount) : 149.00;
+        setAmount(paymentAmountValue);
+
         // API'den PayTR token'ı al
         const response = await fetch('/api/payment/initialize', {
           method: 'POST',
@@ -71,8 +91,8 @@ function PaymentPageContent() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            listingId: searchParams.get('listingId'),
-            amount: listing.premiumFeatures.price,
+            listingId,
+            amount: paymentAmountValue,
             currency: 'TL',
           }),
         });
@@ -98,18 +118,41 @@ function PaymentPageContent() {
     if (!formData) return;
 
     try {
-      // PayTR iframe'ini aç
-      const paytrIframe = document.createElement('iframe');
-      paytrIframe.src = 'https://www.paytr.com/odeme/guvenli';
-      paytrIframe.style.width = '100%';
-      paytrIframe.style.height = '100%';
-      paytrIframe.style.border = 'none';
-      
+      // PayTR formunu oluştur ve gönder
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'https://www.paytr.com/odeme/guvenli';
+      form.target = 'paytr_iframe';
+      form.style.display = 'none';
+
+      // Form verilerini ekle
+      Object.entries(formData).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(value);
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+
+      // Iframe oluştur
       const iframeContainer = document.getElementById('paytr-iframe-container');
       if (iframeContainer) {
         iframeContainer.innerHTML = '';
-        iframeContainer.appendChild(paytrIframe);
+        const iframe = document.createElement('iframe');
+        iframe.name = 'paytr_iframe';
+        iframe.id = 'paytr_iframe';
+        iframe.style.width = '100%';
+        iframe.style.height = '600px';
+        iframe.style.border = 'none';
+        iframe.style.borderRadius = '8px';
+        iframeContainer.appendChild(iframe);
       }
+
+      // Formu gönder
+      form.submit();
+      document.body.removeChild(form);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ödeme işlemi başlatılamadı');
     }
@@ -159,13 +202,15 @@ function PaymentPageContent() {
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3 border-b">
                 <span className="text-gray-600">İlan Başlığı</span>
-                <span className="font-medium">{listing.title}</span>
+                <span className="font-medium">{listing?.title || 'İlan bilgisi yükleniyor...'}</span>
               </div>
               
-              <div className="flex items-center justify-between py-3 border-b">
-                <span className="text-gray-600">Premium Üyelik</span>
-                <span className="font-medium">{listing.premiumFeatures.duration} Gün</span>
-              </div>
+              {listing?.premiumFeatures && (
+                <div className="flex items-center justify-between py-3 border-b">
+                  <span className="text-gray-600">Premium Üyelik</span>
+                  <span className="font-medium">{listing.premiumFeatures.duration} Gün</span>
+                </div>
+              )}
               
               <div className="flex items-center justify-between py-3 border-b">
                 <span className="text-gray-600">Premium Özellikler</span>
@@ -178,7 +223,7 @@ function PaymentPageContent() {
               
               <div className="flex items-center justify-between py-3 border-b">
                 <span className="text-gray-600">Toplam Tutar</span>
-                <span className="text-xl font-bold text-alo-orange">{listing.premiumFeatures.price} TL</span>
+                <span className="text-xl font-bold text-alo-orange">{amount.toFixed(2)} TL</span>
               </div>
             </div>
           </div>
