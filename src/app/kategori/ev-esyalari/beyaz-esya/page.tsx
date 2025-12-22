@@ -15,11 +15,7 @@ export default function WhiteGoodsCategoryPage() {
     )
 
   // Filtreleme fonksiyonu
-  const filteredListings = beyazEsyaListings.filter(listing => {
-    
-    }
-    return true
-  })
+  const filteredListings = beyazEsyaListings
 
   return (
     <div className="container mx-auto px-4 py-8">

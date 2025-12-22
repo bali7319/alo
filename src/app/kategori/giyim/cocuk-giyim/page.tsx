@@ -22,12 +22,6 @@ export default function KidsClothingCategoryPage() {
 
   // Filtreleme fonksiyonu
   const filteredListings = kidsClothingListings.filter(listing => {
-    if (selectedBrand) return true // brand filtresini kaldırıyoruz çünkü Listing tipinde yok
-    if (condition) return true // condition filtresini kaldırıyoruz çünkü Listing tipinde yok
-    if (size) return true // features filtresini kaldırıyoruz çünkü Listing tipinde yok
-    if (ageGroup) return true // features filtresini kaldırıyoruz çünkü Listing tipinde yok
-    
-    }
     return true
   })
 

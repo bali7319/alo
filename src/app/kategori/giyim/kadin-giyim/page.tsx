@@ -21,11 +21,6 @@ export default function WomenClothingCategoryPage() {
 
   // Filtreleme fonksiyonu
   const filteredListings = womenClothingListings.filter(listing => {
-    if (selectedBrand) return true // brand filtresini kaldırıyoruz çünkü Listing tipinde yok
-    if (condition) return true // condition filtresini kaldırıyoruz çünkü Listing tipinde yok
-    if (size) return true // features filtresini kaldırıyoruz çünkü Listing tipinde yok
-    
-    }
     return true
   })
 

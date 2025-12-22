@@ -24,10 +24,6 @@ export default function ShoesBagsCategoryPage() {
   const filteredListings = shoesBagsListings.filter(listing => {
     if (selectedBrand && listing.subCategory !== selectedBrand) return false
     if (condition && listing.subCategory !== condition) return false
-    if (size) return true // Size filtresini kaldırıyoruz çünkü features yok
-    if (type) return true // Type filtresini kaldırıyoruz çünkü features yok
-    
-    }
     return true
   })
 

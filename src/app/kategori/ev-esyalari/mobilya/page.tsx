@@ -15,11 +15,7 @@ export default function FurnitureCategoryPage() {
     )
 
   // Filtreleme fonksiyonu
-  const filteredListings = mobilyaListings.filter(listing => {
-    
-    }
-    return true
-  })
+  const filteredListings = mobilyaListings
 
   return (
     <div className="container mx-auto px-4 py-8">
