@@ -2,7 +2,6 @@
 
 import { FaUtensils, FaCoffee, FaBirthdayCake, FaHamburger, FaGlassMartini } from 'react-icons/fa'
 import Link from 'next/link'
-import { useState } from 'react'
 import { listings } from '@/lib/listings'
 import { ListingCard } from '@/components/listing-card'
 import { Listing } from '@/types/listings'
@@ -16,7 +15,6 @@ const subcategories = [
 ]
 
 export default function YemekIcecekPage() {
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
     // Yemek-icecek ilanlarını filtrele ve types/listings.ts formatına dönüştür
   const yemekIcecekListings: Listing[] = listings
     .filter(listing => 
@@ -25,10 +23,7 @@ export default function YemekIcecekPage() {
     
 
   // Filtreleme fonksiyonu
-  const filteredListings = yemekIcecekListings.filter(listing => {
-    if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
-    return true
-  })
+  const filteredListings = yemekIcecekListings
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -55,28 +50,6 @@ export default function YemekIcecekPage() {
                 </Link>
               ))}
             </div>
-
-            <h2 className="text-lg font-semibold mb-4">Filtreler</h2>
-            
-            {/* Alt Kategori Filtresi */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-2">Kategori</h3>
-              <div className="space-y-2">
-                {subcategories.map(subcategory => (
-                  <label key={subcategory.id} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="mr-2"
-                      checked={selectedSubcategory === subcategory.id}
-                      onChange={() => setSelectedSubcategory(selectedSubcategory === subcategory.id ? null : subcategory.id)}
-                    />
-                    <span className="text-sm">{subcategory.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            
           </div>
         </div>
 
