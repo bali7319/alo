@@ -134,11 +134,47 @@ export default function IlanVerPage() {
     'Kullanım Durumu', 'Ekspertiz', 'Takas', 'Kredi', 'Nakit', 'Pazarlık Payı'
   ];
 
+  const [imageError, setImageError] = useState<string>('');
+  const MAX_IMAGES = 10;
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
+      setImageError('');
       const newImages = Array.from(e.target.files);
-      setImages(prev => [...prev, ...newImages].slice(0, 10));
+      
+      // Toplam resim sayısı kontrolü
+      const totalImages = images.length + newImages.length;
+      if (totalImages > MAX_IMAGES) {
+        setImageError(`Maksimum ${MAX_IMAGES} resim yükleyebilirsiniz. ${images.length} resim zaten yüklü.`);
+        e.target.value = ''; // Input'u temizle
+        return;
+      }
+
+      // Dosya boyutu kontrolü
+      const oversizedFiles = newImages.filter(file => file.size > MAX_FILE_SIZE);
+      if (oversizedFiles.length > 0) {
+        setImageError(`Bazı dosyalar çok büyük. Maksimum dosya boyutu ${MAX_FILE_SIZE / (1024 * 1024)}MB'dir.`);
+        e.target.value = ''; // Input'u temizle
+        return;
+      }
+
+      // Dosya tipi kontrolü
+      const invalidFiles = newImages.filter(file => !file.type.startsWith('image/'));
+      if (invalidFiles.length > 0) {
+        setImageError('Sadece resim dosyaları yüklenebilir (JPG, PNG, GIF, vb.).');
+        e.target.value = ''; // Input'u temizle
+        return;
+      }
+
+      setImages(prev => [...prev, ...newImages].slice(0, MAX_IMAGES));
+      e.target.value = ''; // Input'u temizle
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImageError('');
   };
 
   const handleCategoryChange = (categorySlug: string) => {
@@ -807,6 +843,12 @@ export default function IlanVerPage() {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-600 mb-2">Resim yüklemek için tıklayın</p>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Maksimum {MAX_IMAGES} resim, her biri en fazla {MAX_FILE_SIZE / (1024 * 1024)}MB
+                  </p>
+                  <p className="text-sm text-blue-600 mb-3">
+                    {images.length}/{MAX_IMAGES} resim yüklendi
+                  </p>
                   <input
                     type="file"
                     multiple
@@ -814,25 +856,55 @@ export default function IlanVerPage() {
                     onChange={handleImageUpload}
                     className="hidden"
                     id="image-upload"
+                    disabled={images.length >= MAX_IMAGES}
                   />
                   <label
                     htmlFor="image-upload"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer"
+                    className={`inline-block px-4 py-2 rounded-md cursor-pointer transition-colors ${
+                      images.length >= MAX_IMAGES
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
                   >
-                    Resim Seç
+                    {images.length >= MAX_IMAGES ? 'Maksimum resim sayısına ulaşıldı' : 'Resim Seç'}
                   </label>
                 </div>
+                
+                {/* Hata Mesajı */}
+                {imageError && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-sm text-red-800">{imageError}</p>
+                  </div>
+                )}
+
+                {/* Yüklenen Resimler */}
                 {images.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {images.map((image, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={URL.createObjectURL(image)}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded"
-                        />
-                      </div>
-                    ))}
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 mb-2">
+                      Yüklenen Resimler ({images.length}/{MAX_IMAGES})
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {images.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={URL.createObjectURL(image)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Resmi kaldır"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                            {(image.size / (1024 * 1024)).toFixed(2)}MB
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
