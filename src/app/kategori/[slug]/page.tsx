@@ -237,35 +237,6 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                 </li>
               ))}
             </ul>
-
-            <div className="mt-8">
-              <h3 className="font-semibold mb-3 flex items-center">
-                <Star className="w-4 h-4 text-yellow-500 mr-2" />
-                Kategori Özellikleri
-              </h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center">
-                  <Shield className="w-4 h-4 text-green-500 mr-2" />
-                  Güvenilir Satıcılar
-                </li>
-                <li className="flex items-center">
-                  <Clock className="w-4 h-4 text-blue-500 mr-2" />
-                  Hızlı Teslimat
-                </li>
-                <li className="flex items-center">
-                  <Users className="w-4 h-4 text-purple-500 mr-2" />
-                  Geniş Seçenek
-                </li>
-                <li className="flex items-center">
-                  <Award className="w-4 h-4 text-yellow-500 mr-2" />
-                  Kaliteli Ürünler
-                </li>
-                <li className="flex items-center">
-                  <MapPin className="w-4 h-4 text-red-500 mr-2" />
-                  Yerel Satıcılar
-                </li>
-              </ul>
-            </div>
           </div>
         </aside>
 
