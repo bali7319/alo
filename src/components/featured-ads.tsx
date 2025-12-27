@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { ListingCard } from './listing-card';
 import { Listing } from '@/types/listings';
+import { createSlug } from '@/lib/slug';
 
 interface FeaturedAdsProps {
   category?: string;
@@ -13,42 +14,55 @@ interface FeaturedAdsProps {
 }
 
 export function FeaturedAds({ category, subcategory, subSubcategory, limit = 6, title, listings = [] }: FeaturedAdsProps) {
+  const normalizeSlug = (value?: string) => (value ? createSlug(value) : '');
+  const targetCategorySlug = category ? createSlug(category) : '';
+  const targetSubcategorySlug = subcategory ? createSlug(subcategory) : '';
+  const targetSubSubcategorySlug = subSubcategory ? createSlug(subSubcategory) : '';
+
   const filteredAds = listings.filter(ad => {
-    if (category && subcategory && subSubcategory) {
-      return ad.category.toLowerCase() === category.toLowerCase() && 
-             ad.subCategory?.toLowerCase() === subcategory.toLowerCase() &&
-             ad.subSubCategory?.toLowerCase() === subSubcategory.toLowerCase();
-    } else if (category && subcategory) {
-      return ad.category.toLowerCase() === category.toLowerCase() && 
-             ad.subCategory?.toLowerCase() === subcategory.toLowerCase();
-    } else if (category) {
-      return ad.category.toLowerCase() === category.toLowerCase();
-    }
-    return true;
+    const adCategorySlug = normalizeSlug(ad.category);
+    const adSubCategorySlug = normalizeSlug(ad.subCategory);
+    const adSubSubCategorySlug = normalizeSlug(ad.subSubCategory);
+
+    const matchesCategory = !targetCategorySlug || adCategorySlug === targetCategorySlug;
+    const matchesSubcategory = !targetSubcategorySlug || adSubCategorySlug === targetSubcategorySlug;
+    const matchesSubSubcategory = !targetSubSubcategorySlug || adSubSubCategorySlug === targetSubSubcategorySlug;
+
+    return matchesCategory && matchesSubcategory && matchesSubSubcategory;
   });
 
   const displayAds = filteredAds.slice(0, limit);
 
   return (
-    <div>
+    <section aria-labelledby="featured-ads-title">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">{title || "Öne Çıkan İlanlar"}</h2>
+        <h2 id="featured-ads-title" className="text-2xl font-bold">{title || "Öne Çıkan İlanlar"}</h2>
         {category && subcategory && subSubcategory && (
-          <Link href={`/kategori/${category.toLowerCase()}/${subcategory.toLowerCase()}/${subSubcategory.toLowerCase()}`} className="text-blue-600 hover:text-blue-800">
+          <Link 
+            href={`/kategori/${category.toLowerCase()}/${subcategory.toLowerCase()}/${subSubcategory.toLowerCase()}`} 
+            className="text-blue-600 hover:text-blue-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
+            aria-label={`${subSubcategory} kategorisindeki tüm ilanları görüntüle`}
+          >
             Tümünü Gör
           </Link>
         )}
         {category && subcategory && !subSubcategory && (
-          <Link href={`/kategori/${category.toLowerCase()}/${subcategory.toLowerCase()}`} className="text-blue-600 hover:text-blue-800">
+          <Link 
+            href={`/kategori/${category.toLowerCase()}/${subcategory.toLowerCase()}`} 
+            className="text-blue-600 hover:text-blue-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
+            aria-label={`${subcategory} kategorisindeki tüm ilanları görüntüle`}
+          >
             Tümünü Gör
           </Link>
         )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Öne çıkan ilanlar listesi">
         {displayAds.map((ad) => (
-          <ListingCard key={ad.id} listing={ad} />
+          <div key={ad.id} role="listitem">
+            <ListingCard listing={ad} />
+          </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 } 

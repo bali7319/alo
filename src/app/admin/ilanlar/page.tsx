@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 interface Listing {
@@ -9,8 +12,10 @@ interface Listing {
   price: number;
   approvalStatus: string;
   isActive: boolean;
+  isPremium?: boolean;
+  premiumUntil?: string | null;
+  expiresAt?: string;
   createdAt: string;
-  expiryDate: string;
   user: {
     name: string;
     email: string;
@@ -19,13 +24,33 @@ interface Listing {
 }
 
 export default function AdminIlanlarPage() {
+  const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  useEffect(() => {
+    if (sessionStatus === 'loading') {
+      return;
+    }
+
+    // Admin kontrolü
+    if (!session || session.user?.email !== 'admin@alo17.tr') {
+      router.push(`/giris?callbackUrl=${encodeURIComponent('/admin/ilanlar')}`);
+      return;
+    }
+
+    fetchListings();
+  }, [session, sessionStatus, router, status, page]);
+
   const fetchListings = async () => {
+    if (!session || session.user?.email !== 'admin@alo17.tr') {
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -40,10 +65,13 @@ export default function AdminIlanlarPage() {
       const data = await response.json();
       
       if (response.ok) {
-        setListings(data.listings);
-        setTotalPages(data.totalPages);
+        setListings(data.listings || []);
+        setTotalPages(data.totalPages || 1);
       } else {
-        console.error('Hata:', data.error);
+        console.error('API Hatası:', data.error);
+        if (response.status === 401 || response.status === 403) {
+          router.push(`/giris?callbackUrl=${encodeURIComponent('/admin/ilanlar')}`);
+        }
       }
     } catch (error) {
       console.error('API hatası:', error);
@@ -51,10 +79,6 @@ export default function AdminIlanlarPage() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchListings();
-  }, [status, page]);
 
   const handleAction = async (listingId: string, action: string, days?: number) => {
     try {
@@ -122,8 +146,17 @@ export default function AdminIlanlarPage() {
     }
   };
 
-  if (loading) {
-    return <div className="text-center py-8">Yükleniyor...</div>;
+  if (sessionStatus === 'loading' || loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p>Yükleniyor...</p>
+      </div>
+    );
+  }
+
+  if (!session || session.user?.email !== 'admin@alo17.tr') {
+    return null; // Router zaten yönlendirecek
   }
 
   return (
@@ -167,6 +200,7 @@ export default function AdminIlanlarPage() {
               <th className="p-3 border-b">Fiyat</th>
               <th className="p-3 border-b">Kullanıcı</th>
               <th className="p-3 border-b">Durum</th>
+              <th className="p-3 border-b">Premium</th>
               <th className="p-3 border-b">Tarih</th>
               <th className="p-3 border-b">Aksiyonlar</th>
             </tr>
@@ -174,24 +208,54 @@ export default function AdminIlanlarPage() {
           <tbody>
             {listings.map((listing) => (
               <tr key={listing.id} className="hover:bg-gray-50">
-                <td className="p-3 border-b">{listing.title}</td>
+                <td className="p-3 border-b">
+                  <div className="font-medium">{listing.title}</div>
+                  <div className="text-xs text-gray-500">ID: {listing.id}</div>
+                </td>
                 <td className="p-3 border-b">{listing.price.toLocaleString('tr-TR')} ₺</td>
                 <td className="p-3 border-b">
                   <div>
                     <div className="font-medium">{listing.user.name}</div>
                     <div className="text-sm text-gray-500">{listing.user.email}</div>
+                    <div className="text-xs text-gray-400">{listing.user.phone}</div>
                   </div>
                 </td>
                 <td className="p-3 border-b">
                   <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(listing.approvalStatus)}`}>
                     {getStatusText(listing.approvalStatus)}
                   </span>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {listing.isActive ? 'Aktif' : 'Pasif'}
+                  </div>
                 </td>
                 <td className="p-3 border-b">
-                  {new Date(listing.createdAt).toLocaleDateString('tr-TR')}
+                  <div className="text-xs">
+                    {listing.isPremium ? 'Premium' : 'Standart'}
+                  </div>
+                  {listing.premiumUntil && (
+                    <div className="text-xs text-gray-500">
+                      {`Bitiş: ${new Date(listing.premiumUntil).toLocaleDateString('tr-TR')}`}
+                    </div>
+                  )}
+                </td>
+                <td className="p-3 border-b">
+                  <div>{new Date(listing.createdAt).toLocaleDateString('tr-TR')}</div>
+                  {listing.expiresAt && (
+                    <div className="text-xs text-gray-500">
+                      {`Son: ${new Date(listing.expiresAt).toLocaleDateString('tr-TR')}`}
+                    </div>
+                  )}
                 </td>
                 <td className="p-3 border-b">
                   <div className="flex gap-2 flex-wrap">
+                    <Link href={`/ilan-ver/duzenle/${listing.id}`} target="_blank">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                      >
+                        Düzenle
+                      </Button>
+                    </Link>
                     {listing.approvalStatus === 'pending' && (
                       <>
                         <Button 
@@ -213,14 +277,16 @@ export default function AdminIlanlarPage() {
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => {
-                        const days = prompt('Kaç gün uzatmak istiyorsunuz?');
-                        if (days && !isNaN(Number(days))) {
-                          handleAction(listing.id, 'extend', Number(days));
-                        }
-                      }}
+                      onClick={() => handleAction(listing.id, listing.isPremium ? 'unpremium' : 'premium', 30)}
                     >
-                      Süre Uzat
+                      {listing.isPremium ? 'Premium Kaldır' : 'Premium (30g)'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleAction(listing.id, listing.isActive ? 'deactivate' : 'activate')}
+                    >
+                      {listing.isActive ? 'Pasifleştir' : 'Aktifleştir'}
                     </Button>
                     <Button 
                       size="sm" 

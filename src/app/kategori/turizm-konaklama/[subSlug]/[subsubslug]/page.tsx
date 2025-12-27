@@ -6,24 +6,6 @@ import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 import { Hotel, Plane, Car, Ship, Calendar, Star } from 'lucide-react'
 
-// generateStaticParams fonksiyonu ekle
-export async function generateStaticParams() {
-  const params: { subSlug: string; subsubslug: string }[] = [];
-  
-  // Turizm & Konaklama kategorisinin tüm alt kategorileri ve alt-alt kategorileri için statik parametreler oluştur
-  const foundCategory = categories.find((cat) => cat.slug === 'turizm-konaklama');
-  foundCategory?.subcategories?.forEach((subcategory) => {
-    subcategory.subcategories?.forEach((subSubcategory) => {
-      params.push({
-        subSlug: subcategory.slug,
-        subsubslug: subSubcategory.slug,
-      });
-    });
-  });
-  
-  return params;
-}
-
 export default async function TurizmAltAltKategoriPage({ params }: { params: Promise<{ subSlug: string, subsubslug: string }> }) {
   const { subSlug, subsubslug } = await params;
   

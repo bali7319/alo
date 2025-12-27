@@ -1,5 +1,6 @@
 'use client'
 
+import { categories } from '@/lib/categories'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
@@ -7,114 +8,121 @@ import { useEffect, useState } from 'react'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 
-// Sanat & Hobi kategorisi tanımı
-const sanatHobiCategory = {
-  name: "Sanat & Hobi",
-  slug: "sanat-hobi",
-  icon: "🎨",
-  subcategories: [
-    {
-      name: "Resim",
-      slug: "resim",
-      icon: "🎨"
-    },
-    {
-      name: "Müzik",
-      slug: "muzik",
-      icon: "🎵"
-    },
-    {
-      name: "Seramik",
-      slug: "seramik",
-      icon: "🏺"
-    },
-    {
-      name: "Fotoğrafçılık",
-      slug: "fotografcilik",
-      icon: "📸"
-    },
-    {
-      name: "El Sanatları",
-      slug: "el-sanatlari",
-      icon: "🧶"
-    },
-    {
-      name: "Koleksiyon",
-      slug: "koleksiyon",
-      icon: "📦"
-    },
-    {
-      name: "Diğer",
-      slug: "diger",
-      icon: "🎭"
-    }
-  ]
-}
-
 export default function SanatHobiPage() {
   const [isLoading, setIsLoading] = useState(true)
+  const [category, setCategory] = useState<any>(null)
   const [mappedListings, setMappedListings] = useState<Listing[]>([])
   
   useEffect(() => {
-    // Sanat & Hobi ilanlarını filtrele ve dönüştür
-    const mapped = rawListings
-      .filter(listing => listing.category.toLowerCase() === 'sanat-hobi')
-      
+    // Sanat & Hobi kategorisini bul
+    const foundCategory = categories.find(cat => cat.slug === 'sanat-hobi')
     
-    setMappedListings(mapped)
+    if (foundCategory) {
+      setCategory(foundCategory)
+      
+      // Listings data'sını doğru formata dönüştür
+      const mapped = rawListings
+        .filter(listing => listing.category.toLowerCase() === 'sanat-hobi')
+        
+      
+      setMappedListings(mapped)
+    }
+    
     setIsLoading(false)
   }, [])
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600"></div>
+      </div>
+    )
+  }
+
+  if (!category) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
+          <Link href="/" className="text-blue-600 hover:text-blue-800">
+            Ana sayfaya dön
+          </Link>
         </div>
       </div>
     )
   }
 
+  // Alt kategori renkleri
+  const subcategoryColors: { [key: string]: string } = {
+    'resim-malzemeleri': 'text-pink-500',
+    'müzik-aletleri': 'text-purple-500',
+    'el-işi-malzemeleri': 'text-orange-500',
+    'hobi-kursları': 'text-blue-500',
+    'koleksiyon': 'text-yellow-500',
+    'diger': 'text-gray-500'
+  }
+
   return (
-    <div className="container mx-auto py-8">
-      {/* Breadcrumb Navigation */}
-      <nav className="text-sm text-gray-500 mb-6">
-        <ol className="flex space-x-2">
-          <li>
-            <Link href="/" className="hover:text-blue-600">Ana Sayfa</Link>
-          </li>
-          <li>/</li>
-          <li className="text-gray-900">{sanatHobiCategory.name}</li>
-        </ol>
-      </nav>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto py-8">
+        {/* Breadcrumb */}
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                Ana Sayfa
+              </Link>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">Sanat & Hobi</span>
+              </div>
+            </li>
+          </ol>
+        </nav>
 
-      <div className="flex gap-8">
-        {/* Sidebar - Alt Kategoriler */}
-        <aside className="w-64">
-          <h2 className="font-semibold mb-4 text-lg">Alt Kategoriler</h2>
-          <ul className="space-y-2">
-            {sanatHobiCategory.subcategories.map((sub) => (
-              <li key={sub.slug}>
-                <Link 
-                  href={`/kategori/sanat-hobi/${sub.slug}`}
-                  className="flex items-center space-x-2 p-2 rounded hover:bg-gray-100 transition-colors"
-                >
-                  <span className="text-lg">{sub.icon}</span>
-                  <span>{sub.name}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </aside>
+        <div className="flex gap-8">
+          {/* Sidebar */}
+          <aside className="w-64">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="font-semibold text-lg mb-4">Alt Kategoriler</h2>
+              <ul className="space-y-2">
+                {category.subcategories?.map((subcategory: any) => (
+                  <li key={subcategory.slug}>
+                    <Link 
+                      href={`/kategori/sanat-hobi/${subcategory.slug}`}
+                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className={`text-lg ${subcategoryColors[subcategory.slug] || 'text-gray-500'}`}>
+                        {subcategory.icon}
+                      </span>
+                      <span className="text-sm font-medium text-gray-700">{subcategory.name}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
 
-        {/* Main Content */}
-        <main className="flex-1">
-          <h1 className="text-3xl font-bold mb-6">{sanatHobiCategory.name}</h1>
-          
-          <FeaturedAds category="sanat-hobi" listings={mappedListings} />
-          <LatestAds category="sanat-hobi" listings={mappedListings} />
-        </main>
+          {/* Ana İçerik */}
+          <div className="flex-1">
+            {/* İlanlar */}
+            <div className="space-y-8">
+              <FeaturedAds 
+                category={category.slug}
+                title="Öne Çıkan İlanlar"
+                listings={mappedListings}
+              />
+              
+              <LatestAds 
+                category={category.slug}
+                title="En Son İlanlar"
+                listings={mappedListings}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

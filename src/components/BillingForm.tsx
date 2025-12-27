@@ -45,7 +45,8 @@ export default function BillingForm({ onSubmit, onCancel, hideButtons = false }:
 
   // Kullanıcı profil bilgilerini yükle
   useEffect(() => {
-    if (session?.user?.id) {
+    const userId = (session?.user as any)?.id;
+    if (userId) {
       loadUserProfile();
     }
   }, [session]);

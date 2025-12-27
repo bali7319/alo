@@ -2,38 +2,86 @@ import Link from "next/link"
 import Image from "next/image"
 import { Star, Crown, Image as ImageIcon } from "lucide-react"
 import { Listing } from '@/types/listings'
+import { createSlug } from '@/lib/slug'
 
 interface ListingCardProps {
   listing: Listing
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
-  const getDefaultImage = () => {
-    // Kullanıcı ilanları için farklı placeholder
-    if (listing.planName) {
-      // Kullanıcı ilanı - plan bilgisi varsa
-      return `https://picsum.photos/seed/${listing.id}/500/300`
+  // Resim URL'ini belirle
+  const getImageUrl = () => {
+    // Önce gerçek resimleri kontrol et
+    if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
+      const image = listing.images[0];
+      // Base64 data URL veya normal URL kontrolü
+      if (typeof image === 'string' && image.length > 0) {
+        return image;
+      }
     }
-    // Statik ilanlar için mevcut resimler
-    return listing.images.length > 0 ? listing.images[0] : `https://picsum.photos/seed/${listing.id}/500/300`
+    // Resim yoksa null döndür
+    return null;
   }
 
-  const imageUrl = getDefaultImage();
+  const imageUrl = getImageUrl();
+  const hasImage = imageUrl !== null;
+  const isBase64 = hasImage && typeof imageUrl === 'string' && imageUrl.startsWith('data:image');
 
+  const listingSlug = createSlug(listing.title);
+  
   return (
-    <Link href={`/ilan/${listing.id}`}>
-      <div className={`bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 ${
+    <Link 
+      href={`/ilan/${listingSlug}`}
+      className="block focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg"
+      aria-label={`${listing.title} ilanını görüntüle`}
+    >
+      <div className={`bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${
         listing.isPremium ? 'ring-2 ring-yellow-400 shadow-lg' : ''
       }`}>
-        <div className="relative h-48">
-          <Image
-            src={imageUrl}
-            alt={listing.title}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover"
-            unoptimized
-          />
+        <div className="relative h-48 w-full bg-gray-100 overflow-hidden">
+          {/* Placeholder - resim yoksa veya yüklenemezse gösterilir */}
+          <div className={`absolute inset-0 w-full h-full flex items-center justify-center bg-gray-100 image-placeholder ${hasImage ? 'hidden' : ''}`}>
+            <ImageIcon className="w-12 h-12 text-gray-400" />
+          </div>
+          
+          {hasImage && (
+            isBase64 ? (
+              // Base64 resimler için normal img tag kullan (Next.js Image base64'ü optimize edemez)
+              <img
+                src={imageUrl}
+                alt={listing.title || 'İlan resmi'}
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  // Resim yüklenemezse placeholder göster
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const placeholder = target.parentElement?.querySelector('.image-placeholder');
+                  if (placeholder) {
+                    (placeholder as HTMLElement).classList.remove('hidden');
+                  }
+                }}
+              />
+            ) : (
+              <Image
+                src={imageUrl}
+                alt={listing.title || 'İlan resmi'}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className="object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  // Resim yüklenemezse placeholder göster
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const placeholder = target.parentElement?.querySelector('.image-placeholder');
+                  if (placeholder) {
+                    (placeholder as HTMLElement).classList.remove('hidden');
+                  }
+                }}
+              />
+            )
+          )}
           
           {/* Premium Rozeti */}
           {listing.isPremium && (
@@ -56,7 +104,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
           
           <h3 className="font-semibold text-lg mb-2 line-clamp-2">{listing.title}</h3>
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">{listing.description}</p>
+          {/* description kaldırıldı - ana sayfada gerekli değil, çok yer kaplar */}
           
           <div className="flex justify-between items-center">
             <span className="font-bold text-lg text-blue-600">

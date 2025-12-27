@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { categories } from '@/lib/categories'
 import { FeaturedAds } from '@/components/featured-ads'
@@ -7,63 +7,36 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
-import { FaBriefcase, FaSprayCan, FaTools, FaTruck, FaLock, FaPalette, FaGraduationCap } from 'react-icons/fa'
 
 export default function IsPage() {
+  const [isLoading, setIsLoading] = useState(true)
   const [category, setCategory] = useState<any>(null)
   const [mappedListings, setMappedListings] = useState<Listing[]>([])
-
+  
   useEffect(() => {
-    const foundCategory = categories.find((cat) => cat.slug === 'is')
-    if (!foundCategory) return
-    setCategory(foundCategory)
-
-    console.log('Raw listings count:', rawListings.length)
-    console.log('Sample raw listing:', rawListings[0])
+    // İş kategorisini bul
+    const foundCategory = categories.find(cat => cat.slug === 'is')
     
-    // Listings data'sını doğru formata dönüştür
-    const filtered = rawListings.filter(listing => {
-      // Basit string karşılaştırması
-      const matches = listing.category === 'İş'
-      console.log(`Listing ${listing.id}: category="${listing.category}" matches=${matches}`)
-      return matches
-    })
-    
-    console.log('Filtered listings count:', filtered.length)
-    
-    const mapped = filtered
-    
-    console.log('Mapped listings count:', mapped.length)
-    console.log('Sample mapped listing:', mapped[0])
-    
-    setMappedListings(mapped)
-  }, [])
-
-  // Alt kategori ikonları
-  const getSubcategoryIcon = (subcategory: any) => {
-    const iconMap: { [key: string]: any } = {
-      'garson-komi': <FaBriefcase className="w-5 h-5 text-blue-500" />,
-      'sofor-kurye': <FaTruck className="w-5 h-5 text-orange-500" />,
-      'temizlik-personeli': <FaSprayCan className="w-5 h-5 text-green-500" />,
-      'satis-danismani': <FaBriefcase className="w-5 h-5 text-purple-500" />,
-      'guvenlik-gorevlisi': <FaLock className="w-5 h-5 text-red-500" />,
-      'sekreter-ofis-elemani': <FaBriefcase className="w-5 h-5 text-indigo-500" />,
-      'cagri-merkezi-elemani': <FaBriefcase className="w-5 h-5 text-pink-500" />,
-      'insaat-ustasi-iscisi': <FaTools className="w-5 h-5 text-yellow-500" />,
-      'ogretmen-egitmen': <FaGraduationCap className="w-5 h-5 text-teal-500" />,
-      'saglik-personeli': <FaBriefcase className="w-5 h-5 text-red-400" />,
-      'yazilim-bilisim-uzmani': <FaBriefcase className="w-5 h-5 text-blue-600" />,
-      'muhasebeci-finans-elemani': <FaBriefcase className="w-5 h-5 text-green-600" />,
-      'tekniker-muhendis': <FaTools className="w-5 h-5 text-gray-600" />,
-      'pazarlama-reklam-uzmani': <FaPalette className="w-5 h-5 text-purple-600" />,
-      'teknik-servis': <FaTools className="w-5 h-5 text-blue-500" />,
-      'nakliyat': <FaTruck className="w-5 h-5 text-orange-500" />,
-      'guvenlik': <FaLock className="w-5 h-5 text-red-500" />,
-      'grafik-tasarim': <FaPalette className="w-5 h-5 text-purple-500" />,
-      'egitim': <FaGraduationCap className="w-5 h-5 text-yellow-500" />
+    if (foundCategory) {
+      setCategory(foundCategory)
+      
+      // Listings data'sını doğru formata dönüştür
+      const mapped = rawListings
+        .filter(listing => listing.category.toLowerCase() === 'iş' || listing.category.toLowerCase() === 'is')
+        
+      
+      setMappedListings(mapped)
     }
     
-    return iconMap[subcategory.slug] || <FaBriefcase className="w-5 h-5 text-gray-500" />
+    setIsLoading(false)
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   if (!category) {
@@ -79,78 +52,80 @@ export default function IsPage() {
     )
   }
 
+  // Alt kategori renkleri
+  const subcategoryColors: { [key: string]: string } = {
+    'garson-komi': 'text-orange-500',
+    'guvenlik-gorevlisi': 'text-red-500',
+    'muhasebeci-finans-elemani': 'text-green-500',
+    'nakliyat': 'text-blue-500',
+    'ogretmen-egitmen': 'text-purple-500',
+    'pazarlama-reklam-uzmani': 'text-pink-500',
+    'saglik-personeli': 'text-red-400',
+    'satis-danismani': 'text-yellow-500',
+    'sekreter-ofis-elemani': 'text-indigo-500',
+    'sofor-kurye': 'text-orange-600',
+    'teknik-servis': 'text-gray-500',
+    'tekniker-muhendis': 'text-blue-600',
+    'temizlik-personeli': 'text-green-600',
+    'yazilim-bilisim-uzmani': 'text-cyan-500',
+    'diger': 'text-gray-500'
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Breadcrumb */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <nav className="flex" aria-label="Breadcrumb">
-            <ol className="flex items-center space-x-4">
-              <li>
-                <Link href="/" className="text-gray-500 hover:text-gray-700">
-                  Ana Sayfa
-                </Link>
-              </li>
-              <li>
-                <div className="flex items-center">
-                  <span className="text-gray-400 mx-2">/</span>
-                  <span className="text-gray-900 font-medium">{category.name}</span>
-                </div>
-              </li>
-            </ol>
-          </nav>
-        </div>
-      </div>
+      <div className="container mx-auto py-8">
+        {/* Breadcrumb */}
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                Ana Sayfa
+              </Link>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">İş</span>
+              </div>
+            </li>
+          </ol>
+        </nav>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sol Sidebar - Alt Kategoriler */}
-          <div className="lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {category.name} Alt Kategorileri
-              </h3>
-              <nav className="space-y-2">
-                {category.subcategories?.map((sub: any) => (
-                  <Link
-                    key={sub.slug}
-                    href={`/kategori/${category.slug}/${sub.slug}`}
-                    className="flex items-center space-x-3 px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-                  >
-                    <span className="text-lg">{getSubcategoryIcon(sub)}</span>
-                    <span>{sub.name}</span>
-                  </Link>
+        <div className="flex gap-8">
+          {/* Sidebar */}
+          <aside className="w-64">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="font-semibold text-lg mb-4">Alt Kategoriler</h2>
+              <ul className="space-y-2">
+                {category.subcategories?.map((subcategory: any) => (
+                  <li key={subcategory.slug}>
+                    <Link 
+                      href={`/kategori/is/${subcategory.slug}`}
+                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className={`text-lg ${subcategoryColors[subcategory.slug] || 'text-gray-500'}`}>
+                        {subcategory.icon}
+                      </span>
+                      <span className="text-sm font-medium text-gray-700">{subcategory.name}</span>
+                    </Link>
+                  </li>
                 ))}
-              </nav>
+              </ul>
             </div>
-          </div>
+          </aside>
 
           {/* Ana İçerik */}
           <div className="flex-1">
-            {/* Başlık */}
-            <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-              <div className="flex items-center space-x-3 mb-4">
-                <FaBriefcase className="w-8 h-8 text-blue-600" />
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {category.name}
-                </h1>
-              </div>
-              <p className="text-gray-600">
-                Profesyonel iş hizmetleri, teknik servis, temizlik, nakliyat ve daha fazlası. 
-                Güvenilir ve kaliteli hizmet için doğru adrestesiniz.
-              </p>
-            </div>
-
             {/* İlanlar */}
             <div className="space-y-8">
               <FeaturedAds 
-                category="İş"
+                category={category.slug}
                 title="Öne Çıkan İlanlar"
                 listings={mappedListings}
               />
               
               <LatestAds 
-                category="İş"
+                category={category.slug}
                 title="En Son İlanlar"
                 listings={mappedListings}
               />
@@ -161,4 +136,3 @@ export default function IsPage() {
     </div>
   )
 } 
-

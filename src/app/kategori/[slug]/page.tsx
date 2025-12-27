@@ -1,12 +1,25 @@
 import { categories } from '@/lib/categories'
+import { Sidebar } from '@/components/sidebar'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
 import { Home, Sparkles, Star, MapPin, Users, Clock, Shield, Award } from 'lucide-react'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { Metadata } from 'next'
 
-const prisma = new PrismaClient()
+// Cache eklendi - performans için kritik
+export const revalidate = 300; // 5 dakika cache
+export const dynamic = 'force-dynamic'; // Her istekte fresh data (cache ile birlikte çalışır)
+
+// Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    )
+  ]);
+}
 
 // generateStaticParams fonksiyonu ekle
 export async function generateStaticParams() {
@@ -49,8 +62,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     'turizm-konaklama': 'Turizm & Konaklama',
     'saglik-guzellik': 'Sağlık & Güzellik',
     'sanat-hobi': 'Sanat & Hobi',
-    'ucretsiz-gel-al': 'Ücretsiz Gel Al',
-    'diger': 'Diğer'
+    'ucretsiz-gel-al': 'Ücretsiz Gel Al'
   };
 
   const categoryName = categoryMap[slug] || foundCategory.name;
@@ -58,13 +70,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   // İlan sayısını al (build sırasında hata olursa 0 döndür)
   let listingCount = 0;
   try {
-    listingCount = await prisma.listing.count({
-      where: {
-        category: categoryName,
-        isActive: true,
-        approvalStatus: 'approved'
-      }
-    });
+    listingCount = await withTimeout(
+      prisma.listing.count({
+        where: {
+          OR: [
+            { category: slug }, // Slug formatında
+            { category: categoryName }, // Tam kategori adı formatında
+          ],
+          isActive: true,
+          approvalStatus: 'approved'
+        }
+      }),
+      5000 // 5 saniye timeout
+    );
   } catch (error) {
     // Build sırasında veritabanı bağlantısı yoksa varsayılan değer
     console.warn('Database connection failed during build, using default count');
@@ -142,141 +160,186 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     'turizm-konaklama': 'Turizm & Konaklama',
     'saglik-guzellik': 'Sağlık & Güzellik',
     'sanat-hobi': 'Sanat & Hobi',
-    'ucretsiz-gel-al': 'Ücretsiz Gel Al',
-    'diger': 'Diğer'
+    'ucretsiz-gel-al': 'Ücretsiz Gel Al'
   };
 
   const categoryName = categoryMap[slug];
 
+  // Güvenli JSON parse fonksiyonu
+  const safeParseImages = (images: string | null): string[] => {
+    if (!images) return [];
+    try {
+      if (typeof images === 'string') {
+        // Eğer zaten base64 string ise (data:image ile başlıyorsa), array olarak döndür
+        if (images.startsWith('data:image')) {
+          return [images];
+        }
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(images) ? images : [];
+    } catch {
+      return [];
+    }
+  };
+
   // Veritabanından ilanları çek (build sırasında hata olursa boş liste)
-  let listings: Awaited<ReturnType<typeof prisma.listing.findMany<{
-    include: { user: { select: { id: true; name: true; email: true } } }
-  }>>> = [];
+  // Hem slug hem de tam kategori adı ile arama yap (veritabanında her ikisi de olabilir)
+  // PERFORMANS: Sadece ilk 100 ilanı çek (sayfa yüklenmesi için yeterli)
+  let listings: any[] = [];
   try {
-    listings = await prisma.listing.findMany({
-      where: {
-        category: categoryName,
-        isActive: true,
-        approvalStatus: 'approved'
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+    listings = await withTimeout(
+      prisma.listing.findMany({
+        where: {
+          OR: [
+            { category: slug }, // Slug formatında (örn: "elektronik")
+            { category: categoryName }, // Tam kategori adı formatında (örn: "Elektronik")
+          ],
+          isActive: true,
+          approvalStatus: 'approved',
+          expiresAt: {
+            gt: new Date() // Süresi dolmamış ilanlar
+          }
+        },
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          location: true,
+          category: true,
+          subCategory: true,
+          description: true, // Kısaltılacak
+          images: true, // Resimleri çek
+          createdAt: true,
+          condition: true,
+          isPremium: true,
+          premiumUntil: true,
+          expiresAt: true,
+          views: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              // email: true, // Gereksiz
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: [
+          { isPremium: 'desc' }, // Premium ilanlar önce
+          { createdAt: 'desc' }, // Sonra tarihe göre
+        ],
+        take: 50, // PERFORMANS: İlk sayfa için 50 ilan yeterli
+      }),
+      5000 // 5 saniye timeout (8'den 5'e düşürüldü)
+    );
   } catch (error) {
     // Build sırasında veritabanı bağlantısı yoksa boş liste
+    console.error('Kategori ilanları getirme hatası:', error);
     console.warn('Database connection failed during build, using empty listings');
+    listings = []; // Boş liste döndür
   }
 
-  const formattedListings = listings.map(listing => ({
-    id: listing.id,
-    title: listing.title,
-    price: listing.price,
-    location: listing.location,
-    category: listing.category,
-    subCategory: listing.subCategory || undefined,
-    description: listing.description,
-    images: JSON.parse(listing.images),
-    createdAt: listing.createdAt.toISOString(),
-    condition: listing.condition,
-    isPremium: listing.isPremium,
-    premiumUntil: listing.premiumUntil?.toISOString(),
-    expiresAt: listing.expiresAt.toISOString(),
-    views: listing.views,
-    user: {
-      ...listing.user,
-      name: listing.user?.name ?? undefined,
-    },
-  }));
+  const formattedListings = listings.map(listing => {
+    // Güvenli JSON parse fonksiyonu
+    const safeParseImages = (images: string | null): string[] => {
+      if (!images) return [];
+      try {
+        if (typeof images === 'string') {
+          if (images.startsWith('data:image')) {
+            return [images];
+          }
+          const parsed = JSON.parse(images);
+          return Array.isArray(parsed) ? parsed : [];
+        }
+        return Array.isArray(images) ? images : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const parsedImages = safeParseImages(listing.images);
+    // Sadece ilk resmi gönder (performans için)
+    const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+
+    return {
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory || undefined,
+      description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''), // Kısaltıldı
+      images: firstImage, // İlk resmi gönder
+      createdAt: listing.createdAt.toISOString(),
+      condition: listing.condition,
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil?.toISOString(),
+      expiresAt: listing.expiresAt.toISOString(),
+      views: listing.views,
+      user: {
+        ...listing.user,
+        name: listing.user?.name ?? undefined,
+      },
+    };
+  });
 
   return (
-    <div className="container mx-auto py-8">
-      {/* Breadcrumb */}
-      <nav className="flex mb-8" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-1 md:space-x-3">
-          <li className="inline-flex items-center">
-            <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
-              <Home className="w-4 h-4 mr-1" />
-              Ana Sayfa
-            </Link>
-          </li>
-          <li aria-current="page">
-            <div className="flex items-center">
-              <span className="mx-2 text-gray-400">/</span>
-              <span className="text-gray-500">{foundCategory.name}</span>
+    <main className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                <Home className="w-4 h-4 mr-1" />
+                Ana Sayfa
+              </Link>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">{foundCategory.name}</span>
+              </div>
+            </li>
+          </ol>
+        </nav>
+
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sol Sidebar */}
+          <div className="w-full md:w-64 flex-shrink-0">
+            <Sidebar />
+          </div>
+
+          {/* Ana İçerik */}
+          <div className="flex-1 space-y-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+                <span className="mr-3 text-2xl">{typeof foundCategory.icon === 'string' ? foundCategory.icon : '•'}</span>
+                {foundCategory.name}
+              </h1>
+              <p className="text-gray-600">
+                {foundCategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
+              </p>
             </div>
-          </li>
-        </ol>
-      </nav>
 
-      <div className="flex gap-8">
-        {/* Sidebar */}
-        <aside className="w-64">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center">
-              <Sparkles className="w-5 h-5 text-blue-500 mr-2" />
-              Diğer Kategoriler
-            </h2>
-            <ul className="space-y-2">
-              {otherCategories.map((cat: any) => (
-                <li key={cat.slug}>
-                  <Link 
-                    href={`/kategori/${cat.slug}`}
-                    className="flex items-center text-gray-700 hover:text-blue-600 transition-colors"
-                  >
-                    <span className="mr-2 text-lg">{typeof cat.icon === 'string' ? cat.icon : '•'}</span>
-                    {cat.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <section>
+              <FeaturedAds 
+                title={`Öne Çıkan ${foundCategory.name}`}
+                category={foundCategory.slug} 
+                listings={formattedListings} 
+              />
+            </section>
+            
+            <section>
+              <LatestAds 
+                title={`Son Eklenen ${foundCategory.name}`}
+                category={foundCategory.slug} 
+                listings={formattedListings} 
+              />
+            </section>
           </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-              <span className="mr-3 text-2xl">{typeof foundCategory.icon === 'string' ? foundCategory.icon : '•'}</span>
-              {foundCategory.name}
-            </h1>
-            <p className="text-gray-600">
-              {foundCategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
-            </p>
-          </div>
-
-          {/* Featured Ads */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Star className="w-5 h-5 text-yellow-500 mr-2" />
-              Öne Çıkan {foundCategory.name}
-            </h2>
-            <FeaturedAds 
-              category={foundCategory.slug} 
-              listings={formattedListings} 
-            />
-          </div>
-
-          {/* Latest Ads */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Clock className="w-5 h-5 text-blue-500 mr-2" />
-              Son Eklenen {foundCategory.name}
-            </h2>
-            <LatestAds 
-              category={foundCategory.slug} 
-              listings={formattedListings} 
-            />
-          </div>
-        </main>
+        </div>
       </div>
-    </div>
+    </main>
   )
 } 

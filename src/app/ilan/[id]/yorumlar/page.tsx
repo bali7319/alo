@@ -1,5 +1,6 @@
 import { ArrowLeft, Star, MessageCircle, ThumbsUp, ThumbsDown, Flag, Send } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Comment {
   id: string;
@@ -159,11 +160,15 @@ export default async function IlanYorumlarPage({ params }: { params: Promise<{ i
           {comments.comments.map((comment) => (
             <div key={comment.id} className="bg-white rounded-lg p-6 shadow-sm">
               <div className="flex items-start space-x-4">
-                <img
-                  src={comment.userAvatar}
-                  alt={comment.userName}
-                  className="w-12 h-12 rounded-full"
-                />
+                <div className="relative w-12 h-12 flex-shrink-0">
+                  <Image
+                    src={comment.userAvatar}
+                    alt={comment.userName}
+                    fill
+                    sizes="48px"
+                    className="rounded-full object-cover"
+                  />
+                </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">

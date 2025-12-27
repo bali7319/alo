@@ -7,8 +7,6 @@ import { Heart, Phone, Mail, Share2, Facebook, Twitter, Instagram, MessageCircle
 import Image from 'next/image';
 import Link from 'next/link';
 
-const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjQwMCIgeT0iMzAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Hw7Zyc2VsIFlvayA8L3RleHQ+PC9zdmc+';
-
 interface Listing {
   id: string;
   title: string;
@@ -34,10 +32,15 @@ interface Listing {
   model: string;
   year: number;
   approvalStatus: string;
+  contactOptions?: {
+    showPhone?: boolean;
+    showWhatsApp?: boolean;
+    showMessage?: boolean;
+  };
 }
 
 interface IlanDetayClientProps {
-  id: string;
+  id: string; // Bu artık slug veya ID olabilir
 }
 
 export default function IlanDetayClient({ id }: IlanDetayClientProps) {
@@ -48,6 +51,23 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
+
+  // Telefon numarasını WhatsApp formatına çevir
+  const formatPhoneForWhatsApp = (phone: string): string => {
+    // Boşlukları ve özel karakterleri temizle
+    let cleaned = phone.replace(/\s/g, '').replace(/[()-\s]/g, '');
+    
+    // 0 ile başlıyorsa 90 ile değiştir (Türkiye)
+    if (cleaned.startsWith('0')) {
+      cleaned = '90' + cleaned.substring(1);
+    }
+    // Zaten 90 ile başlıyorsa olduğu gibi bırak
+    else if (!cleaned.startsWith('90')) {
+      cleaned = '90' + cleaned;
+    }
+    
+    return cleaned;
+  };
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -60,476 +80,86 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
 
   const fetchListing = async () => {
     try {
-      // Her kategori için örnek ilanlar
-      const sampleListings: { [key: string]: Listing } = {
-        // İş kategorisi
-        '1': {
-          id: '1',
-          title: 'Deneyimli Garson Aranıyor',
-          price: 8500,
-          location: 'İstanbul, Beşiktaş',
-          description: 'Lüks restoranımızda çalışacak deneyimli garson aranmaktadır. En az 2 yıl deneyimli, müşteri odaklı, dikkatli ve hızlı çalışan kişiler tercih edilir.',
-          category: 'is',
-          subcategory: 'garson-komi',
-          isPremium: true,
-          premiumUntil: new Date('2024-12-31'),
-          features: ['Deneyimli', 'Sigortalı', 'Yemek Dahil'],
-          images: ['https://picsum.photos/seed/waiter/500/300'],
-          seller: {
-            id: '1',
-            name: 'Lüks Restoran',
-            email: 'info@luksrestoran.com',
-            phone: '+90 212 123 45 67'
-          },
-          createdAt: new Date('2024-01-15'),
-          views: 1250,
-          condition: 'Aktif',
-          brand: 'Restoran',
-          model: 'Garson',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Hizmetler kategorisi
-        '2': {
-          id: '2',
-          title: 'Profesyonel Temizlik Hizmeti',
-          price: 500,
-          location: 'İstanbul, Kadıköy',
-          description: 'Ofis, ev ve işyeri temizlik hizmeti veriyoruz. Deneyimli ekibimizle hijyenik ve kaliteli hizmet garantisi veriyoruz.',
-          category: 'hizmetler',
-          subcategory: 'temizlik',
-          isPremium: false,
-          premiumUntil: null,
-          features: ['Profesyonel', 'Sigortalı', 'Malzeme Dahil'],
-          images: ['https://picsum.photos/seed/cleaning/500/300'],
-          seller: {
-            id: '2',
-            name: 'Temizlik Pro',
-            email: 'info@temizlikpro.com',
-            phone: '+90 216 234 56 78'
-          },
-          createdAt: new Date('2024-01-16'),
-          views: 890,
-          condition: 'Aktif',
-          brand: 'Temizlik',
-          model: 'Hizmet',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Elektronik kategorisi
-        '3': {
-          id: '3',
-          title: 'iPhone 14 Pro Max 256GB',
-          price: 45000,
-          location: 'İstanbul, Şişli',
-          description: 'Apple iPhone 14 Pro Max 256GB, Uzay Siyahı, 1 yıl garantili, kutulu ve faturası mevcut.',
-          category: 'elektronik',
-          subcategory: 'telefon',
-          isPremium: true,
-          premiumUntil: new Date('2024-12-31'),
-          features: ['5G', 'Face ID', 'ProRAW'],
-          images: ['https://picsum.photos/seed/iphone14/500/300'],
-          seller: {
-            id: '3',
-            name: 'Apple Türkiye',
-            email: 'info@appleturkiye.com',
-            phone: '+90 212 345 67 89'
-          },
-          createdAt: new Date('2024-01-17'),
-          views: 2100,
-          condition: 'Yeni',
-          brand: 'Apple',
-          model: 'iPhone 14 Pro Max',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Ev & Bahçe kategorisi
-        '4': {
-          id: '4',
-          title: 'Modern Koltuk Takımı',
-          price: 8500,
-          location: 'İzmir, Karşıyaka',
-          description: '3+3+1 modern koltuk takımı, gri renk, çok temiz durumda. 2 yıl kullanıldı, taşınma nedeniyle satılık.',
-          category: 'ev-ve-bahce',
-          subcategory: 'mobilya',
-          isPremium: false,
-          premiumUntil: null,
-          features: ['3+3+1', 'Gri Renk', 'Temiz'],
-          images: ['https://picsum.photos/seed/sofa/500/300'],
-          seller: {
-            id: '4',
-            name: 'Mobilya Sahibi',
-            email: 'mobilya@email.com',
-            phone: '+90 232 456 78 90'
-          },
-          createdAt: new Date('2024-01-18'),
-          views: 650,
-          condition: 'Az Kullanılmış',
-          brand: 'Mobilya',
-          model: 'Koltuk Takımı',
-          year: 2022,
-          approvalStatus: 'approved'
-        },
-        // Giyim kategorisi
-        '5': {
-          id: '5',
-          title: 'Deri Ceket - Erkek',
-          price: 1200,
-          location: 'Ankara, Çankaya',
-          description: 'Gerçek deri erkek ceketi, siyah renk, L beden, çok az kullanıldı. Marka: Zara',
-          category: 'giyim',
-          subcategory: 'erkek-giyim',
-          isPremium: true,
-          premiumUntil: new Date('2024-12-31'),
-          features: ['Gerçek Deri', 'L Beden', 'Zara'],
-          images: ['https://picsum.photos/seed/leather-jacket/500/300'],
-          seller: {
-            id: '5',
-            name: 'Giyim Mağazası',
-            email: 'giyim@email.com',
-            phone: '+90 312 567 89 01'
-          },
-          createdAt: new Date('2024-01-19'),
-          views: 420,
-          condition: 'Az Kullanılmış',
-          brand: 'Zara',
-          model: 'Deri Ceket',
-          year: 2023,
-          approvalStatus: 'approved'
-        },
-        // Moda & Stil kategorisi
-        '6': {
-          id: '6',
-          title: 'Tasarım Çanta - Kadın',
-          price: 800,
-          location: 'Bursa, Nilüfer',
-          description: 'El yapımı tasarım çanta, kahverengi, orta boy, çok şık ve kaliteli malzemeden üretilmiş.',
-          category: 'moda-stil',
-          subcategory: 'kadin',
-          isPremium: false,
-          premiumUntil: null,
-          features: ['El Yapımı', 'Kahverengi', 'Orta Boy'],
-          images: ['https://picsum.photos/seed/designer-bag/500/300'],
-          seller: {
-            id: '6',
-            name: 'Tasarım Atölyesi',
-            email: 'tasarim@email.com',
-            phone: '+90 224 678 90 12'
-          },
-          createdAt: new Date('2024-01-20'),
-          views: 380,
-          condition: 'Yeni',
-          brand: 'Tasarım',
-          model: 'Çanta',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Sporlar, Oyunlar ve Eğlenceler kategorisi
-        '7': {
-          id: '7',
-          title: 'PlayStation 5 + 2 Oyun',
-          price: 18000,
-          location: 'Antalya, Muratpaşa',
-          description: 'PlayStation 5 konsol, 2 adet oyun ile birlikte satılık. 6 ay kullanıldı, çok temiz durumda.',
-          category: 'sporlar-oyunlar-eglenceler',
-          subcategory: 'video-oyunlari',
-          isPremium: true,
-          premiumUntil: new Date('2024-12-31'),
-          features: ['PS5', '2 Oyun', 'Temiz'],
-          images: ['https://picsum.photos/seed/ps5/500/300'],
-          seller: {
-            id: '7',
-            name: 'Oyun Merkezi',
-            email: 'oyun@email.com',
-            phone: '+90 242 789 01 23'
-          },
-          createdAt: new Date('2024-01-21'),
-          views: 950,
-          condition: 'Az Kullanılmış',
-          brand: 'Sony',
-          model: 'PlayStation 5',
-          year: 2023,
-          approvalStatus: 'approved'
-        },
-        // Anne & Bebek kategorisi
-        '8': {
-          id: '8',
-          title: 'Bebek Arabası - Premium',
-          price: 2500,
-          location: 'İstanbul, Üsküdar',
-          description: 'Premium bebek arabası, 3 tekerlekli, katlanabilir, güneşlikli, çok az kullanıldı.',
-          category: 'anne-bebek',
-          subcategory: 'bebek-bakim',
-          isPremium: false,
-          premiumUntil: null,
-          features: ['3 Tekerlek', 'Katlanabilir', 'Güneşlik'],
-          images: ['https://picsum.photos/seed/baby-stroller/500/300'],
-          seller: {
-            id: '8',
-            name: 'Bebek Mağazası',
-            email: 'bebek@email.com',
-            phone: '+90 216 890 12 34'
-          },
-          createdAt: new Date('2024-01-22'),
-          views: 320,
-          condition: 'Az Kullanılmış',
-          brand: 'Bebek',
-          model: 'Araba',
-          year: 2023,
-          approvalStatus: 'approved'
-        },
-        // Çocuk Dünyası kategorisi
-        '9': {
-          id: '9',
-          title: 'Çocuk Bisikleti - 16"',
-          price: 800,
-          location: 'Eskişehir, Tepebaşı',
-          description: '16 inç çocuk bisikleti, mavi renk, güvenlik ekipmanları dahil, çok az kullanıldı.',
-          category: 'cocuk-dunyasi',
-          subcategory: 'cocuk-bisikleti',
-          isPremium: false,
-          premiumUntil: null,
-          features: ['16"', 'Mavi', 'Güvenlik Ekipmanı'],
-          images: ['https://picsum.photos/seed/kids-bike/500/300'],
-          seller: {
-            id: '9',
-            name: 'Bisiklet Dünyası',
-            email: 'bisiklet@email.com',
-            phone: '+90 222 901 23 45'
-          },
-          createdAt: new Date('2024-01-23'),
-          views: 280,
-          condition: 'Az Kullanılmış',
-          brand: 'Bisiklet',
-          model: 'Çocuk 16"',
-          year: 2023,
-          approvalStatus: 'approved'
-        },
-        // Eğitim & Kurslar kategorisi
-        '10': {
-          id: '10',
-          title: 'İngilizce Kursu - Online',
-          price: 1500,
-          location: 'İstanbul, Online',
-          description: 'Online İngilizce kursu, 3 ay süreli, native speaker ile, sertifika dahil.',
-          category: 'egitim-kurslar',
-          subcategory: 'yabanci-dil-kurslari',
-          isPremium: true,
-          premiumUntil: new Date('2024-12-31'),
-          features: ['Online', 'Native Speaker', 'Sertifika'],
-          images: ['https://picsum.photos/seed/english-course/500/300'],
-          seller: {
-            id: '10',
-            name: 'Dil Akademisi',
-            email: 'dil@email.com',
-            phone: '+90 212 012 34 56'
-          },
-          createdAt: new Date('2024-01-24'),
-          views: 750,
-          condition: 'Aktif',
-          brand: 'Eğitim',
-          model: 'İngilizce Kursu',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Yemek & İçecek kategorisi
-        '11': {
-          id: '11',
-          title: 'Ev Yapımı Baklava',
-          price: 150,
-          location: 'Gaziantep, Şahinbey',
-          description: 'Ev yapımı taze baklava, 1 kg, fıstıklı, çok lezzetli ve taze.',
-          category: 'yemek-icecek',
-          subcategory: 'tatli-pastane',
-          isPremium: false,
-          premiumUntil: null,
-          features: ['Ev Yapımı', '1 KG', 'Fıstıklı'],
-          images: ['https://picsum.photos/seed/baklava/500/300'],
-          seller: {
-            id: '11',
-            name: 'Baklava Ustası',
-            email: 'baklava@email.com',
-            phone: '+90 342 123 45 67'
-          },
-          createdAt: new Date('2024-01-25'),
-          views: 180,
-          condition: 'Taze',
-          brand: 'Ev Yapımı',
-          model: 'Baklava',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Catering & Ticaret kategorisi
-        '12': {
-          id: '12',
-          title: 'Düğün Catering Hizmeti',
-          price: 15000,
-          location: 'İstanbul, Tüm İlçeler',
-          description: 'Düğün ve özel günler için catering hizmeti. 100 kişilik menü, profesyonel ekip.',
-          category: 'catering-ticaret',
-          subcategory: 'catering',
-          isPremium: true,
-          premiumUntil: new Date('2024-12-31'),
-          features: ['100 Kişilik', 'Profesyonel', 'Menü Dahil'],
-          images: ['https://picsum.photos/seed/catering/500/300'],
-          seller: {
-            id: '12',
-            name: 'Catering Pro',
-            email: 'catering@email.com',
-            phone: '+90 212 234 56 78'
-          },
-          createdAt: new Date('2024-01-26'),
-          views: 420,
-          condition: 'Aktif',
-          brand: 'Catering',
-          model: 'Hizmet',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Turizm & Konaklama kategorisi
-        '13': {
-          id: '13',
-          title: 'Kapadokya Turu - 2 Gün',
-          price: 2500,
-          location: 'Nevşehir, Kapadokya',
-          description: 'Kapadokya 2 günlük tur, otel dahil, rehber eşliğinde, balon turu opsiyonel.',
-          category: 'turizm-konaklama',
-          subcategory: 'turlar',
-          isPremium: false,
-          premiumUntil: null,
-          features: ['2 Gün', 'Otel Dahil', 'Rehber'],
-          images: ['https://picsum.photos/seed/cappadocia/500/300'],
-          seller: {
-            id: '13',
-            name: 'Turizm Şirketi',
-            email: 'turizm@email.com',
-            phone: '+90 384 345 67 89'
-          },
-          createdAt: new Date('2024-01-27'),
-          views: 680,
-          condition: 'Aktif',
-          brand: 'Turizm',
-          model: 'Kapadokya Turu',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Sağlık & Güzellik kategorisi
-        '14': {
-          id: '14',
-          title: 'Cilt Bakım Seti - Premium',
-          price: 450,
-          location: 'İstanbul, Nişantaşı',
-          description: 'Premium cilt bakım seti, 5 parça, kırışıklık karşıtı, nemlendirici, temizleyici dahil.',
-          category: 'saglik-guzellik',
-          subcategory: 'kisisel-bakim',
-          isPremium: true,
-          premiumUntil: new Date('2024-12-31'),
-          features: ['5 Parça', 'Kırışıklık Karşıtı', 'Nemlendirici'],
-          images: ['https://picsum.photos/seed/skincare/500/300'],
-          seller: {
-            id: '14',
-            name: 'Güzellik Merkezi',
-            email: 'guzellik@email.com',
-            phone: '+90 212 456 78 90'
-          },
-          createdAt: new Date('2024-01-28'),
-          views: 520,
-          condition: 'Yeni',
-          brand: 'Güzellik',
-          model: 'Cilt Bakım Seti',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Sanat & Hobi kategorisi
-        '15': {
-          id: '15',
-          title: 'Resim Kursu - Hafta Sonu',
-          price: 800,
-          location: 'İzmir, Alsancak',
-          description: 'Hafta sonu resim kursu, başlangıç seviyesi, malzeme dahil, 3 ay süreli.',
-          category: 'sanat-hobi',
-          subcategory: 'hobi-kurslari',
-          isPremium: false,
-          premiumUntil: null,
-          features: ['Hafta Sonu', 'Başlangıç', 'Malzeme Dahil'],
-          images: ['https://picsum.photos/seed/painting-course/500/300'],
-          seller: {
-            id: '15',
-            name: 'Sanat Atölyesi',
-            email: 'sanat@email.com',
-            phone: '+90 232 567 89 01'
-          },
-          createdAt: new Date('2024-01-29'),
-          views: 310,
-          condition: 'Aktif',
-          brand: 'Sanat',
-          model: 'Resim Kursu',
-          year: 2024,
-          approvalStatus: 'approved'
-        },
-        // Ücretsiz Gel Al kategorisi
-        '16': {
-          id: '16',
-          title: 'Eski Kitaplar - Ücretsiz',
-          price: 0,
-          location: 'Ankara, Kızılay',
-          description: 'Eski romanlar ve ders kitapları, ücretsiz gel al. Taşınma nedeniyle veriyorum.',
-          category: 'ucretsiz-gel-al',
-          subcategory: 'kitap',
-          isPremium: false,
-          premiumUntil: null,
-          features: ['Ücretsiz', 'Roman', 'Ders Kitabı'],
-          images: ['https://picsum.photos/seed/old-books/500/300'],
-          seller: {
-            id: '16',
-            name: 'Kitap Sahibi',
-            email: 'kitap@email.com',
-            phone: '+90 312 678 90 12'
-          },
-          createdAt: new Date('2024-01-30'),
-          views: 890,
-          condition: 'Kullanılmış',
-          brand: 'Kitap',
-          model: 'Eski Kitaplar',
-          year: 2020,
-          approvalStatus: 'approved'
-        },
-        // Diğer kategorisi
-        '17': {
-          id: '17',
-          title: 'Antika Saat - Koleksiyon',
-          price: 5000,
-          location: 'İstanbul, Beyoğlu',
-          description: 'Antika cep saati, 1920 yılından kalma, altın kaplama, çalışır durumda.',
-          category: 'diger',
-          subcategory: 'antika',
-          isPremium: true,
-          premiumUntil: new Date('2024-12-31'),
-          features: ['1920', 'Altın Kaplama', 'Çalışır'],
-          images: ['https://picsum.photos/seed/antique-watch/500/300'],
-          seller: {
-            id: '17',
-            name: 'Antika Galerisi',
-            email: 'antika@email.com',
-            phone: '+90 212 789 01 23'
-          },
-          createdAt: new Date('2024-01-31'),
-          views: 150,
-          condition: 'Antika',
-          brand: 'Antika',
-          model: 'Cep Saati',
-          year: 1920,
-          approvalStatus: 'approved'
-        }
-      };
+      // Slug veya ID'yi API'ye gönder
+      const response = await fetch(`/api/listings/${encodeURIComponent(id)}`);
       
-      const listing = sampleListings[id];
-      if (listing) {
-        setListing(listing);
-      } else {
-        setError('İlan bulunamadı');
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('İlan bulunamadı');
+        } else {
+          setError('İlan yüklenirken bir hata oluştu');
+        }
+        return;
       }
+
+      const data = await response.json();
+      const listingData = data.listing;
+
+      if (!listingData) {
+        setError('İlan bulunamadı');
+        return;
+      }
+
+      // Premium features'dan contactOptions'ı çıkar
+      // Varsayılan olarak tüm butonlar görünür (true)
+      let contactOptions = { showPhone: true, showWhatsApp: true, showMessage: true };
+      if (listingData.premiumFeatures) {
+        try {
+          const premiumFeatures = typeof listingData.premiumFeatures === 'string' 
+            ? JSON.parse(listingData.premiumFeatures) 
+            : listingData.premiumFeatures;
+          if (premiumFeatures && premiumFeatures.contactOptions) {
+            // Premium features'dan gelen değerleri kullan, ancak undefined olanları true yap
+            contactOptions = {
+              showPhone: premiumFeatures.contactOptions.showPhone !== false,
+              showWhatsApp: premiumFeatures.contactOptions.showWhatsApp !== false,
+              showMessage: premiumFeatures.contactOptions.showMessage !== false,
+            };
+          }
+        } catch (e) {
+          console.error('Contact options parse hatası:', e);
+          // Hata durumunda varsayılan değerleri kullan
+          contactOptions = { showPhone: true, showWhatsApp: true, showMessage: true };
+        }
+      }
+      
+      // Eğer contactOptions hiç yoksa, varsayılan değerleri kullan
+      if (!contactOptions) {
+        contactOptions = { showPhone: true, showWhatsApp: true, showMessage: true };
+      }
+
+      // API'den gelen veriyi Listing formatına dönüştür
+      const listing: Listing = {
+        id: listingData.id,
+        title: listingData.title,
+        price: listingData.price,
+        location: listingData.location,
+        description: listingData.description,
+        category: listingData.category,
+        subcategory: listingData.subCategory || '',
+        isPremium: listingData.isPremium || false,
+        premiumUntil: listingData.premiumUntil ? new Date(listingData.premiumUntil) : null,
+        features: listingData.features || [],
+        images: listingData.images || [],
+        seller: {
+          id: listingData.user?.id || '',
+          name: listingData.user?.name || 'İsimsiz',
+          email: listingData.user?.email || '',
+          phone: (listingData.phone || listingData.user?.phone || '').trim() // İlan telefon numarası öncelikli
+        },
+        createdAt: new Date(listingData.createdAt),
+        views: listingData.views || 0,
+        condition: listingData.condition || '',
+        brand: listingData.brand || '',
+        model: listingData.model || '',
+        year: listingData.year || null,
+        approvalStatus: listingData.approvalStatus || 'pending',
+        contactOptions: contactOptions
+      };
+
+      setListing(listing);
     } catch (err) {
+      console.error('İlan yükleme hatası:', err);
       setError(err instanceof Error ? err.message : 'Bir hata oluştu');
     } finally {
       setIsLoading(false);
@@ -613,7 +243,6 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
       try {
         await navigator.share(shareData);
       } catch (error) {
-        console.log('Paylaşım iptal edildi veya hata oluştu');
       }
     } else {
       // Fallback: Sosyal medya paylaşım linkleri
@@ -762,31 +391,62 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
             </div>
 
             {/* Resim Galerisi */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="aspect-w-16 aspect-h-9 mb-4">
-                <Image
-                  src={listing.images[0] || placeholderImage}
-                  alt={listing.title}
-                  width={800}
-                  height={600}
-                  className="w-full h-96 object-cover rounded-lg"
-                />
-              </div>
-              {listing.images.length > 1 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {listing.images.slice(1).map((image, index) => (
-                    <Image
-                      key={index}
-                      src={image}
-                      alt={`${listing.title} - ${index + 2}`}
-                      width={200}
-                      height={150}
-                      className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75"
+            {listing.images && listing.images.length > 0 && listing.images[0] ? (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="aspect-w-16 aspect-h-9 mb-4">
+                  {listing.images[0].startsWith('data:image') ? (
+                    <img
+                      src={listing.images[0]}
+                      alt={listing.title}
+                      className="w-full h-96 object-cover rounded-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                     />
-                  ))}
+                  ) : (
+                    <Image
+                      src={listing.images[0]}
+                      alt={listing.title}
+                      width={800}
+                      height={600}
+                      className="w-full h-96 object-cover rounded-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
                 </div>
-              )}
-            </div>
+                {listing.images.length > 1 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {listing.images.slice(1).map((image, index) => (
+                      image && image.startsWith('data:image') ? (
+                        <img
+                          key={index}
+                          src={image}
+                          alt={`${listing.title} - ${index + 2}`}
+                          className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Image
+                          key={index}
+                          src={image}
+                          alt={`${listing.title} - ${index + 2}`}
+                          width={200}
+                          height={150}
+                          className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             {/* İlan Açıklaması */}
             <div className="bg-white rounded-lg shadow-sm p-6">
@@ -861,13 +521,42 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
               </div>
               
               <div className="space-y-3">
-                <button
-                  onClick={handleMessage}
-                  className="w-full flex items-center justify-center px-4 py-2 bg-alo-orange text-white rounded-lg hover:bg-alo-dark-orange transition-colors"
-                >
-                  <MessageSquare className="h-5 w-5 mr-2" />
-                  Mesaj Gönder
-                </button>
+                {/* Telefon butonu - telefon numarası varsa ve showPhone false değilse göster */}
+                {listing.seller.phone && (listing.contactOptions?.showPhone !== false) && (
+                  <a
+                    href={`tel:${listing.seller.phone.replace(/\s/g, '')}`}
+                    className="w-full flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                  >
+                    <Phone className="h-5 w-5 mr-2" />
+                    {listing.seller.phone}
+                  </a>
+                )}
+                
+                {/* WhatsApp butonu - telefon numarası varsa göster (varsayılan: göster) */}
+                {listing.seller.phone && listing.seller.phone.trim() !== '' && (listing.contactOptions?.showWhatsApp !== false) && (
+                  <a
+                    href={`https://wa.me/${formatPhoneForWhatsApp(listing.seller.phone)}?text=Merhaba, ${encodeURIComponent(listing.title)} ilanı hakkında bilgi almak istiyorum.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] transition-colors"
+                  >
+                    <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                    </svg>
+                    WhatsApp ile Yaz
+                  </a>
+                )}
+                
+                {/* Mesaj butonu - varsayılan olarak göster (showMessage false değilse) */}
+                {(listing.contactOptions?.showMessage !== false) && (
+                  <button
+                    onClick={handleMessage}
+                    className="w-full flex items-center justify-center px-4 py-2 bg-alo-orange text-white rounded-lg hover:bg-alo-dark-orange transition-colors"
+                  >
+                    <MessageSquare className="h-5 w-5 mr-2" />
+                    Mesaj Gönder
+                  </button>
+                )}
                 
                 <button
                   onClick={handleFavoriteToggle}

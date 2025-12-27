@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Eye, Edit, Trash, Plus, EyeOff, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { createSlug } from '@/lib/slug';
 
 interface MyListing {
   id: string;
@@ -34,7 +35,8 @@ export default function IlanlarimPage() {
     if (status === 'loading') return;
     
     if (!session) {
-      router.push('/giris');
+      const currentPath = window.location.pathname;
+      router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
 
@@ -189,7 +191,23 @@ export default function IlanlarimPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {listings.map((listing) => {
-            const images = JSON.parse(listing.images || '[]');
+            // Güvenli JSON parse
+            const safeParseImages = (images: string | null): string[] => {
+              if (!images) return [];
+              try {
+                if (typeof images === 'string') {
+                  if (images.startsWith('data:image')) {
+                    return [images];
+                  }
+                  const parsed = JSON.parse(images);
+                  return Array.isArray(parsed) ? parsed : [];
+                }
+                return Array.isArray(images) ? images : [];
+              } catch {
+                return [];
+              }
+            };
+            const images = safeParseImages(listing.images);
             const mainImage = images[0] || '/images/placeholder.jpg';
             
             return (
@@ -245,7 +263,7 @@ export default function IlanlarimPage() {
                   <div className="flex justify-between items-center">
                     <div className="flex space-x-2">
                       <Link
-                        href={`/ilan/${listing.id}`}
+                        href={`/ilan/${createSlug(listing.title)}`}
                         className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                       >
                         <Eye className="w-4 h-4 mr-1" />

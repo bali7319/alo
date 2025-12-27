@@ -130,9 +130,7 @@ export const categories: Category[] = [
       { name: "Ayakkabı & Çanta", icon: "👜", slug: "ayakkabi-canta" },
       { name: "Bayan Giyim", icon: "👗", slug: "bayan-giyim" },
       { name: "Çocuk Giyim", icon: "👶", slug: "cocuk-giyim" },
-      { name: "Erkek Giyim", icon: "👔", slug: "erkek-giyim" },
-      { name: "Kadın", icon: "👩", slug: "kadin" },
-      { name: "Kadın Giyim", icon: "👚", slug: "kadin-giyim" }
+      { name: "Erkek Giyim", icon: "👔", slug: "erkek-giyim" }
     ]
   },
   {
@@ -143,8 +141,7 @@ export const categories: Category[] = [
       { name: "Aksesuar", icon: "💍", slug: "aksesuar" },
       { name: "Ayakkabı", icon: "👟", slug: "ayakkabi" },
       { name: "Çocuk", icon: "👶", slug: "cocuk" },
-      { name: "Erkek", icon: "👨", slug: "erkek" },
-      { name: "Kadın", icon: "👩", slug: "kadin" }
+      { name: "Erkek", icon: "👨", slug: "erkek" }
     ]
   },
   {
@@ -273,14 +270,6 @@ export const categories: Category[] = [
       { name: "Kitap", icon: "📚", slug: "kitap" },
       { name: "Mobilya", icon: "🪑", slug: "mobilya" },
       { name: "Oyuncak", icon: "🧸", slug: "oyuncak" }
-    ]
-  },
-  {
-    name: "Diğer",
-    icon: MoreHorizontal,
-    slug: "diger",
-    subcategories: [
-      { name: "Diğer", icon: "📦", slug: "diger" }
     ]
   }
 ] 

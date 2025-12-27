@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+// Cache kaldırıldı - "Single item size exceeds maxSize" hatasını önlemek için
+// export const revalidate = 60; // Büyük response'lar için cache kullanmayın
 
 export async function GET(
   request: NextRequest,
@@ -11,11 +12,9 @@ export async function GET(
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
     const subSlug = searchParams.get('subSlug');
-
-    let whereClause: any = {
-      isActive: true,
-      approvalStatus: 'approved'
-    };
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const skip = (page - 1) * limit;
 
     // Kategori slug'ını kategori adına çevir
     const categoryMap: { [key: string]: string } = {
@@ -34,14 +33,29 @@ export async function GET(
       'turizm-konaklama': 'Turizm & Konaklama',
       'saglik-guzellik': 'Sağlık & Güzellik',
       'sanat-hobi': 'Sanat & Hobi',
-      'ucretsiz-gel-al': 'Ücretsiz Gel Al',
-      'diger': 'Diğer'
+      'ucretsiz-gel-al': 'Ücretsiz Gel Al'
     };
 
     const categoryName = categoryMap[slug];
-    if (categoryName) {
-      whereClause.category = categoryName;
-    }
+    
+    // Kategori filtresi - hem slug hem de kategori adı ile arama yap
+    const categoryFilter = categoryName 
+      ? {
+          OR: [
+            { category: categoryName }, // Tam kategori adı formatında (örn: "Elektronik")
+            { category: slug }, // Slug formatında (örn: "elektronik")
+          ]
+        }
+      : { category: slug }; // Eğer kategori map'te yoksa, slug ile direkt arama yap
+
+    let whereClause: any = {
+      ...categoryFilter,
+      isActive: true,
+      approvalStatus: 'approved',
+      expiresAt: {
+        gt: new Date() // Süresi dolmamış ilanlar
+      }
+    };
 
     // Alt kategori varsa ekle
     if (subSlug) {
@@ -85,44 +99,132 @@ export async function GET(
       }
     }
 
-    const listings = await prisma.listing.findMany({
-      where: whereClause,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+    // Pagination ve limit ekle - performans için kritik!
+    const [listings, total] = await Promise.all([
+      prisma.listing.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          location: true,
+          category: true,
+          subCategory: true,
+          description: true, // Kısaltmak için gerekli
+          images: true,
+          createdAt: true,
+          condition: true,
+          isPremium: true,
+          premiumUntil: true,
+          expiresAt: true,
+          views: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { isPremium: 'desc' }, // Premium ilanlar önce
+          { createdAt: 'desc' }, // Sonra tarihe göre
+        ],
+        skip,
+        take: limit,
+      }),
+      prisma.listing.count({ where: whereClause }),
+    ]).catch((dbError) => {
+      console.error('Database query error:', dbError);
+      // Database bağlantı hatası kontrolü
+      if (dbError.code === 'P1001' || dbError.message?.includes('connect')) {
+        throw new Error('Veritabanı bağlantı hatası. Lütfen daha sonra tekrar deneyin.');
+      }
+      throw dbError;
     });
 
-    const formattedListings = listings.map(listing => ({
-      id: listing.id,
-      title: listing.title,
-      price: listing.price,
-      location: listing.location,
-      category: listing.category,
-      subCategory: listing.subCategory,
-      description: listing.description,
-      images: JSON.parse(listing.images),
-      createdAt: listing.createdAt.toISOString(),
-      condition: listing.condition,
-      isPremium: listing.isPremium,
-      premiumUntil: listing.premiumUntil?.toISOString(),
-      expiresAt: listing.expiresAt.toISOString(),
-      views: listing.views,
-      user: listing.user,
-    }));
+    // Güvenli JSON parse fonksiyonu
+    const safeParseImages = (images: string | null): string[] => {
+      if (!images) return [];
+      try {
+        if (typeof images === 'string') {
+          if (images.startsWith('data:image')) {
+            return [images];
+          }
+          const parsed = JSON.parse(images);
+          return Array.isArray(parsed) ? parsed : [];
+        }
+        return Array.isArray(images) ? images : [];
+      } catch {
+        return [];
+      }
+    };
 
-    return NextResponse.json({ listings: formattedListings });
+    // Description'ı kısalt (liste görünümü için)
+    const formattedListings = listings.map(listing => {
+      const parsedImages = safeParseImages(listing.images);
+      // Sadece ilk resmi gönder (performans için)
+      const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+
+      return {
+        id: listing.id,
+        title: listing.title,
+        price: listing.price,
+        location: listing.location,
+        category: listing.category,
+        subCategory: listing.subCategory,
+        description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''),
+        images: firstImage, // İlk resmi gönder
+        createdAt: listing.createdAt.toISOString(),
+        condition: listing.condition,
+        isPremium: listing.isPremium,
+        premiumUntil: listing.premiumUntil?.toISOString(),
+        expiresAt: listing.expiresAt.toISOString(),
+        views: listing.views,
+        user: listing.user,
+      };
+    });
+
+    return NextResponse.json(
+      { 
+        listings: formattedListings,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        }
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate', // Büyük response'lar için cache yok
+        }
+      }
+    );
   } catch (error) {
     console.error('Kategori ilanları getirme hatası:', error);
+    
+    // Hata tipine göre uygun HTTP status kodu döndür
+    const errorMessage = error instanceof Error ? error.message : 'İlanlar yüklenirken hata oluştu';
+    const statusCode = errorMessage.includes('bağlantı') ? 503 : 500;
+    
     return NextResponse.json(
-      { error: 'İlanlar yüklenirken hata oluştu' },
-      { status: 500 }
+      { 
+        error: errorMessage,
+        // Production'da detaylı hata mesajı gösterme
+        ...(process.env.NODE_ENV === 'development' && { 
+          details: error instanceof Error ? error.stack : undefined 
+        })
+      },
+      { 
+        status: statusCode,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        }
+      }
     );
   }
+  // NOT: $disconnect() çağrısı yok - Prisma connection pool otomatik yönetir
 } 

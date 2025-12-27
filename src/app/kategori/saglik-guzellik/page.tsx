@@ -1,93 +1,135 @@
 'use client'
 
-import { FaHeartbeat, FaSpa, FaUserMd } from 'react-icons/fa'
+import { categories } from '@/lib/categories'
+import { FeaturedAds } from '@/components/featured-ads'
+import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { useState } from 'react'
-import { listings } from '@/lib/listings'
-import { ListingCard } from '@/components/listing-card'
+import { useEffect, useState } from 'react'
+import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 
-const subcategories = [
-  { id: 'kisisel-bakim', name: 'Kişisel Bakım', icon: <FaSpa className="inline mr-2 text-red-500" /> },
-  { id: 'saglik-urunleri', name: 'Sağlık Ürünleri', icon: <FaHeartbeat className="inline mr-2 text-red-500" /> },
-  { id: 'kozmetik', name: 'Kozmetik', icon: <FaUserMd className="inline mr-2 text-red-500" /> },
-  { id: 'erkek-kuafor', name: 'Erkek Kuaför', icon: <FaUserMd className="inline mr-2 text-blue-500" /> },
-  { id: 'guzellik-merkezi', name: 'Güzellik Merkezi', icon: <FaSpa className="inline mr-2 text-pink-500" /> },
-  { id: 'bayan-kuafor', name: 'Bayan Kuaför', icon: <FaSpa className="inline mr-2 text-purple-500" /> },
-]
-
 export default function SaglikGuzellikCategoryPage() {
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
-
-  // Sağlık-güzellik ilanlarını filtrele ve types/listings.ts formatına dönüştür
-  const saglikGuzellikListings: Listing[] = listings
-    .filter(listing => 
-      listing.category === 'saglik-guzellik'
-    )
+  const [isLoading, setIsLoading] = useState(true)
+  const [category, setCategory] = useState<any>(null)
+  const [mappedListings, setMappedListings] = useState<Listing[]>([])
+  
+  useEffect(() => {
+    // Sağlık & Güzellik kategorisini bul
+    const foundCategory = categories.find(cat => cat.slug === 'saglik-guzellik')
     
+    if (foundCategory) {
+      setCategory(foundCategory)
+      
+      // Listings data'sını doğru formata dönüştür
+      const mapped = rawListings
+        .filter(listing => 
+          listing.category.toLowerCase() === 'sağlık & güzellik' || 
+          listing.category.toLowerCase() === 'saglik-guzellik'
+        )
+        
+      
+      setMappedListings(mapped)
+    }
+    
+    setIsLoading(false)
+  }, [])
 
-  // Filtreleme fonksiyonu
-  const filteredListings = saglikGuzellikListings.filter(listing => {
-    if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
-    return true
-  })
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
+      </div>
+    )
+  }
+
+  if (!category) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
+          <Link href="/" className="text-blue-600 hover:text-blue-800">
+            Ana sayfaya dön
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // Alt kategori renkleri
+  const subcategoryColors: { [key: string]: string } = {
+    'bayan-kuafor': 'text-pink-500',
+    'diyet-ve-beslenme': 'text-green-500',
+    'erkek-kuafor': 'text-blue-500',
+    'guzellik-merkezi': 'text-purple-500',
+    'kisisel-bakim': 'text-orange-500',
+    'kozmetik': 'text-red-500',
+    'saglik-urunleri': 'text-yellow-500',
+    'spa-merkezi': 'text-cyan-500',
+    'diger': 'text-gray-500'
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Sağlık ve Güzellik</h1>
-        <p className="text-gray-600 mt-2">
-          Sağlık ve güzellik ürünleri
-        </p>
-      </div>
-      
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Sol Sidebar - Kategoriler ve Filtreler */}
-        <div className="w-full md:w-64 flex-shrink-0">
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            {/* Alt Kategoriler */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-4">Kategoriler</h2>
-              <div className="space-y-2">
-                <button
-                  onClick={() => setSelectedSubcategory(null)}
-                  className={`block w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 ${
-                    selectedSubcategory === null ? 'bg-gray-100 font-medium' : ''
-                  }`}
-                >
-                  Tümü
-                </button>
-                {subcategories.map(subcategory => (
-                  <Link
-                    key={subcategory.id}
-                    href={`/kategori/saglik-guzellik/${subcategory.id}`}
-                    className="block w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    {subcategory.icon}{subcategory.name}
-                  </Link>
-                ))}
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto py-8">
+        {/* Breadcrumb */}
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                Ana Sayfa
+              </Link>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">Sağlık & Güzellik</span>
               </div>
+            </li>
+          </ol>
+        </nav>
+
+        <div className="flex gap-8">
+          {/* Sidebar */}
+          <aside className="w-64">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="font-semibold text-lg mb-4">Alt Kategoriler</h2>
+              <ul className="space-y-2">
+                {category.subcategories?.map((subcategory: any) => (
+                  <li key={subcategory.slug}>
+                    <Link 
+                      href={`/kategori/saglik-guzellik/${subcategory.slug}`}
+                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className={`text-lg ${subcategoryColors[subcategory.slug] || 'text-gray-500'}`}>
+                        {subcategory.icon}
+                      </span>
+                      <span className="text-sm font-medium text-gray-700">{subcategory.name}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
+
+          {/* Ana İçerik */}
+          <div className="flex-1">
+            {/* İlanlar */}
+            <div className="space-y-8">
+              <FeaturedAds 
+                category={category.slug}
+                title="Öne Çıkan İlanlar"
+                listings={mappedListings}
+              />
+              
+              <LatestAds 
+                category={category.slug}
+                title="En Son İlanlar"
+                listings={mappedListings}
+              />
             </div>
           </div>
-        </div>
-
-        {/* Ana İçerik */}
-        <div className="flex-1">
-          {/* İlanlar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
-
-          {filteredListings.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">Bu kategoride henüz ilan bulunmuyor.</p>
-            </div>
-          )}
         </div>
       </div>
     </div>
   )
 } 
-

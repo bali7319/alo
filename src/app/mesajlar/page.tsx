@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MessageCircle, User, Calendar, ArrowRight, AlertTriangle, Send } from 'lucide-react';
 
 interface Message {
@@ -65,7 +66,8 @@ export default function MessagesPage() {
     if (status === 'loading') return;
     
     if (!session) {
-      router.push('/giris');
+      const currentPath = window.location.pathname;
+      router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
 
@@ -247,12 +249,14 @@ export default function MessagesPage() {
                       <div className="flex items-center space-x-3">
                         {/* User Avatar */}
                         <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center relative overflow-hidden">
                             {conversation.otherUser.image ? (
-                              <img
+                              <Image
                                 src={conversation.otherUser.image}
                                 alt={conversation.otherUser.name}
-                                className="w-12 h-12 rounded-full object-cover"
+                                fill
+                                sizes="48px"
+                                className="object-cover rounded-full"
                               />
                             ) : (
                               <span className="text-blue-600 font-medium text-sm">

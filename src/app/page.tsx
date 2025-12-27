@@ -1,235 +1,114 @@
-import { Sidebar } from "@/components/sidebar"
-import { FeaturedAds } from '@/components/featured-ads'
-import { LatestAds } from '@/components/latest-ads'
-import { PrismaClient } from '@prisma/client'
-import { Star, Eye, Clock, Camera, TrendingUp } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import { prisma } from '@/lib/prisma'
+import { SearchBar } from '@/components/search-bar'
 
-const prisma = new PrismaClient();
+const Sidebar = dynamic(() => import("@/components/sidebar").then(mod => ({ default: mod.Sidebar })), {
+  loading: () => <div className="w-full md:w-64 h-64 bg-gray-100 animate-pulse rounded-lg" />
+})
+const FeaturedAds = dynamic(() => import('@/components/featured-ads').then(mod => ({ default: mod.FeaturedAds })), {
+  loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
+})
+const LatestAds = dynamic(() => import('@/components/latest-ads').then(mod => ({ default: mod.LatestAds })), {
+  loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
+})
 
-// Sayfayı dinamik yap (cache'i devre dışı bırak)
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 300; // 5 dakika cache (performans için)
 
-// SEO için metadata layout.tsx'te tanımlı
 export default async function Home() {
-  // Veritabanından ilanları çek
   let featuredListings: any[] = [];
   let latestListings: any[] = [];
 
   try {
-    // Premium ilanları çek
-    const premiumListings = await prisma.listing.findMany({
-      where: {
-        isPremium: true,
-        isActive: true,
-        approvalStatus: 'approved'
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 6,
+    // Paralel query'ler ile performans iyileştirmesi
+    // Sadece ilk resmi çekiyoruz - performans için
+    const [premiumListings, latest] = await Promise.all([
+      prisma.listing.findMany({
+        where: { isPremium: true, isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
+        select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
+        orderBy: [{ isPremium: 'desc' }, { createdAt: 'desc' }],
+        take: 6,
+      }),
+      prisma.listing.findMany({
+        where: { isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
+        select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 12,
+      }),
+    ]);
+
+    // Güvenli JSON parse fonksiyonu
+    const safeParseImages = (images: string | null): string[] => {
+      if (!images) return [];
+      try {
+        if (typeof images === 'string') {
+          if (images.startsWith('data:image')) {
+            return [images];
+          }
+          const parsed = JSON.parse(images);
+          return Array.isArray(parsed) ? parsed : [];
+        }
+        return Array.isArray(images) ? images : [];
+      } catch {
+        return [];
+      }
+    };
+
+    // Sadece ilk resmi gönder (performans için)
+    featuredListings = premiumListings.map(l => {
+      const parsedImages = safeParseImages(l.images);
+      const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+      return {
+        ...l,
+        images: firstImage,
+        description: "",
+        createdAt: l.createdAt.toISOString(),
+        views: l.views || 0
+      };
     });
-
-    // En yeni ilanları çek
-    const latest = await prisma.listing.findMany({
-      where: {
-        isActive: true,
-        approvalStatus: 'approved'
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 12,
+    
+    latestListings = latest.map(l => {
+      const parsedImages = safeParseImages(l.images);
+      const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+      return {
+        ...l,
+        images: firstImage,
+        description: "",
+        createdAt: l.createdAt.toISOString(),
+        views: l.views || 0
+      };
     });
-
-    // Format listings
-    featuredListings = premiumListings.map(listing => ({
-      id: listing.id,
-      title: listing.title,
-      price: listing.price,
-      location: listing.location,
-      category: listing.category,
-      subCategory: listing.subCategory || undefined,
-      description: listing.description,
-      images: JSON.parse(listing.images || '[]'),
-      createdAt: listing.createdAt.toISOString(),
-      isPremium: listing.isPremium,
-      premiumUntil: listing.premiumUntil?.toISOString(),
-      user: {
-        id: listing.user.id,
-        name: listing.user.name || undefined,
-        email: listing.user.email,
-      },
-    }));
-
-    latestListings = latest.map(listing => ({
-      id: listing.id,
-      title: listing.title,
-      price: listing.price,
-      location: listing.location,
-      category: listing.category,
-      subCategory: listing.subCategory || undefined,
-      description: listing.description,
-      images: JSON.parse(listing.images || '[]'),
-      createdAt: listing.createdAt.toISOString(),
-      isPremium: listing.isPremium,
-      premiumUntil: listing.premiumUntil?.toISOString(),
-      user: {
-        id: listing.user.id,
-        name: listing.user.name || undefined,
-        email: listing.user.email,
-      },
-    }));
   } catch (error) {
     console.error('Database error:', error);
-    // Hata durumunda boş liste
-    featuredListings = [];
-    latestListings = [];
-  } finally {
-    await prisma.$disconnect();
   }
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Structured Data (JSON-LD) for SEO */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            "name": "Alo17",
-            "url": "https://alo17.tr",
-            "description": "Çanakkale'nin en büyük ilan sitesi",
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": {
-                "@type": "EntryPoint",
-                "urlTemplate": "https://alo17.tr/ilanlar?q={search_term_string}"
-              },
-              "query-input": "required name=search_term_string"
-            }
-          })
-        }}
-      />
-      
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Ücretsiz İlan Platformu
-            </h1>
-            <p className="text-xl text-blue-100">
-              Elektronik, giyim, ev eşyaları ve daha birçok kategoride ilan ver, keşfet veya satın al.
-            </p>
-          </div>
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-8 md:py-16">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-2xl md:text-5xl font-bold text-white mb-4">Ücretsiz İlan Platformu</h1>
         </div>
       </section>
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Sol Sidebar */}
-          <div className="w-full md:w-64 flex-shrink-0">
-            <Sidebar />
-          </div>
-
-          {/* Ana İçerik */}
-          <div className="flex-1 space-y-8">
-            <section>
-              <FeaturedAds 
-                title="Öne Çıkan İlanlar" 
-                listings={featuredListings}
-              />
-            </section>
-            
-            <section>
-              <LatestAds 
-                title="Son Eklenen İlanlar" 
-                listings={latestListings}
-              />
-            </section>
-          </div>
-        </div>
-      </div>
-
-      {/* Premium Avantajları Section */}
-      <section className="bg-gradient-to-r from-orange-500 to-yellow-500 py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Premium Avantajları
-            </h2>
-            <p className="text-xl text-orange-100 mb-6">
-              İlanlarınızı Öne Çıkarın, Daha Hızlı Satın
-            </p>
-            <p className="text-lg text-orange-100 max-w-3xl mx-auto">
-              Premium ilanlar, standart ilanlara göre %70 daha fazla görüntülenir ve %40 daha hızlı satılır. 
-              Üstelik premium özelliklerle yayında kalır ve 5 adete kadar fotoğraf ekleyebilirsiniz.
-            </p>
-          </div>
-
-          {/* Premium Özellikler Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-              <div className="flex justify-center mb-4">
-                <Eye className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">%70 Daha Fazla Görüntülenme</h3>
-              <p className="text-orange-100">İlanınız daha fazla kişi tarafından görülür</p>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-              <div className="flex justify-center mb-4">
-                <TrendingUp className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">%40 Daha Hızlı Satış</h3>
-              <p className="text-orange-100">İlanınız daha kısa sürede satılır</p>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-              <div className="flex justify-center mb-4">
-                <Clock className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Premium Yayın</h3>
-              <p className="text-orange-100">İlanınız premium özelliklerle yayında kalır</p>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-              <div className="flex justify-center mb-4">
-                <Camera className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">5 Fotoğraf</h3>
-              <p className="text-orange-100">5 adete kadar fotoğraf ekleyebilirsiniz</p>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <Link
-              href="/premium"
-              className="inline-flex items-center px-8 py-4 bg-white text-orange-600 rounded-lg hover:bg-orange-50 transition-colors font-semibold text-lg"
-            >
-              <Star className="h-5 w-5 mr-2" />
-              Premium Avantajlarını Keşfet
+      <section className="bg-white border-b py-6"><div className="container mx-auto px-4"><SearchBar /></div></section>
+      <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
+        <div className="w-full md:w-64 flex-shrink-0">
+          {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
+          <div className="mb-4">
+            <Link href="/ilan-ver">
+              <button className="w-full flex items-center justify-center px-4 py-2.5 md:py-3 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white text-sm md:text-base font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                Reklam Ver
+              </button>
             </Link>
           </div>
+          <Sidebar />
         </div>
-      </section>
+        <div className="flex-1 space-y-8">
+          <FeaturedAds title="Öne Çıkan İlanlar" listings={featuredListings} />
+          <LatestAds title="Son Eklenen İlanlar" listings={latestListings} />
+        </div>
+      </div>
     </main>
-  )
-} 
+  );
+}

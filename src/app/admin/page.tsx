@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Users, FileText, Eye, MessageSquare, Star, Clock, XCircle, CheckCircle, LogOut } from 'lucide-react';
+import { Users, FileText, Eye, MessageSquare, Star, Clock, XCircle, CheckCircle, LogOut, Trash2, Search } from 'lucide-react';
 
 interface Stats {
   totalUsers: number;
@@ -22,6 +22,9 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [demoListings, setDemoListings] = useState<any[]>([]);
+  const [checkingDemo, setCheckingDemo] = useState(false);
+  const [deletingDemo, setDeletingDemo] = useState(false);
 
   useEffect(() => {
     console.log('Admin sayfası yüklendi');
@@ -33,11 +36,13 @@ export default function AdminPage() {
     }
 
     // Admin kontrolü
-    if (!session || session.user?.role !== 'admin') {
+    const userRole = (session?.user as any)?.role;
+    if (!session || userRole !== 'admin') {
       console.log('Admin yetkisi yok, giriş sayfasına yönlendiriliyor');
       setError('Admin girişi gerekli. Lütfen giriş yapın.');
       setTimeout(() => {
-        router.push('/giris');
+        const currentPath = window.location.pathname;
+        router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
       }, 2000);
       return;
     }
@@ -77,6 +82,59 @@ export default function AdminPage() {
     signOut({ callbackUrl: '/giris' });
   };
 
+  const checkDemoListings = async () => {
+    setCheckingDemo(true);
+    try {
+      const response = await fetch('/api/admin/check-demo-listings');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setDemoListings(data.listings || []);
+        if (data.count === 0) {
+          alert('✅ Demo/örnek ilan bulunamadı.');
+        } else {
+          alert(`📋 ${data.count} demo/örnek ilan bulundu. Detaylar için konsolu kontrol edin.`);
+          console.log('Bulunan demo ilanlar:', data.listings);
+        }
+      } else {
+        alert(`Hata: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Demo ilan kontrol hatası:', error);
+      alert('Kontrol sırasında bir hata oluştu.');
+    } finally {
+      setCheckingDemo(false);
+    }
+  };
+
+  const deleteDemoListings = async () => {
+    if (!confirm('Demo/örnek ilanları silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
+      return;
+    }
+
+    setDeletingDemo(true);
+    try {
+      const response = await fetch('/api/admin/check-demo-listings', {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert(`✅ ${data.deleted} demo/örnek ilan başarıyla silindi.`);
+        setDemoListings([]);
+        // İstatistikleri yenile
+        fetchStats();
+      } else {
+        alert(`Hata: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Demo ilan silme hatası:', error);
+      alert('Silme işlemi sırasında bir hata oluştu.');
+    } finally {
+      setDeletingDemo(false);
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -96,7 +154,10 @@ export default function AdminPage() {
           <h1 className="text-xl font-bold text-gray-900 mb-2">Hata</h1>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={() => router.push('/giris')}
+            onClick={() => {
+              const currentPath = window.location.pathname;
+              router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
+            }}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
             Giriş Sayfasına Git
@@ -106,7 +167,8 @@ export default function AdminPage() {
     );
   }
 
-  if (!session || session.user?.role !== 'admin') {
+  const userRole = (session?.user as any)?.role;
+  if (!session || userRole !== 'admin') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -135,7 +197,7 @@ export default function AdminPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Admin Paneli</h1>
             <p className="mt-2 text-gray-600">
-              Hoş geldin <b>{session.user.name}</b>!
+              Hoş geldin <b>{session.user?.name || 'Admin'}</b>!
             </p>
           </div>
           <button
@@ -253,13 +315,43 @@ export default function AdminPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Hızlı Eylemler</h3>
             <div className="space-y-3">
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+              <button 
+                onClick={() => router.push('/admin/ilanlar')}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
                 Yeni İlanları İncele
               </button>
+              <button 
+                onClick={checkDemoListings}
+                disabled={checkingDemo}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center justify-between disabled:opacity-50"
+              >
+                <span className="flex items-center">
+                  <Search className="h-4 w-4 mr-2" />
+                  Demo/Örnek İlanları Kontrol Et
+                </span>
+                {checkingDemo && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>}
+              </button>
+              {demoListings.length > 0 && (
+                <button 
+                  onClick={deleteDemoListings}
+                  disabled={deletingDemo}
+                  className="w-full text-left px-3 py-2 text-sm text-red-700 hover:bg-red-50 rounded-md flex items-center justify-between disabled:opacity-50"
+                >
+                  <span className="flex items-center">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Demo İlanları Sil ({demoListings.length})
+                  </span>
+                  {deletingDemo && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>}
+                </button>
+              )}
               <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 Kullanıcı Şikayetleri
               </button>
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+              <button 
+                onClick={() => router.push('/admin/ayarlar')}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
                 Sistem Ayarları
               </button>
             </div>

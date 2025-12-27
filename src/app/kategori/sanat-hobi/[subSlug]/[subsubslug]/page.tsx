@@ -6,24 +6,6 @@ import { notFound } from 'next/navigation'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 
-// generateStaticParams fonksiyonu ekle
-export async function generateStaticParams() {
-  const params: { subSlug: string; subsubslug: string }[] = [];
-  
-  // Sanat & Hobi kategorisinin tüm alt kategorileri ve alt-alt kategorileri için statik parametreler oluştur
-  const foundCategory = categories.find((cat) => cat.slug === 'sanat-hobi');
-  foundCategory?.subcategories?.forEach((subcategory) => {
-    subcategory.subcategories?.forEach((subSubcategory) => {
-      params.push({
-        subSlug: subcategory.slug,
-        subsubslug: subSubcategory.slug,
-      });
-    });
-  });
-  
-  return params;
-}
-
 export default async function SanatHobiSubSubCategoryPage({ params }: { params: Promise<{ subSlug: string; subsubslug: string }> }) {
   const { subSlug, subsubslug } = await params;
 
@@ -100,23 +82,35 @@ export default async function SanatHobiSubSubCategoryPage({ params }: { params: 
   return (
     <div className="container mx-auto py-8">
       {/* Breadcrumb */}
-      <nav className="text-sm text-gray-500 mb-6">
-        <ol className="flex space-x-2">
-          <li>
-            <Link href="/" className="hover:text-blue-600">Ana Sayfa</Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link href="/kategori/sanat-hobi" className="hover:text-blue-600">Sanat & Hobi</Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link href={`/kategori/sanat-hobi/${foundSubcategory.slug}`} className="hover:text-blue-600">
-              {foundSubcategory.name}
+      <nav className="flex mb-8" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+              Ana Sayfa
             </Link>
           </li>
-          <li>/</li>
-          <li className="text-gray-900">{foundSubSubcategory.name}</li>
+          <li>
+            <div className="flex items-center">
+              <span className="mx-2 text-gray-400">/</span>
+              <Link href="/kategori/sanat-hobi" className="text-gray-700 hover:text-blue-600">
+                Sanat & Hobi
+              </Link>
+            </div>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <span className="mx-2 text-gray-400">/</span>
+              <Link href={`/kategori/sanat-hobi/${foundSubcategory.slug}`} className="text-gray-700 hover:text-blue-600">
+                {foundSubcategory.name}
+              </Link>
+            </div>
+          </li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <span className="mx-2 text-gray-400">/</span>
+              <span className="text-gray-500">{foundSubSubcategory.name}</span>
+            </div>
+          </li>
         </ol>
       </nav>
 

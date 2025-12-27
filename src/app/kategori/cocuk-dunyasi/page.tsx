@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
-import { Baby, Shirt, BedDouble, Footprints, Trophy, BookOpen, Bike, Music, Star, Heart, Users, Zap, Award, Clock, MapPin } from 'lucide-react'
+import { Baby, Shirt, BedDouble, Footprints, Trophy, BookOpen, Bike, Music } from 'lucide-react'
 
 export default function CocukDunyasiPage() {
   const [category, setCategory] = useState<any>(null)
@@ -18,9 +18,6 @@ export default function CocukDunyasiPage() {
     if (!foundCategory) return
     setCategory(foundCategory)
 
-    // Debug: Tüm ilanları kontrol et
-    console.log('Toplam ilan sayısı:', rawListings.length)
-    
     // Çocuk Dünyası ilanlarını filtrele
     const filtered = rawListings.filter(listing => {
       const categoryLower = listing.category.toLowerCase()
@@ -29,13 +26,8 @@ export default function CocukDunyasiPage() {
              categoryLower.includes('çocuk') ||
              categoryLower.includes('cocuk')
     })
-    
-    console.log('Filtrelenmiş ilan sayısı:', filtered.length)
-    console.log('Filtrelenmiş ilanlar:', filtered.map(l => ({ category: l.category, title: l.title })))
 
     const cocukDunyasiListings: Listing[] = filtered
-    
-    console.log('Dönüştürülmüş ilan sayısı:', cocukDunyasiListings.length)
     setMappedListings(cocukDunyasiListings)
   }, [])
 
@@ -92,40 +84,6 @@ export default function CocukDunyasiPage() {
                 </li>
               ))}
             </ul>
-
-            <div className="mt-8">
-              <h3 className="font-semibold mb-3">Çocuk Ürünleri Özellikleri</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center">
-                  <Star className="w-4 h-4 text-yellow-500 mr-2" />
-                  Güvenli Malzeme
-                </li>
-                <li className="flex items-center">
-                  <Heart className="w-4 h-4 text-red-500 mr-2" />
-                  Sağlıklı Ürünler
-                </li>
-                <li className="flex items-center">
-                  <Users className="w-4 h-4 text-blue-500 mr-2" />
-                  Tüm Yaş Grupları
-                </li>
-                <li className="flex items-center">
-                  <Zap className="w-4 h-4 text-yellow-500 mr-2" />
-                  Hızlı Teslimat
-                </li>
-                <li className="flex items-center">
-                  <Award className="w-4 h-4 text-green-500 mr-2" />
-                  Garantili Ürün
-                </li>
-                <li className="flex items-center">
-                  <Clock className="w-4 h-4 text-purple-500 mr-2" />
-                  7/24 Destek
-                </li>
-                <li className="flex items-center">
-                  <MapPin className="w-4 h-4 text-red-500 mr-2" />
-                  Ücretsiz İade
-                </li>
-              </ul>
-            </div>
           </div>
         </aside>
 

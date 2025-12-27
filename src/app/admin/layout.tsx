@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex bg-gray-50">
-      <aside className="w-64 bg-white shadow-lg">
+      <aside className="w-64 bg-white shadow-lg print:hidden">
         <div className="p-6 border-b">
           <h2 className="text-xl font-bold text-gray-900">Admin Paneli</h2>
           <p className="text-sm text-gray-600 mt-1">Alo17 Yönetim</p>
@@ -18,14 +18,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <AdminNavLink href="/admin/ilanlar" label="İlanlar" />
             <AdminNavLink href="/admin/mesajlar" label="Mesajlar" />
             <AdminNavLink href="/admin/odemeler" label="Ödemeler" />
-            <AdminNavLink href="/admin/uyeler" label="Üyeler" />
+            <AdminNavLink href="/admin/faturalar" label="Faturalar" />
+            <AdminNavLink href="/admin/uyeler" label="Kullanıcılar" />
             <AdminNavLink href="/admin/kariyer" label="Kariyer" />
+            <AdminNavLink href="/admin/sozlesmeler" label="Sözleşmeler" />
             <AdminNavLink href="/admin/ayarlar" label="Ayarlar" />
           </div>
         </nav>
       </aside>
       
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 print:p-0">
         {children}
       </main>
     </div>

@@ -44,8 +44,7 @@ const categories = [
   { name: "Turizm & Konaklama", slug: "turizm-konaklama" },
   { name: "Sağlık & Güzellik", slug: "saglik-guzellik" },
   { name: "Sanat & Hobi", slug: "sanat-hobi" },
-  { name: "Ücretsiz Gel Al", slug: "ucretsiz-gel-al" },
-  { name: "Diğer", slug: "diger" }
+  { name: "Ücretsiz Gel Al", slug: "ucretsiz-gel-al" }
 ];
 
 function CategoriesPage() {

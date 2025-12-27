@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -35,12 +35,87 @@ export default function MesajlarPage({ params }: PageProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [otherUser, setOtherUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+
+  const fetchMessages = useCallback(async () => {
+    const currentUser = user?.id || user?.user?.id;
+    if (!currentUser || !userId) {
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const currentUserId = user?.id || user?.user?.id;
+      
+      if (!currentUserId) {
+        console.error('User ID not available');
+        return;
+      }
+
+      // Bu kullanıcı ile olan mesajları filtrele
+      const filteredMessages = (data.messages || []).filter((msg: Message) => 
+        (msg.senderId === userId && msg.receiverId === currentUserId) ||
+        (msg.senderId === currentUserId && msg.receiverId === userId)
+      );
+      
+      // Diğer kullanıcının bilgilerini al (ilk mesajdan)
+      if (filteredMessages.length > 0) {
+        const firstMessage = filteredMessages[0];
+        const otherUserData = firstMessage.senderId === currentUserId 
+          ? firstMessage.receiver 
+          : firstMessage.sender;
+        setOtherUser(otherUserData);
+      } else if (!otherUser) {
+        // Mesaj yoksa, kullanıcı bilgilerini API'den al (sadece bir kez)
+        try {
+          const userResponse = await fetch(`/api/user/profile?userId=${userId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            setOtherUser(userData.user || userData);
+          }
+        } catch (err) {
+          console.error('Error fetching other user:', err);
+        }
+      }
+      
+      // Mesajları tarihe göre sırala (en eski en üstte)
+      filteredMessages.sort((a: Message, b: Message) => 
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      
+      setMessages(filteredMessages);
+    } catch (err) {
+      console.error('Error fetching messages:', err);
+      // Sadece kritik hatalarda error state'i güncelle
+      if (err instanceof Error && err.message.includes('Failed to fetch')) {
+        console.error('Network error - API might be down');
+      }
+    }
+  }, [user, userId, otherUser]);
 
   useEffect(() => {
     const getParams = async () => {
@@ -60,50 +135,72 @@ export default function MesajlarPage({ params }: PageProps) {
     if (status === 'loading' || !userId) return;
 
     if (!session?.user?.email) {
-      router.push('/giris');
+      const currentPath = window.location.pathname;
+      router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
 
-    const fetchData = async () => {
+    const fetchUserData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
         // Kullanıcı bilgilerini al
-        const userResponse = await fetch(`/api/user/profile`);
+        const userResponse = await fetch(`/api/user/profile`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-store',
+        });
+
         if (userResponse.ok) {
           const userData = await userResponse.json();
-          setUser(userData);
+          const userInfo = userData.user || userData;
+          setUser(userInfo);
+        } else {
+          const errorData = await userResponse.json().catch(() => ({}));
+          setError(errorData.error || 'Kullanıcı bilgileri yüklenemedi');
         }
-
-        // Mesajları al
-        await fetchMessages();
       } catch (err) {
-        setError('Veriler yüklenirken hata oluştu');
-        console.error('Error fetching data:', err);
+        console.error('Error fetching user data:', err);
+        if (err instanceof Error) {
+          if (err.message.includes('Failed to fetch')) {
+            setError('Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.');
+          } else {
+            setError('Kullanıcı bilgileri yüklenirken hata oluştu: ' + err.message);
+          }
+        } else {
+          setError('Kullanıcı bilgileri yüklenirken hata oluştu');
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchUserData();
   }, [session, status, userId, router]);
 
-  const fetchMessages = async () => {
-    try {
-      const response = await fetch('/api/messages');
-      if (response.ok) {
-        const data = await response.json();
-        // Bu kullanıcı ile olan mesajları filtrele
-        const filteredMessages = data.messages.filter((msg: Message) => 
-          (msg.senderId === userId && msg.receiverId === user?.id) ||
-          (msg.senderId === user?.id && msg.receiverId === userId)
-        );
-        setMessages(filteredMessages);
-      }
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-    }
-  };
+  // Kullanıcı bilgileri yüklendikten sonra mesajları yükle
+  useEffect(() => {
+    const currentUser = user?.id || user?.user?.id;
+    if (!currentUser || !userId || status === 'loading') return;
+
+    fetchMessages();
+  }, [user, userId, status, fetchMessages]);
+
+  // Mesajları otomatik yenile
+  useEffect(() => {
+    const currentUser = user?.id || user?.user?.id;
+    if (!currentUser || !userId) return;
+
+    // Mesajları her 5 saniyede bir yenile
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [fetchMessages, user, userId]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,7 +307,7 @@ export default function MesajlarPage({ params }: PageProps) {
                   </div>
                   <div>
                     <h1 className="text-xl font-semibold text-gray-900">
-                      Kullanıcı {userId}
+                      {otherUser?.name || otherUser?.email || `Kullanıcı ${userId.slice(0, 8)}...`}
                     </h1>
                     <p className="text-sm text-gray-500">
                       Mesajlaşma
@@ -236,7 +333,8 @@ export default function MesajlarPage({ params }: PageProps) {
             ) : (
               <div className="space-y-4">
                 {messages.map((message) => {
-                  const isOwnMessage = message.senderId === user?.id;
+                  const currentUserId = user?.id || user?.user?.id;
+                  const isOwnMessage = message.senderId === currentUserId;
                   return (
                     <div
                       key={message.id}

@@ -51,9 +51,20 @@ async function getListings() {
   try {
     const listings = await prisma.listing.findMany({
       where: {
-        category: 'hizmetler',
-        subCategory: 'guvenlik',
-        approvalStatus: 'APPROVED',
+        OR: [
+          { category: 'Hizmetler' }, // Tam kategori adı formatında
+          { category: 'hizmetler' }, // Slug formatında
+        ],
+        AND: [
+          {
+            OR: [
+              { subCategory: 'Güvenlik' }, // Tam alt kategori adı formatında
+              { subCategory: 'guvenlik' }, // Slug formatında
+            ]
+          }
+        ],
+        isActive: true,
+        approvalStatus: 'approved', // Küçük harf (tutarlılık için)
         expiresAt: {
           gt: new Date()
         }
@@ -65,17 +76,39 @@ async function getListings() {
           }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: [
+        { isPremium: 'desc' }, // Premium ilanlar önce
+        { createdAt: 'desc' } // Sonra tarihe göre
+      ]
     });
+
+    // Güvenli JSON parse fonksiyonu
+    const safeParseImages = (images: string | null): string[] => {
+      if (!images) return [];
+      try {
+        if (typeof images === 'string') {
+          if (images.startsWith('data:image')) {
+            return [images];
+          }
+          const parsed = JSON.parse(images);
+          return Array.isArray(parsed) ? parsed : [];
+        }
+        return Array.isArray(images) ? images : [];
+      } catch {
+        return [];
+      }
+    };
 
     // Prisma verisini Listing tipine dönüştür
     return listings.map(listing => ({
       ...listing,
       subCategory: listing.subCategory || undefined,
       subSubCategory: listing.subSubCategory || undefined,
-      images: listing.images ? JSON.parse(listing.images) : [],
+      images: (() => {
+        const parsedImages = safeParseImages(listing.images);
+        // Sadece ilk resmi gönder (performans için)
+        return parsedImages.length > 0 ? [parsedImages[0]] : [];
+      })(),
       features: listing.features ? JSON.parse(listing.features) : [],
       premiumUntil: listing.premiumUntil ? listing.premiumUntil.toISOString() : undefined,
       createdAt: listing.createdAt.toISOString(),

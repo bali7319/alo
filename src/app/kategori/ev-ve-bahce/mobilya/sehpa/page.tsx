@@ -79,14 +79,36 @@ export default function SehpaPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto py-8">
         {/* Breadcrumb */}
-        <nav className="text-sm text-gray-500 mb-6">
-          <Link href="/" className="hover:text-blue-600">Ana Sayfa</Link>
-          <span className="mx-2">/</span>
-          <Link href={`/kategori/${category.slug}`} className="hover:text-blue-600">{category.name}</Link>
-          <span className="mx-2">/</span>
-          <Link href={`/kategori/${category.slug}/${subcategory.slug}`} className="hover:text-blue-600">{subcategory.name}</Link>
-          <span className="mx-2">/</span>
-          <span className="text-gray-900">{subSubcategory.name}</span>
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                Ana Sayfa
+              </Link>
+            </li>
+            <li>
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <Link href={`/kategori/${category.slug}`} className="text-gray-700 hover:text-blue-600">
+                  {category.name}
+                </Link>
+              </div>
+            </li>
+            <li>
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <Link href={`/kategori/${category.slug}/${subcategory.slug}`} className="text-gray-700 hover:text-blue-600">
+                  {subcategory.name}
+                </Link>
+              </div>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">{subSubcategory.name}</span>
+              </div>
+            </li>
+          </ol>
         </nav>
 
         <div className="flex gap-8">

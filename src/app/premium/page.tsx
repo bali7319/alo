@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Check, Star, Eye, TrendingUp, Clock, Camera, Zap, Crown, MessageSquare, Shield } from 'lucide-react';
+import Link from 'next/link';
+import { Check, Star, Eye, TrendingUp, Clock, Camera, Zap, Crown, MessageSquare, Shield, Plus } from 'lucide-react';
 
 export default function PremiumPage() {
   const { data: session } = useSession();
@@ -14,7 +15,9 @@ export default function PremiumPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/admin/settings');
+        const response = await fetch('/api/admin/settings', {
+          cache: 'no-store' // Her zaman güncel ayarları çek
+        });
         if (response.ok) {
           const data = await response.json();
           setSettings(data);
@@ -27,33 +30,51 @@ export default function PremiumPage() {
     };
 
     fetchSettings();
+    
+    // Her 30 saniyede bir admin ayarlarını kontrol et (güncellemeler için)
+    const interval = setInterval(fetchSettings, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
+  // Admin ayarlarından dinamik olarak plan özelliklerini oluştur
   const plans = {
     monthly: {
       price: settings?.monthlyPremiumPrice || 199,
       period: 'ay',
       days: 30,
-      features: [
-        'İlan öne çıkarma',
-        'Premium rozeti',
-        'Öncelikli destek',
-        '5 adet resim yükleme',
-        'Reklamsız deneyim'
-      ]
+      features: (() => {
+        const features = [
+          'İlan öne çıkarma',
+          'Premium rozeti',
+          'Öncelikli destek',
+          `${settings?.monthlyMaxImages || 5} adet resim yükleme`,
+          'Reklamsız deneyim'
+        ];
+        if (settings?.monthlyMaxListings > 0) {
+          features.push(`Maksimum ${settings.monthlyMaxListings} aktif ilan`);
+        }
+        return features;
+      })()
     },
     quarterly: {
       price: settings?.quarterlyPremiumPrice || 494,
       period: '3 ay',
       days: 90,
-      features: [
-        'İlan öne çıkarma',
-        'Premium rozeti',
-        'Öncelikli destek',
-        '10 adet resim yükleme',
-        'Reklamsız deneyim',
-        '1 ay bedava'
-      ]
+      features: (() => {
+        const features = [
+          'İlan öne çıkarma',
+          'Premium rozeti',
+          'Öncelikli destek',
+          `${settings?.quarterlyMaxImages || 10} adet resim yükleme`,
+          'Reklamsız deneyim',
+          '1 ay bedava'
+        ];
+        if (settings?.quarterlyMaxListings > 0) {
+          features.push(`Maksimum ${settings.quarterlyMaxListings} aktif ilan`);
+        }
+        return features;
+      })()
     },
     yearly: {
       price: settings?.yearlyPremiumPrice || 2179,
@@ -63,7 +84,8 @@ export default function PremiumPage() {
         'İlan öne çıkarma',
         'Premium rozeti',
         'Öncelikli destek',
-        'Sınırsız resim yükleme',
+        `İlan başına ${settings?.yearlyMaxImagesPerListing || 10} resim`,
+        `Maksimum ${settings?.yearlyMaxListings || 20} aktif ilan`,
         'Reklamsız deneyim',
         '3 ay bedava',
         'Özel destek hattı'
@@ -71,12 +93,13 @@ export default function PremiumPage() {
     }
   };
 
+  // Admin ayarlarından dinamik olarak isteğe bağlı özellikleri oluştur
   const optionalFeatures = [
     {
       id: 'featured',
       name: 'Öne Çıkan İlan',
       description: 'İlanınız ana sayfada öne çıkarılır',
-      price: settings?.featuredPrice || 49,
+      price: settings?.featuredPrice || 50,
       icon: Eye,
       color: 'text-blue-500'
     },
@@ -84,7 +107,7 @@ export default function PremiumPage() {
       id: 'urgent',
       name: 'Acil Satılık',
       description: 'İlanınız acil kategorisinde gösterilir',
-      price: settings?.urgentPrice || 29,
+      price: settings?.urgentPrice || 30,
       icon: Zap,
       color: 'text-red-500'
     },
@@ -92,7 +115,7 @@ export default function PremiumPage() {
       id: 'highlight',
       name: 'Vurgulanmış İlan',
       description: 'İlanınız renkli çerçeve ile vurgulanır',
-      price: settings?.highlightPrice || 39,
+      price: settings?.highlightPrice || 25,
       icon: Crown,
       color: 'text-yellow-500'
     },
@@ -100,7 +123,7 @@ export default function PremiumPage() {
       id: 'top',
       name: 'En Üstte Göster',
       description: 'İlanınız kategorisinde en üstte gösterilir',
-      price: settings?.topPrice || 59,
+      price: settings?.topPrice || 75,
       icon: TrendingUp,
       color: 'text-green-500'
     },
@@ -147,29 +170,33 @@ export default function PremiumPage() {
     const featuresTotal = getSelectedFeaturesTotal();
     const totalPrice = basePrice + featuresTotal;
 
-    console.log('Seçilen plan:', selectedPlan);
-    console.log('Seçilen özellikler:', selectedFeatures);
-    console.log('Toplam fiyat:', totalPrice);
     
     alert(`${totalPrice.toFixed(2)} TL tutarındaki ${plans[selectedPlan].period} planı ve seçilen özellikler seçildi`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Premium Üyelik</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 md:py-12">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 md:mb-4 px-2">Premium Üyelik</h1>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-4 md:mb-6 px-2">
             30 gün ücretsiz ilan paylaşımından sonra premium üyelik avantajlarından yararlanın
           </p>
+          {/* İlan Ver Butonu */}
+          <Link href={session?.user ? '/ilan-ver' : `/giris?callbackUrl=${encodeURIComponent('/ilan-ver')}`}>
+            <button className="inline-flex items-center px-4 md:px-6 py-2.5 md:py-3 bg-yellow-500 hover:bg-yellow-600 text-black text-sm md:text-base font-medium rounded-lg transition-colors">
+              <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+              İlan Ver
+            </button>
+          </Link>
         </div>
 
         <div className="max-w-6xl mx-auto">
           {/* Plan Seçici */}
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex rounded-lg border bg-white p-1 shadow-sm">
+          <div className="flex justify-center mb-6 md:mb-8 px-2">
+            <div className="inline-flex rounded-lg border bg-white p-1 shadow-sm w-full sm:w-auto">
               <button
-                className={`px-6 py-3 rounded-md font-medium transition-all ${
+                className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition-all ${
                   selectedPlan === 'monthly'
                     ? 'bg-blue-500 text-white shadow-md'
                     : 'text-gray-600 hover:text-gray-900'
@@ -179,7 +206,7 @@ export default function PremiumPage() {
                 Aylık
               </button>
               <button
-                className={`px-6 py-3 rounded-md font-medium transition-all ${
+                className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition-all ${
                   selectedPlan === 'quarterly'
                     ? 'bg-blue-500 text-white shadow-md'
                     : 'text-gray-600 hover:text-gray-900'
@@ -189,7 +216,7 @@ export default function PremiumPage() {
                 3 Aylık
               </button>
               <button
-                className={`px-6 py-3 rounded-md font-medium transition-all ${
+                className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition-all ${
                   selectedPlan === 'yearly'
                     ? 'bg-blue-500 text-white shadow-md'
                     : 'text-gray-600 hover:text-gray-900'
@@ -201,18 +228,18 @@ export default function PremiumPage() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
             {/* Premium Plan Kartı */}
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
-                  <Star className="w-4 h-4 mr-2" />
+            <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+              <div className="text-center mb-6 md:mb-8">
+                <div className="inline-flex items-center bg-yellow-100 text-yellow-800 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs sm:text-sm font-medium mb-3 md:mb-4">
+                  <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1 md:mr-2" />
                   En Popüler
                 </div>
-                <h2 className="text-5xl font-bold text-gray-900 mb-2">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-2">
                   {plans[selectedPlan].price} TL
                 </h2>
-                <p className="text-gray-600 text-lg">
+                <p className="text-gray-600 text-base sm:text-lg">
                   / {plans[selectedPlan].period} ({plans[selectedPlan].days} gün)
                 </p>
               </div>
@@ -244,9 +271,9 @@ export default function PremiumPage() {
             </div>
 
             {/* İsteğe Bağlı Özellikler */}
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">İsteğe Bağlı Özellikler</h3>
-              <p className="text-gray-600 mb-6">
+            <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 md:mb-6">İsteğe Bağlı Özellikler</h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-4 md:mb-6">
                 İhtiyacınıza göre ek özellikler seçebilirsiniz
               </p>
               

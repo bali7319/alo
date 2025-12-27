@@ -13,7 +13,6 @@ const subcategories = [
 
 export default function TelevizyonCategoryPage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
-    const [condition, setCondition] = useState<string | null>(null)
 
   // Televizyon ilanlarını filtrele
   const tvListings = listings.filter(listing => 
@@ -24,7 +23,6 @@ export default function TelevizyonCategoryPage() {
   // Filtreleme fonksiyonu
   const filteredListings = tvListings.filter(listing => {
     if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
-    if (condition && undefined !== condition) return false
     return true
   })
 
@@ -56,26 +54,6 @@ export default function TelevizyonCategoryPage() {
                       onChange={() => setSelectedSubcategory(selectedSubcategory === subcategory.id ? null : subcategory.id)}
                     />
                     <span>{subcategory.icon}{subcategory.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            
-
-            {/* Durum Filtresi */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-2">Durum</h3>
-              <div className="space-y-2">
-                {['Yeni', 'İkinci El'].map(status => (
-                  <label key={status} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="mr-2"
-                      checked={condition === status}
-                      onChange={() => setCondition(condition === status ? null : status)}
-                    />
-                    <span>{status}</span>
                   </label>
                 ))}
               </div>

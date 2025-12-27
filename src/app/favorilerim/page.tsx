@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { HeartIcon, EyeIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { createSlug } from '@/lib/slug';
 
 interface FavoriteListing {
   id: string;
@@ -39,7 +40,8 @@ export default function FavorilerimPage() {
     if (status === 'loading') return;
     
     if (!session) {
-      router.push('/giris');
+      const currentPath = window.location.pathname;
+      router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
 
@@ -123,7 +125,23 @@ export default function FavorilerimPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {favorites.map((listing) => {
-            const images = JSON.parse(listing.images || '[]');
+            // Güvenli JSON parse
+            const safeParseImages = (images: string | null): string[] => {
+              if (!images) return [];
+              try {
+                if (typeof images === 'string') {
+                  if (images.startsWith('data:image')) {
+                    return [images];
+                  }
+                  const parsed = JSON.parse(images);
+                  return Array.isArray(parsed) ? parsed : [];
+                }
+                return Array.isArray(images) ? images : [];
+              } catch {
+                return [];
+              }
+            };
+            const images = safeParseImages(listing.images);
             const mainImage = images[0] || '/images/placeholder.jpg';
             
             return (
@@ -181,7 +199,7 @@ export default function FavorilerimPage() {
                   
                   <div className="flex justify-between items-center">
                     <Link
-                      href={`/ilan/${listing.id}`}
+                      href={`/ilan/${createSlug(listing.title)}`}
                       className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                     >
                       <EyeIcon className="w-4 h-4 mr-1" />

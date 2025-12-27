@@ -295,13 +295,4 @@ export const categories: Category[] = [
       { id: 1208, name: 'Diğer', slug: 'diger' },
     ],
   },
-  {
-    id: 13,
-    name: 'Diğer',
-    icon: '📦',
-    slug: 'diger',
-    subcategories: [
-      { id: 1301, name: 'Diğer', slug: 'diger' },
-    ],
-  },
 ]; 

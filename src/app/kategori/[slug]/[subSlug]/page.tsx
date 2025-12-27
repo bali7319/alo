@@ -1,27 +1,19 @@
 import { categories } from '@/lib/categories'
+import { Sidebar } from '@/components/sidebar'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
 import { Home, Sparkles, Star, Clock } from 'lucide-react'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
-const prisma = new PrismaClient()
-
-// generateStaticParams fonksiyonu ekle
-export async function generateStaticParams() {
-  const params: { slug: string; subSlug: string }[] = [];
-  
-  // Tüm kategoriler ve alt kategoriler için statik parametreler oluştur
-  categories.forEach((category) => {
-    category.subcategories?.forEach((subcategory) => {
-      params.push({
-        slug: category.slug,
-        subSlug: subcategory.slug,
-      });
-    });
-  });
-  
-  return params;
+// Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    )
+  ]);
 }
 
 export default async function SubCategoryPage({ params }: { params: Promise<{ slug: string; subSlug: string }> }) {
@@ -77,8 +69,7 @@ export default async function SubCategoryPage({ params }: { params: Promise<{ sl
     'turizm-konaklama': 'Turizm & Konaklama',
     'saglik-guzellik': 'Sağlık & Güzellik',
     'sanat-hobi': 'Sanat & Hobi',
-    'ucretsiz-gel-al': 'Ücretsiz Gel Al',
-    'diger': 'Diğer'
+    'ucretsiz-gel-al': 'Ücretsiz Gel Al'
   };
 
   const subCategoryMap: { [key: string]: string } = {
@@ -112,153 +103,185 @@ export default async function SubCategoryPage({ params }: { params: Promise<{ sl
     'kadin': 'Kadın',
     'kadin-giyim': 'Kadın Giyim',
     'cocuk': 'Çocuk',
-    'erkek': 'Erkek'
+    'erkek': 'Erkek',
+    // Ücretsiz Gel Al alt kategorileri
+    'esya': 'Eşya',
+    'oyuncak': 'Oyuncak',
+    'kitap': 'Kitap'
   };
 
   const categoryName = categoryMap[slug];
   const subCategoryName = subCategoryMap[subSlug];
 
+  // Güvenli JSON parse fonksiyonu
+  const safeParseImages = (images: string | null): string[] => {
+    if (!images) return [];
+    try {
+      if (typeof images === 'string') {
+        // Eğer zaten base64 string ise (data:image ile başlıyorsa), array olarak döndür
+        if (images.startsWith('data:image')) {
+          return [images];
+        }
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(images) ? images : [];
+    } catch {
+      return [];
+    }
+  };
+
   // Veritabanından ilanları çek (build sırasında hata olursa boş liste)
-  let listings: Awaited<ReturnType<typeof prisma.listing.findMany<{
-    include: { user: { select: { id: true; name: true; email: true } } }
-  }>>> = [];
+  // PERFORMANS: Sadece ilk 100 ilanı çek
+  let listings: any[] = [];
   try {
-    listings = await prisma.listing.findMany({
-      where: {
-        category: categoryName,
-        subCategory: subCategoryName,
-        isActive: true,
-        approvalStatus: 'approved'
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+    listings = await withTimeout(
+      prisma.listing.findMany({
+        where: {
+          OR: [
+            { category: categoryName }, // Tam kategori adı formatında
+            { category: slug }, // Slug formatında
+          ],
+          subCategory: subCategoryName,
+          isActive: true,
+          approvalStatus: 'approved',
+          expiresAt: {
+            gt: new Date() // Süresi dolmamış ilanlar
+          }
+        },
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          location: true,
+          category: true,
+          subCategory: true,
+          description: true,
+          images: true,
+          createdAt: true,
+          condition: true,
+          isPremium: true,
+          premiumUntil: true,
+          expiresAt: true,
+          views: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: [
+          { isPremium: 'desc' }, // Premium ilanlar önce
+          { createdAt: 'desc' }, // Sonra tarihe göre
+        ],
+        take: 50, // PERFORMANS: İlk sayfa için 50 ilan yeterli
+      }),
+      5000 // 5 saniye timeout (8'den 5'e düşürüldü)
+    );
   } catch (error) {
     // Build sırasında veritabanı bağlantısı yoksa boş liste
+    console.error('Alt kategori ilanları getirme hatası:', error);
     console.warn('Database connection failed during build, using empty listings');
+    listings = []; // Boş liste döndür
   }
 
-  const formattedListings = listings.map(listing => ({
-    id: listing.id,
-    title: listing.title,
-    price: listing.price,
-    location: listing.location,
-    category: listing.category,
-    subCategory: listing.subCategory || undefined,
-    description: listing.description,
-    images: JSON.parse(listing.images),
-    createdAt: listing.createdAt.toISOString(),
-    condition: listing.condition,
-    isPremium: listing.isPremium,
-    premiumUntil: listing.premiumUntil?.toISOString(),
-    expiresAt: listing.expiresAt.toISOString(),
-    views: listing.views,
-    user: {
-      id: listing.user.id,
-      name: listing.user.name || undefined,
-      email: listing.user.email,
-    },
-  }));
+  const formattedListings = listings.map(listing => {
+    const parsedImages = safeParseImages(listing.images);
+    // Sadece ilk resmi gönder (performans için)
+    const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+
+    return {
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory || undefined,
+      description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''),
+      images: firstImage, // İlk resmi gönder
+      createdAt: listing.createdAt.toISOString(),
+      condition: listing.condition,
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil?.toISOString(),
+      expiresAt: listing.expiresAt.toISOString(),
+      views: listing.views,
+      user: {
+        id: listing.user.id,
+        name: listing.user.name || undefined,
+        email: listing.user.email,
+      },
+    };
+  });
 
   return (
-    <div className="container mx-auto py-8">
-      {/* Breadcrumb */}
-      <nav className="flex mb-8" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-1 md:space-x-3">
-          <li className="inline-flex items-center">
-            <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
-              <Home className="w-4 h-4 mr-1" />
-              Ana Sayfa
-            </Link>
-          </li>
-          <li>
-            <div className="flex items-center">
-              <span className="mx-2 text-gray-400">/</span>
-              <Link href={`/kategori/${foundCategory.slug}`} className="text-gray-700 hover:text-blue-600">
-                {foundCategory.name}
+    <main className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                <Home className="w-4 h-4 mr-1" />
+                Ana Sayfa
               </Link>
+            </li>
+            <li>
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <Link href={`/kategori/${foundCategory.slug}`} className="text-gray-700 hover:text-blue-600">
+                  {foundCategory.name}
+                </Link>
+              </div>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">{foundSubcategory.name}</span>
+              </div>
+            </li>
+          </ol>
+        </nav>
+
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sol Sidebar */}
+          <div className="w-full md:w-64 flex-shrink-0">
+            <Sidebar />
+          </div>
+
+          {/* Ana İçerik */}
+          <div className="flex-1 space-y-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+                <span className="mr-3 text-2xl">{typeof foundSubcategory.icon === 'string' ? foundSubcategory.icon : '•'}</span>
+                {foundSubcategory.name}
+              </h1>
+              <p className="text-gray-600">
+                {foundSubcategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
+              </p>
             </div>
-          </li>
-          <li aria-current="page">
-            <div className="flex items-center">
-              <span className="mx-2 text-gray-400">/</span>
-              <span className="text-gray-500">{foundSubcategory.name}</span>
-            </div>
-          </li>
-        </ol>
-      </nav>
 
-      <div className="flex gap-8">
-        {/* Sidebar */}
-        <aside className="w-64">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center">
-              <Sparkles className="w-5 h-5 text-blue-500 mr-2" />
-              Diğer {foundCategory.name} Kategorileri
-            </h2>
-            <ul className="space-y-2">
-              {otherSubcategories.map((sub: any) => (
-                <li key={sub.slug}>
-                  <Link 
-                    href={`/kategori/${foundCategory.slug}/${sub.slug}`}
-                    className="flex items-center text-gray-700 hover:text-blue-600 transition-colors"
-                  >
-                    <span className="mr-2 text-lg">{typeof sub.icon === 'string' ? sub.icon : '•'}</span>
-                    {sub.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <section>
+              <FeaturedAds 
+                title={`Öne Çıkan ${foundSubcategory.name}`}
+                category={foundCategory.slug} 
+                subcategory={foundSubcategory.slug} 
+                listings={formattedListings} 
+              />
+            </section>
+            
+            <section>
+              <LatestAds 
+                title={`Son Eklenen ${foundSubcategory.name}`}
+                category={foundCategory.slug} 
+                subcategory={foundSubcategory.slug} 
+                listings={formattedListings} 
+              />
+            </section>
           </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-              <span className="mr-3 text-2xl">{typeof foundSubcategory.icon === 'string' ? foundSubcategory.icon : '•'}</span>
-              {foundSubcategory.name}
-            </h1>
-            <p className="text-gray-600">
-              {foundSubcategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
-            </p>
-          </div>
-
-          {/* Featured Ads */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Star className="w-5 h-5 text-yellow-500 mr-2" />
-              Öne Çıkan {foundSubcategory.name}
-            </h2>
-            <FeaturedAds 
-              category={foundCategory.slug} 
-              subcategory={foundSubcategory.slug} 
-              listings={formattedListings} 
-            />
-          </div>
-
-          {/* Latest Ads */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Clock className="w-5 h-5 text-blue-500 mr-2" />
-              Son Eklenen {foundSubcategory.name}
-            </h2>
-            <LatestAds 
-              category={foundCategory.slug} 
-              subcategory={foundSubcategory.slug} 
-              listings={formattedListings} 
-            />
-          </div>
-        </main>
+        </div>
       </div>
-    </div>
+    </main>
   )
 } 

@@ -31,7 +31,7 @@ interface PasswordFormData {
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -60,19 +60,55 @@ export default function EditProfilePage() {
     if (status === 'loading') return;
     
     if (!session) {
-      router.push('/giris');
+      const currentPath = window.location.pathname;
+      router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
 
-    // Mevcut kullanıcı bilgilerini form'a yükle
-    setFormData({
-      name: session.user?.name || '',
-      email: session.user?.email || '',
-      phone: (session.user as any)?.phone || '',
-      location: (session.user as any)?.location || '',
-      avatar: null,
-    });
-    setPreviewImage(session.user?.image || '');
+    // API'den güncel kullanıcı bilgilerini çek
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch('/api/user/profile', {
+          cache: 'no-store' // Her zaman güncel bilgileri çek
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            setFormData({
+              name: data.user.name || '',
+              email: data.user.email || '',
+              phone: data.user.phone || '',
+              location: data.user.location || '',
+              avatar: null,
+            });
+            setPreviewImage(data.user.image || '');
+          }
+        } else {
+          // API'den alınamazsa session'dan yükle
+          setFormData({
+            name: session.user?.name || '',
+            email: session.user?.email || '',
+            phone: (session.user as any)?.phone || '',
+            location: (session.user as any)?.location || '',
+            avatar: null,
+          });
+          setPreviewImage(session.user?.image || '');
+        }
+      } catch (error) {
+        console.error('Profil bilgileri yüklenirken hata:', error);
+        // Hata durumunda session'dan yükle
+        setFormData({
+          name: session.user?.name || '',
+          email: session.user?.email || '',
+          phone: (session.user as any)?.phone || '',
+          location: (session.user as any)?.location || '',
+          avatar: null,
+        });
+        setPreviewImage(session.user?.image || '');
+      }
+    };
+
+    fetchUserProfile();
   }, [session, status, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,10 +182,30 @@ export default function EditProfilePage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
         setSuccess('Profil başarıyla güncellendi!');
+        
+        // Session'ı güncelle - NextAuth session'ı yenile (veritabanından güncel bilgileri çekecek)
+        if (update) {
+          await update();
+        }
+        
+        // Form'u güncel bilgilerle güncelle
+        if (data.user) {
+          setFormData({
+            name: data.user.name || '',
+            email: data.user.email || '',
+            phone: data.user.phone || '',
+            location: data.user.location || '',
+            avatar: null,
+          });
+          setPreviewImage(data.user.image || '');
+        }
+        
         setTimeout(() => {
           router.push('/profil');
-        }, 2000);
+          router.refresh(); // Sayfayı yenile
+        }, 1500);
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Profil güncellenirken bir hata oluştu');

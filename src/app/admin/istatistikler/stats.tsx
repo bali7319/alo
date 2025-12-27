@@ -11,7 +11,7 @@ export default function AdminStats() {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-      <StatBox label="Toplam Üye" value={data.totalUsers} />
+      <StatBox label="Toplam Kullanıcı" value={data.totalUsers} />
       <StatBox label="Toplam İlan" value={data.totalListings} />
       <StatBox label="Aktif İlan" value={data.activeListings} />
       <StatBox label="Bekleyen İlan" value={data.pendingListings} />

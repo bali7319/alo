@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
-
-const prisma = new PrismaClient();
 
 // PayTR API bilgileri
 const PAYTR_MERCHANT_KEY = process.env.PAYTR_MERCHANT_KEY || 'R6754UcJuF1P1B8h';
@@ -88,8 +86,6 @@ export async function POST(request: NextRequest) {
       { error: 'Callback işlenirken bir hata oluştu' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -70,13 +69,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('POST /api/messages - Starting...');
-    
-    const session = await getServerSession();
-    console.log('Session:', session ? 'Found' : 'Not found');
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      console.log('Unauthorized - No session or email');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -84,25 +79,18 @@ export async function POST(request: NextRequest) {
       where: { email: session.user.email },
     });
 
-    console.log('User found:', user ? `ID: ${user.id}` : 'Not found');
-
     if (!user) {
-      console.log('User not found in database');
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
-    console.log('Request body:', body);
-    
     const { receiverId, listingId, content } = body;
 
     if (!content?.trim()) {
-      console.log('Validation error: No content');
       return NextResponse.json({ error: 'Mesaj içeriği gerekli' }, { status: 400 });
     }
 
     if (!receiverId) {
-      console.log('Validation error: No receiverId');
       return NextResponse.json({ error: 'Alıcı ID gerekli' }, { status: 400 });
     }
 
@@ -112,14 +100,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (!receiver) {
-      console.log('Receiver not found:', receiverId);
       return NextResponse.json({ error: 'Alıcı bulunamadı' }, { status: 404 });
     }
-
-    console.log('Creating message...');
-    console.log('Sender ID:', user.id);
-    console.log('Receiver ID:', receiverId);
-    console.log('Content:', content);
 
     const message = await prisma.message.create({
       data: {

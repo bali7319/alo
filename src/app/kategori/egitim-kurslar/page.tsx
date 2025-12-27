@@ -1,14 +1,12 @@
 'use client'
 
-import { useParams } from 'next/navigation'
-import Link from 'next/link'
 import { categories } from '@/lib/categories'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
-import { FaGraduationCap, FaBook, FaChalkboardTeacher, FaLanguage, FaMusic, FaDumbbell, FaPalette, FaCamera, FaGamepad } from 'react-icons/fa'
 
 export default function EgitimKurslarPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -54,29 +52,34 @@ export default function EgitimKurslarPage() {
     )
   }
 
-  // Alt kategori ikonları
-  const subcategoryIcons: { [key: string]: any } = {
-    'yabanci-dil': <FaLanguage className="w-5 h-5 text-blue-500" />,
-    'muzik': <FaMusic className="w-5 h-5 text-purple-500" />,
-    'spor': <FaDumbbell className="w-5 h-5 text-green-500" />,
-    'sanat': <FaPalette className="w-5 h-5 text-pink-500" />,
-    'fotograf': <FaCamera className="w-5 h-5 text-indigo-500" />,
-    'oyun': <FaGamepad className="w-5 h-5 text-red-500" />,
-    'universite': <FaGraduationCap className="w-5 h-5 text-yellow-500" />,
-    'kurs': <FaBook className="w-5 h-5 text-teal-500" />,
-    'ozel-ders': <FaChalkboardTeacher className="w-5 h-5 text-orange-500" />,
-    'dil-egitimi': <FaLanguage className="w-5 h-5 text-cyan-500" />,
-    'okul-kres': <FaGraduationCap className="w-5 h-5 text-emerald-500" />
+  // Alt kategori renkleri
+  const subcategoryColors: { [key: string]: string } = {
+    'yabanci-dil-kurslari': 'text-blue-500',
+    'muzik-kurslari': 'text-purple-500',
+    'spor-kurslari': 'text-green-500',
+    'sanat-kurslari': 'text-pink-500',
+    'akademik-kurslar': 'text-orange-500',
+    'diger': 'text-gray-500'
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto py-8">
         {/* Breadcrumb */}
-        <nav className="text-sm text-gray-500 mb-6">
-          <Link href="/" className="hover:text-blue-600">Ana Sayfa</Link>
-          <span className="mx-2">/</span>
-          <span className="text-gray-900">Eğitim & Kurslar</span>
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                Ana Sayfa
+              </Link>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">Eğitim & Kurslar</span>
+              </div>
+            </li>
+          </ol>
         </nav>
 
         <div className="flex gap-8">
@@ -91,8 +94,8 @@ export default function EgitimKurslarPage() {
                       href={`/kategori/egitim-kurslar/${subcategory.slug}`}
                       className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      <span className="text-gray-600">
-                        {subcategoryIcons[subcategory.slug] || <FaBook className="w-5 h-5" />}
+                      <span className={`text-lg ${subcategoryColors[subcategory.slug] || 'text-gray-500'}`}>
+                        {subcategory.icon}
                       </span>
                       <span className="text-sm font-medium text-gray-700">{subcategory.name}</span>
                     </Link>

@@ -119,11 +119,5 @@ export const categories: Category[] = [
     icon: Gift,
     slug: "ucretsiz-gel-al",
     subcategories: []
-  },
-  {
-    name: "Diğer",
-    icon: MoreHorizontal,
-    slug: "diger",
-    subcategories: []
   }
 ] 

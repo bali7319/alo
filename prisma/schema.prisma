@@ -8,8 +8,9 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // Development için: DATABASE_URL="file:./dev.db" (SQLite)
+  // Development için: DATABASE_URL="file:./prisma/dev.db" (SQLite)
   // Production için: DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
+  // NOT: Production'da provider'ı "postgresql" olarak değiştirin!
 }
 
 model User {
@@ -21,6 +22,7 @@ model User {
   phone         String?
   location      String?
   image         String?
+  role          String    @default("user") // "user", "moderator", "admin"
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
@@ -33,6 +35,8 @@ model User {
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
   reports       Report[]  @relation("UserReports")
+  moderatedListings Listing[] @relation("ModeratedListings")
+  invoices      Invoice[]
 }
 
 model Account {
@@ -94,10 +98,14 @@ model Listing {
   views       Int      @default(0)
   isActive    Boolean  @default(true)
   approvalStatus String @default("pending") // pending, approved, rejected
+  moderatorId String?  // İşlem yapan moderatör/admin ID
+  moderatedAt DateTime? // İşlem yapılan tarih
+  moderatorNotes String? // Moderator notları
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moderator   User?     @relation("ModeratedListings", fields: [moderatorId], references: [id], onDelete: SetNull)
   favoritedBy UserFavorite[]
   messages    Message[]
   reports     Report[]
@@ -222,6 +230,53 @@ model CareerApplication {
   resume      String?  // CV dosyası (base64 veya URL)
   status      String   @default("pending") // pending, reviewed, accepted, rejected
   adminNotes  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Invoice {
+  id              String   @id @default(cuid())
+  invoiceNumber   String   @unique // Fatura numarası (örn: INV-2024-001)
+  userId          String
+  listingId       String?  // İlan ile ilişkili fatura
+  amount          Float    // KDV hariç tutar
+  taxRate         Float    @default(20.0) // KDV oranı (%)
+  taxAmount       Float    // KDV tutarı
+  totalAmount     Float    // Toplam tutar (KDV dahil)
+  planType        String?  // "none", "monthly", "quarterly", "yearly"
+  planName        String?  // Plan adı
+  premiumFeatures String?  // JSON string olarak premium özellikler
+  status          String   @default("pending") // "pending", "paid", "cancelled"
+  paymentMethod   String?  // Ödeme yöntemi
+  paymentDate     DateTime? // Ödeme tarihi
+  billingName     String   // Fatura adı
+  billingAddress  String?  // Fatura adresi
+  billingTaxId    String?  // Vergi numarası / TC Kimlik No
+  billingEmail    String   // Fatura e-posta
+  billingPhone    String?  // Fatura telefon
+  notes           String?  // Notlar
+  xmlData         String?  // XML formatında fatura verisi
+  excelData       String?  // Excel formatında fatura verisi
+  emailSent       Boolean  @default(false) // Email gönderildi mi?
+  emailSentAt     DateTime? // Email gönderilme tarihi
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Contract {
+  id          String   @id @default(cuid())
+  title       String   // Sözleşme başlığı
+  type        String   // "user", "seller", "buyer", "premium", "general" vb.
+  content     String   // Sözleşme içeriği (HTML veya Markdown)
+  version     String   @default("1.0") // Sözleşme versiyonu
+  isActive    Boolean  @default(true) // Aktif mi?
+  isRequired  Boolean  @default(false) // Kullanıcılar için zorunlu mu?
+  language    String   @default("tr") // Dil kodu
+  publishedAt DateTime? // Yayınlanma tarihi
+  expiresAt   DateTime? // Son geçerlilik tarihi (opsiyonel)
+  createdBy   String?  // Oluşturan admin ID
+  notes       String?  // Admin notları
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 } 

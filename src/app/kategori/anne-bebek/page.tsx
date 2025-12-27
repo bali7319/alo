@@ -1,107 +1,126 @@
 'use client'
 
-import { FaBaby, FaBabyCarriage, FaGamepad, FaBed } from 'react-icons/fa'
-import { useState } from 'react'
-import { listings } from '@/lib/listings'
-import { ListingCard } from '@/components/listing-card'
+import { categories } from '@/lib/categories'
+import { FeaturedAds } from '@/components/featured-ads'
+import { LatestAds } from '@/components/latest-ads'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
 
-const subcategories = [
-  { id: 'bebek-giyimi', name: 'Bebek Giyimi', icon: <FaBaby className="inline mr-2 text-pink-500" /> },
-  { id: 'bebek-bakim', name: 'Bebek Bakım', icon: <FaBabyCarriage className="inline mr-2 text-blue-500" /> },
-  { id: 'oyuncak-oyun', name: 'Oyuncak & Oyun', icon: <FaGamepad className="inline mr-2 text-yellow-500" /> },
-  { id: 'bebek-odasi', name: 'Bebek Odası', icon: <FaBed className="inline mr-2 text-green-500" /> },
-]
-
 export default function AnneBebekPage() {
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
-    // Anne-Bebek ilanlarını filtrele ve types/listings.ts formatına dönüştür
-  const anneBebekListings: Listing[] = listings
-    .filter(listing => 
-      listing.category === 'anne-bebek'
-    )
+  const [isLoading, setIsLoading] = useState(true)
+  const [category, setCategory] = useState<any>(null)
+  const [mappedListings, setMappedListings] = useState<Listing[]>([])
+  
+  useEffect(() => {
+    // Anne & Bebek kategorisini bul
+    const foundCategory = categories.find(cat => cat.slug === 'anne-bebek')
     
+    if (foundCategory) {
+      setCategory(foundCategory)
+      
+      // Listings data'sını doğru formata dönüştür
+      const mapped = rawListings
+        .filter(listing => listing.category.toLowerCase() === 'anne-bebek')
+        
+      
+      setMappedListings(mapped)
+    }
+    
+    setIsLoading(false)
+  }, [])
 
-  // Filtreleme fonksiyonu
-  const filteredListings = anneBebekListings.filter(listing => {
-    if (selectedSubcategory && listing.subCategory !== selectedSubcategory) return false
-    return true
-  })
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-pink-600"></div>
+      </div>
+    )
+  }
+
+  if (!category) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
+          <Link href="/" className="text-blue-600 hover:text-blue-800">
+            Ana sayfaya dön
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // Alt kategori renkleri
+  const subcategoryColors: { [key: string]: string } = {
+    'bebek-giyim': 'text-pink-500',
+    'bebek-odasi': 'text-blue-500',
+    'bebek-oyuncaklari': 'text-yellow-500',
+    'bebek-bakim': 'text-green-500',
+    'diger': 'text-gray-500'
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Anne-Bebek</h1>
-        <p className="text-gray-600 mt-2">
-          Bebek giyimi, bakım ürünleri, oyuncaklar ve bebek odası ürünleri
-        </p>
-      </div>
-      
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Sol Sidebar - Filtreler */}
-        <div className="w-full md:w-64 flex-shrink-0">
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <h2 className="text-lg font-semibold mb-4">Filtreler</h2>
-            
-            {/* Alt Kategoriler */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-2">Tür</h3>
-              <div className="space-y-2">
-                {subcategories.map(subcategory => (
-                  <label key={subcategory.id} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="mr-2"
-                      checked={selectedSubcategory === subcategory.id}
-                      onChange={() => setSelectedSubcategory(selectedSubcategory === subcategory.id ? null : subcategory.id)}
-                    />
-                    <span>{subcategory.icon}{subcategory.name}</span>
-                  </label>
-                ))}
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto py-8">
+        {/* Breadcrumb */}
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                Ana Sayfa
+              </Link>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">Anne & Bebek</span>
               </div>
+            </li>
+          </ol>
+        </nav>
+
+        <div className="flex gap-8">
+          {/* Sidebar */}
+          <aside className="w-64">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="font-semibold text-lg mb-4">Alt Kategoriler</h2>
+              <ul className="space-y-2">
+                {category.subcategories?.map((subcategory: any) => (
+                  <li key={subcategory.slug}>
+                    <Link 
+                      href={`/kategori/anne-bebek/${subcategory.slug}`}
+                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className={`text-lg ${subcategoryColors[subcategory.slug] || 'text-gray-500'}`}>
+                        {subcategory.icon}
+                      </span>
+                      <span className="text-sm font-medium text-gray-700">{subcategory.name}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
+          </aside>
 
-            
-          </div>
-        </div>
-
-        {/* Ana İçerik */}
-        <div className="flex-1 space-y-8">
-          {/* Sıralama ve Sonuç Sayısı */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">
-                {filteredListings.length} ilan bulundu
-              </span>
-              <select 
-                className="border rounded-md p-2"
-                aria-label="Sıralama seçenekleri"
-              >
-                <option value="newest">En Yeni</option>
-                <option value="price-asc">Fiyat (Düşükten Yükseğe)</option>
-                <option value="price-desc">Fiyat (Yüksekten Düşüğe)</option>
-              </select>
+          {/* Ana İçerik */}
+          <div className="flex-1">
+            {/* İlanlar */}
+            <div className="space-y-8">
+              <FeaturedAds 
+                category={category.slug}
+                title="Öne Çıkan İlanlar"
+                listings={mappedListings}
+              />
+              
+              <LatestAds 
+                category={category.slug}
+                title="En Son İlanlar"
+                listings={mappedListings}
+              />
             </div>
           </div>
-
-          {/* İlanlar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
-
-          {/* Sonuç Bulunamadı */}
-          {filteredListings.length === 0 && (
-            <div className="text-center py-12">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                İlan Bulunamadı
-              </h3>
-              <p className="text-gray-600">
-                Seçtiğiniz kriterlere uygun ilan bulunamadı. Lütfen filtreleri değiştirerek tekrar deneyin.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>

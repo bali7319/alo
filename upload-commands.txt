@@ -1,0 +1,18 @@
+SSH ile Dosya Yükleme Komutları (Windows PowerShell)
+
+1. Tek dosya yükleme:
+scp "C:\Users\bali\Desktop\alo\src\app\api\listings\[id]\route.ts" root@ns1:/var/www/alo17/src/app/api/listings/[id]/route.ts
+
+scp "C:\Users\bali\Desktop\alo\src\app\ilan\[id]\IlanDetayClient.tsx" root@ns1:/var/www/alo17/src/app/ilan/[id]/IlanDetayClient.tsx
+
+2. Dizin bazlı yükleme (tüm değişiklikleri):
+scp -r "C:\Users\bali\Desktop\alo\src\app\api\listings\[id]" root@ns1:/var/www/alo17/src/app/api/listings/
+
+scp -r "C:\Users\bali\Desktop\alo\src\app\ilan\[id]" root@ns1:/var/www/alo17/src/app/ilan/
+
+3. Tüm src klasörünü yükleme (daha yavaş ama garantili):
+scp -r "C:\Users\bali\Desktop\alo\src" root@ns1:/var/www/alo17/
+
+NOT: Köşeli parantezler [ ] içeren dosya yolları için tırnak kullanın.
+PowerShell'de köşeli parantezler özel karakter olduğu için escape edilmesi gerekebilir.
+

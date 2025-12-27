@@ -50,15 +50,27 @@ export default function UcakBiletiPage() {
   return (
     <div className="container mx-auto py-8">
       {/* Breadcrumb */}
-      <nav className="text-sm text-gray-500 mb-6">
-        <ol className="flex items-center space-x-2">
-          <li><Link href="/" className="hover:text-blue-600">Ana Sayfa</Link></li>
-          <li>/</li>
-          <li><Link href="/kategoriler" className="hover:text-blue-600">Kategoriler</Link></li>
-          <li>/</li>
-          <li><Link href={`/kategori/${category.slug}`} className="hover:text-blue-600">{category.name}</Link></li>
-          <li>/</li>
-          <li className="text-gray-900">{subcategory.name}</li>
+      <nav className="flex mb-8" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+              Ana Sayfa
+            </Link>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <span className="mx-2 text-gray-400">/</span>
+              <Link href={`/kategori/${category.slug}`} className="text-gray-700 hover:text-blue-600">
+                {category.name}
+              </Link>
+            </div>
+          </li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <span className="mx-2 text-gray-400">/</span>
+              <span className="text-gray-500">{subcategory.name}</span>
+            </div>
+          </li>
         </ol>
       </nav>
 

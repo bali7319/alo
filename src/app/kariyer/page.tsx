@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Send, FileText, User, Mail, Phone, Briefcase, GraduationCap, FileCheck } from 'lucide-react';
 
 export default function KariyerPage() {
+  const { data: session } = useSession();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -17,6 +19,71 @@ export default function KariyerPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Kullanıcı bilgilerini yükle ve form'a doldur
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // localStorage'dan kaydedilmiş form verilerini yükle
+    const savedFormData = localStorage.getItem('kariyerFormData');
+    if (savedFormData) {
+      try {
+        const parsed = JSON.parse(savedFormData);
+        setFormData(prev => ({
+          ...prev,
+          ...parsed,
+          resume: null // Dosya localStorage'da saklanamaz
+        }));
+      } catch (e) {
+        console.error('Form verileri yüklenirken hata:', e);
+      }
+    }
+
+    // Session varsa kullanıcı bilgilerini doldur
+    if (session?.user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: prev.fullName || session.user?.name || '',
+        email: prev.email || session.user?.email || '',
+      }));
+
+      // API'den telefon bilgisini çek
+      const loadUserProfile = async () => {
+        try {
+          const response = await fetch('/api/user/profile');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user) {
+              setFormData(prev => ({
+                ...prev,
+                phone: prev.phone || data.user.phone || '',
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Kullanıcı bilgileri yüklenirken hata:', error);
+        }
+      };
+
+      loadUserProfile();
+    }
+  }, [session]);
+
+  // Form verileri değiştiğinde localStorage'a kaydet (resume hariç)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const dataToSave = {
+      fullName: formData.fullName,
+      email: formData.email,
+      phone: formData.phone,
+      position: formData.position,
+      experience: formData.experience,
+      education: formData.education,
+      coverLetter: formData.coverLetter,
+    };
+    localStorage.setItem('kariyerFormData', JSON.stringify(dataToSave));
+  }, [formData.fullName, formData.email, formData.phone, formData.position, formData.experience, formData.education, formData.coverLetter]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

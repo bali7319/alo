@@ -66,17 +66,27 @@ export default async function EvVeBahceSubPage({ params }: { params: Promise<{ s
   return (
     <div className="container mx-auto py-8">
       {/* Breadcrumb */}
-      <nav className="mb-6">
-        <ol className="flex items-center space-x-2 text-sm text-gray-600">
-          <li>
-            <Link href="/" className="hover:text-blue-600">Ana Sayfa</Link>
+      <nav className="flex mb-8" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+              Ana Sayfa
+            </Link>
           </li>
-          <li>/</li>
           <li>
-            <Link href="/kategori/ev-ve-bahce" className="hover:text-blue-600">Ev & Bahçe</Link>
+            <div className="flex items-center">
+              <span className="mx-2 text-gray-400">/</span>
+              <Link href="/kategori/ev-ve-bahce" className="text-gray-700 hover:text-blue-600">
+                Ev & Bahçe
+              </Link>
+            </div>
           </li>
-          <li>/</li>
-          <li className="text-gray-900 font-medium">{subcategory.name}</li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <span className="mx-2 text-gray-400">/</span>
+              <span className="text-gray-500">{subcategory.name}</span>
+            </div>
+          </li>
         </ol>
       </nav>
 

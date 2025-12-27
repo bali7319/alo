@@ -32,6 +32,7 @@ const categoryIcons = {
   "ev-ve-bahce": Home,
   giyim: Shirt,
   "moda-stil": ShirtIcon,
+  "sporlar-oyunlar-eglenceler": Gamepad2,
   "anne-bebek": Baby,
   "cocuk-dunyasi": Baby,
   "egitim-kurslar": GraduationCap,
@@ -40,8 +41,7 @@ const categoryIcons = {
   "turizm-konaklama": Hotel,
   "saglik-guzellik": Heart,
   "sanat-hobi": Palette,
-  "ucretsiz-gel-al": Gift,
-  diger: MoreHorizontal
+  "ucretsiz-gel-al": Gift
 }
 
 const categoryColors = {
@@ -51,6 +51,7 @@ const categoryColors = {
   "ev-ve-bahce": "text-orange-500",
   giyim: "text-purple-500",
   "moda-stil": "text-purple-500",
+  "sporlar-oyunlar-eglenceler": "text-orange-500",
   "anne-bebek": "text-pink-500",
   "cocuk-dunyasi": "text-pink-500",
   "egitim-kurslar": "text-indigo-500",
@@ -59,8 +60,7 @@ const categoryColors = {
   "turizm-konaklama": "text-cyan-500",
   "saglik-guzellik": "text-red-500",
   "sanat-hobi": "text-purple-500",
-  "ucretsiz-gel-al": "text-green-500",
-  diger: "text-slate-500"
+  "ucretsiz-gel-al": "text-green-500"
 }
 
 export const Sidebar = () => {
@@ -70,55 +70,59 @@ export const Sidebar = () => {
   const currentCategory = currentPath[1]
   const currentSubcategory = currentPath[2]
 
-  console.log("Categories:", categories.map(c => ({ name: c.name, slug: c.slug })))
-  console.log("Category Icons:", Object.keys(categoryIcons))
-
   return (
-    <div className="w-64 bg-white p-4 border-r">
+    <nav className="w-64 bg-white p-4 border-r" aria-label="Kategoriler menüsü">
       <h2 className="text-lg font-semibold mb-4">Kategoriler</h2>
-      <div className="space-y-2">
+      <ul className="space-y-2" role="list">
         {categories.map((category) => {
           const IconComponent = categoryIcons[category.slug as keyof typeof categoryIcons] || MoreHorizontal;
           const iconColor = categoryColors[category.slug as keyof typeof categoryColors] || "text-slate-500";
-          
-          console.log(`Category: ${category.name}, Slug: ${category.slug}, Icon: ${IconComponent.name}`)
+          const isActive = currentCategory === category.slug;
           
           return (
-            <div key={category.slug}>
+            <li key={category.slug} role="listitem">
               <Link
                 href={`/kategori/${category.slug}`}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md ${
-                  currentCategory === category.slug
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200 ${
+                  isActive
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-700 hover:bg-gray-50 hover:translate-x-1"
+                } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={`${category.name} kategorisini görüntüle`}
               >
-                <IconComponent className={`w-5 h-5 ${currentCategory === category.slug ? "text-blue-600" : iconColor}`} />
+                <IconComponent className={`w-5 h-5 transition-colors duration-200 ${isActive ? "text-blue-600" : iconColor}`} aria-hidden="true" />
                 <span>{category.name}</span>
               </Link>
               {isCategoryPage &&
-                currentCategory === category.slug &&
+                isActive &&
                 category.subcategories && (
-                  <div className="ml-4 mt-1 space-y-1">
-                    {category.subcategories.map((subcategory) => (
-                      <Link
-                        key={subcategory.slug}
-                        href={`/kategori/${category.slug}/${subcategory.slug}`}
-                        className={`block px-3 py-1.5 text-sm rounded-md ${
-                          currentSubcategory === subcategory.slug
-                            ? "bg-blue-50 text-blue-600"
-                            : "text-gray-600 hover:bg-gray-50"
-                        }`}
-                      >
-                        {subcategory.name}
-                      </Link>
-                    ))}
-                  </div>
+                  <ul className="ml-4 mt-1 space-y-1" role="list" aria-label={`${category.name} alt kategorileri`}>
+                    {category.subcategories.map((subcategory) => {
+                      const isSubActive = currentSubcategory === subcategory.slug;
+                      return (
+                        <li key={subcategory.slug} role="listitem">
+                          <Link
+                            href={`/kategori/${category.slug}/${subcategory.slug}`}
+                            className={`block px-3 py-1.5 text-sm rounded-md transition-all duration-200 ${
+                              isSubActive
+                                ? "bg-blue-50 text-blue-600 font-medium"
+                                : "text-gray-600 hover:bg-gray-50 hover:translate-x-1"
+                            } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                            aria-current={isSubActive ? "page" : undefined}
+                            aria-label={`${subcategory.name} alt kategorisini görüntüle`}
+                          >
+                            {subcategory.name}
+                          </Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
                 )}
-            </div>
+            </li>
           )
         })}
-      </div>
-    </div>
+      </ul>
+    </nav>
   )
 } 

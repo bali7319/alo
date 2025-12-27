@@ -78,14 +78,20 @@ export default function HobiSanatPage() {
 
   return (
     <div className="container mx-auto py-8">
-      {/* Breadcrumb Navigation */}
-      <nav className="text-sm text-gray-500 mb-6">
-        <ol className="flex space-x-2">
-          <li>
-            <Link href="/" className="hover:text-blue-600">Ana Sayfa</Link>
+      {/* Breadcrumb */}
+      <nav className="flex mb-8" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+          <li className="inline-flex items-center">
+            <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+              Ana Sayfa
+            </Link>
           </li>
-          <li>/</li>
-          <li className="text-gray-900">{hobiSanatCategory.name}</li>
+          <li aria-current="page">
+            <div className="flex items-center">
+              <span className="mx-2 text-gray-400">/</span>
+              <span className="text-gray-500">{hobiSanatCategory.name}</span>
+            </div>
+          </li>
         </ol>
       </nav>
 

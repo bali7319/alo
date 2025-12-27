@@ -1,0 +1,119 @@
+# Windows PowerShell için SSH Komutları
+
+## ⚠️ ÖNEMLİ: "user@server" kısmını gerçek sunucu bilgilerinizle değiştirin!
+
+Örnekler:
+- root@alo17.tr
+- ubuntu@123.45.67.89
+- admin@your-server.com
+
+---
+
+## Yöntem 1: Tek Satır Komut (PowerShell)
+
+```powershell
+ssh root@alo17.tr "cd /var/www/alo17 && echo 'CREATE INDEX IF NOT EXISTS idx_listing_category ON \"Listing\"(category); CREATE INDEX IF NOT EXISTS idx_listing_subcategory ON \"Listing\"(subCategory); CREATE INDEX IF NOT EXISTS idx_listing_active ON \"Listing\"(isActive, approvalStatus); CREATE INDEX IF NOT EXISTS idx_listing_premium ON \"Listing\"(isPremium, isActive); CREATE INDEX IF NOT EXISTS idx_listing_created ON \"Listing\"(createdAt DESC); CREATE INDEX IF NOT EXISTS idx_listing_user ON \"Listing\"(userId); CREATE INDEX IF NOT EXISTS idx_listing_expires ON \"Listing\"(expiresAt); CREATE INDEX IF NOT EXISTS idx_listing_category_active ON \"Listing\"(category, isActive, approvalStatus); CREATE INDEX IF NOT EXISTS idx_listing_premium_active ON \"Listing\"(isPremium, isActive, approvalStatus, createdAt DESC); CREATE INDEX IF NOT EXISTS idx_listing_category_subcategory ON \"Listing\"(category, subCategory, isActive, approvalStatus); CREATE INDEX IF NOT EXISTS idx_user_email ON \"User\"(email);' | sudo -u postgres psql -d alo17_db && npx prisma generate && npm run build && pm2 restart alo17 && pm2 status"
+```
+
+---
+
+## Yöntem 2: SQL Dosyası Oluştur ve Gönder (ÖNERİLEN)
+
+### Adım 1: SQL dosyasını oluştur (local'de)
+`indexes.sql` dosyası oluştur ve içine şunu yaz:
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_listing_category ON "Listing"(category);
+CREATE INDEX IF NOT EXISTS idx_listing_subcategory ON "Listing"(subCategory);
+CREATE INDEX IF NOT EXISTS idx_listing_active ON "Listing"(isActive, approvalStatus);
+CREATE INDEX IF NOT EXISTS idx_listing_premium ON "Listing"(isPremium, isActive);
+CREATE INDEX IF NOT EXISTS idx_listing_created ON "Listing"(createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_listing_user ON "Listing"(userId);
+CREATE INDEX IF NOT EXISTS idx_listing_expires ON "Listing"(expiresAt);
+CREATE INDEX IF NOT EXISTS idx_listing_category_active ON "Listing"(category, isActive, approvalStatus);
+CREATE INDEX IF NOT EXISTS idx_listing_premium_active ON "Listing"(isPremium, isActive, approvalStatus, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_listing_category_subcategory ON "Listing"(category, subCategory, isActive, approvalStatus);
+CREATE INDEX IF NOT EXISTS idx_user_email ON "User"(email);
+```
+
+### Adım 2: Dosyayı sunucuya gönder ve çalıştır
+
+```powershell
+# Dosyayı sunucuya gönder
+scp indexes.sql root@alo17.tr:/tmp/
+
+# SSH ile bağlan ve çalıştır
+ssh root@alo17.tr "cd /var/www/alo17 && sudo -u postgres psql -d alo17_db -f /tmp/indexes.sql && npx prisma generate && npm run build && pm2 restart alo17 && pm2 status"
+```
+
+---
+
+## Yöntem 3: Her Komutu Ayrı Çalıştır (En Güvenli)
+
+```powershell
+# 1. SSH ile bağlan
+ssh root@alo17.tr
+
+# 2. Sunucuda şu komutları sırayla çalıştır:
+cd /var/www/alo17
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_category ON \"Listing\"(category);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_subcategory ON \"Listing\"(subCategory);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_active ON \"Listing\"(isActive, approvalStatus);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_premium ON \"Listing\"(isPremium, isActive);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_created ON \"Listing\"(createdAt DESC);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_user ON \"Listing\"(userId);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_expires ON \"Listing\"(expiresAt);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_category_active ON \"Listing\"(category, isActive, approvalStatus);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_premium_active ON \"Listing\"(isPremium, isActive, approvalStatus, createdAt DESC);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_listing_category_subcategory ON \"Listing\"(category, subCategory, isActive, approvalStatus);"
+sudo -u postgres psql -d alo17_db -c "CREATE INDEX IF NOT EXISTS idx_user_email ON \"User\"(email);"
+npx prisma generate
+npm run build
+pm2 restart alo17
+pm2 status
+```
+
+---
+
+## Yöntem 4: Bash Script Oluştur ve Gönder
+
+### Local'de `run-indexes.sh` dosyası oluştur:
+
+```bash
+#!/bin/bash
+cd /var/www/alo17
+sudo -u postgres psql -d alo17_db << 'EOF'
+CREATE INDEX IF NOT EXISTS idx_listing_category ON "Listing"(category);
+CREATE INDEX IF NOT EXISTS idx_listing_subcategory ON "Listing"(subCategory);
+CREATE INDEX IF NOT EXISTS idx_listing_active ON "Listing"(isActive, approvalStatus);
+CREATE INDEX IF NOT EXISTS idx_listing_premium ON "Listing"(isPremium, isActive);
+CREATE INDEX IF NOT EXISTS idx_listing_created ON "Listing"(createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_listing_user ON "Listing"(userId);
+CREATE INDEX IF NOT EXISTS idx_listing_expires ON "Listing"(expiresAt);
+CREATE INDEX IF NOT EXISTS idx_listing_category_active ON "Listing"(category, isActive, approvalStatus);
+CREATE INDEX IF NOT EXISTS idx_listing_premium_active ON "Listing"(isPremium, isActive, approvalStatus, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_listing_category_subcategory ON "Listing"(category, subCategory, isActive, approvalStatus);
+CREATE INDEX IF NOT EXISTS idx_user_email ON "User"(email);
+EOF
+npx prisma generate
+npm run build
+pm2 restart alo17
+pm2 status
+```
+
+### PowerShell'de çalıştır:
+
+```powershell
+# Dosyayı gönder
+scp run-indexes.sh root@alo17.tr:/tmp/
+
+# Çalıştır
+ssh root@alo17.tr "chmod +x /tmp/run-indexes.sh && bash /tmp/run-indexes.sh"
+```
+
+---
+
+## ✅ ÖNERİLEN: Yöntem 2 (SQL Dosyası)
+
+En temiz ve hatasız yöntem Yöntem 2'dir.
+

@@ -5,42 +5,52 @@ const prisma = new PrismaClient();
 
 async function createAdmin() {
   try {
-    console.log('Admin kullanıcısı oluşturuluyor...');
+    const email = 'admin@alo17.tr';
+    const password = 'Admin2025!'; // Bu şifreyi değiştirebilirsiniz
+    const name = 'Admin';
 
-    // Admin kullanıcısının var olup olmadığını kontrol et
-    const existingAdmin = await prisma.user.findUnique({
-      where: { email: 'admin@alo17.tr' }
+    // Kullanıcı var mı kontrol et
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
     });
 
-    if (existingAdmin) {
-      console.log('Admin kullanıcısı zaten mevcut:', existingAdmin.email);
-      return;
+    if (existingUser) {
+      console.log('Admin kullanıcısı zaten mevcut!');
+      console.log('Email:', existingUser.email);
+      console.log('Rol:', existingUser.role);
+      
+      // Şifreyi güncelle
+      const hashedPassword = await hash(password, 10);
+      await prisma.user.update({
+        where: { email },
+        data: {
+          password: hashedPassword,
+          role: 'admin',
+        },
+      });
+      console.log('Şifre güncellendi!');
+      console.log('Yeni şifre:', password);
+    } else {
+      // Yeni admin kullanıcısı oluştur
+      const hashedPassword = await hash(password, 10);
+      const user = await prisma.user.create({
+        data: {
+          email,
+          name,
+          password: hashedPassword,
+          role: 'admin',
+        },
+      });
+      console.log('Admin kullanıcısı oluşturuldu!');
+      console.log('Email:', user.email);
+      console.log('Şifre:', password);
     }
-
-    // Şifreyi hashle
-    const hashedPassword = await hash('123456', 12);
-
-    // Admin kullanıcısını oluştur
-    const admin = await prisma.user.create({
-      data: {
-        name: 'Admin',
-        email: 'admin@alo17.tr',
-        password: hashedPassword,
-        phone: '0541 404 2 404',
-        location: 'İstanbul'
-      }
-    });
-
-    console.log('✅ Admin kullanıcısı başarıyla oluşturuldu!');
-    console.log('📧 Email:', admin.email);
-    console.log('🔑 Şifre: 123456');
-    console.log('👤 Ad:', admin.name);
-
   } catch (error) {
-    console.error('❌ Admin oluşturma hatası:', error);
+    console.error('Hata:', error);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-createAdmin(); 
+createAdmin();
+

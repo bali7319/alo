@@ -1,8 +1,7 @@
 import { MetadataRoute } from 'next'
 import { categories } from '@/lib/categories'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
+import { createSlug } from '@/lib/slug'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://alo17.tr'
@@ -81,13 +80,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
       select: {
         id: true,
+        title: true,
         updatedAt: true,
       },
-      take: 10000, // İlk 10000 ilan
+      orderBy: { updatedAt: 'desc' },
+      take: 5000, // PERFORMANS: İlk 5000 ilan yeterli (sitemap için)
     })
 
     listingPages = listings.map((listing) => ({
-      url: `${baseUrl}/ilan/${listing.id}`,
+      url: `${baseUrl}/ilan/${createSlug(listing.title)}`,
       lastModified: listing.updatedAt,
       changeFrequency: 'weekly' as const,
       priority: 0.6,

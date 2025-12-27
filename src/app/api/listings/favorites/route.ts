@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+// Timeout wrapper - 10 saniye içinde cevap vermezse hata döndür
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    )
+  ]);
+}
 
 // Kullanıcının favori ilanlarını getir
 export async function GET() {
@@ -12,23 +20,27 @@ export async function GET() {
     
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
+        { error: 'Oturum açmanız gerekiyor', listings: [] },
         { status: 401 }
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await withTimeout(
+      prisma.user.findUnique({
+        where: { email: session.user.email },
+      }),
+      5000
+    );
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Kullanıcı bulunamadı' },
+        { error: 'Kullanıcı bulunamadı', listings: [] },
         { status: 404 }
       );
     }
 
-    const favorites = await prisma.userFavorite.findMany({
+    const favorites = await withTimeout(
+      prisma.userFavorite.findMany({
       where: { userId: user.id },
       include: {
         listing: {
@@ -44,7 +56,9 @@ export async function GET() {
         },
       },
       orderBy: { createdAt: 'desc' },
-    });
+      }),
+      8000
+    );
 
     const listings = favorites.map(fav => ({
       id: fav.listing.id,
@@ -64,12 +78,47 @@ export async function GET() {
       user: fav.listing.user,
     }));
 
-    return NextResponse.json({ listings });
+    return NextResponse.json(
+      { listings },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      }
+    );
   } catch (error) {
     console.error('Favoriler getirme hatası:', error);
+    
+    // Timeout hatası
+    if (error instanceof Error && error.message.includes('timeout')) {
+      console.error('Request timeout:', error.message);
+      return NextResponse.json(
+        { error: 'İstek zaman aşımına uğradı. Lütfen tekrar deneyin.', listings: [] },
+        { status: 504 }
+      );
+    }
+    
+    // Prisma bağlantı hatası kontrolü
+    if (error instanceof Error) {
+      if (error.message.includes('P1001') || error.message.includes('connect') || error.message.includes('ECONNREFUSED')) {
+        console.error('Veritabanı bağlantı hatası:', error.message);
+        return NextResponse.json(
+          { error: 'Veritabanı bağlantı hatası. Lütfen daha sonra tekrar deneyin.', listings: [] },
+          { status: 503 }
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Favoriler yüklenirken hata oluştu' },
-      { status: 500 }
+      { error: 'Favoriler yüklenirken hata oluştu', listings: [] },
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      }
     );
   }
 }

@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
-
-const prisma = new PrismaClient();
 
 // PayTR API bilgileri
 const PAYTR_MERCHANT_ID = process.env.PAYTR_MERCHANT_ID || '630576';
@@ -164,8 +162,6 @@ export async function POST(request: NextRequest) {
       { error: 'Ödeme başlatılırken bir hata oluştu' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
