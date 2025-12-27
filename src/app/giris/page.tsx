@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
@@ -12,12 +12,30 @@ function LoginForm() {
   const callbackUrl = searchParams?.get('callbackUrl') || '/';
   
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Sayfa yüklendiğinde kaydedilmiş bilgileri yükle
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const savedEmail = localStorage.getItem('savedEmail');
+    const savedPassword = localStorage.getItem('savedPassword');
+    const savedRememberMe = localStorage.getItem('rememberMe') === 'true';
+    
+    if (savedEmail) {
+      setFormData(prev => ({ ...prev, email: savedEmail }));
+    }
+    if (savedPassword && savedRememberMe) {
+      setFormData(prev => ({ ...prev, password: savedPassword }));
+    }
+    setRememberMe(savedRememberMe);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,12 +52,27 @@ function LoginForm() {
       if (result?.error) {
         setError('Geçersiz email veya şifre');
       } else {
-        // Admin ise admin paneline yönlendir
-        if (formData.email === 'admin@alo17.tr') {
-          router.push('/admin');
+        // Giriş başarılı, bilgileri kaydet
+        if (rememberMe) {
+          localStorage.setItem('savedEmail', formData.email);
+          localStorage.setItem('savedPassword', formData.password);
+          localStorage.setItem('rememberMe', 'true');
         } else {
-          router.push(callbackUrl);
+          localStorage.removeItem('savedEmail');
+          localStorage.removeItem('savedPassword');
+          localStorage.removeItem('rememberMe');
         }
+        
+        // Giriş başarılı, session'ın yüklenmesi için kısa bir bekleme
+        setTimeout(() => {
+          // Admin ise admin paneline yönlendir
+          if (formData.email === 'admin@alo17.tr') {
+            router.push('/admin');
+          } else {
+            // callbackUrl varsa oraya, yoksa ana sayfaya yönlendir
+            router.push(callbackUrl || '/');
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Giriş hatası:', error);
@@ -51,10 +84,22 @@ function LoginForm() {
 
   const handleSocialLogin = async (provider: string) => {
     try {
-      await signIn(provider, { callbackUrl });
-    } catch (error) {
+      setIsLoading(true);
+      setError('');
+      
+      // OAuth provider'lar için redirect gerekli (Google'a yönlendirme yapılacak)
+      // NextAuth otomatik olarak callback URL'e yönlendirecek
+      await signIn(provider, { 
+        callbackUrl: callbackUrl || '/',
+        redirect: true // OAuth için redirect: true olmalı
+      });
+      
+      // Bu satıra gelinmez çünkü redirect yapılacak
+      setIsLoading(false);
+    } catch (error: any) {
       console.error('Sosyal medya giriş hatası:', error);
-      setError('Sosyal medya ile giriş yapılırken bir hata oluştu.');
+      setError('Sosyal medya ile giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.');
+      setIsLoading(false);
     }
   };
 
@@ -108,7 +153,7 @@ function LoginForm() {
                 Şifre
               </label>
               <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
@@ -119,18 +164,24 @@ function LoginForm() {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-alo-orange focus:border-alo-orange focus:z-10 sm:text-sm"
+                  className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-alo-orange focus:border-alo-orange sm:text-sm"
                   placeholder="Şifrenizi girin"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={0}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center z-30 cursor-pointer hover:bg-gray-50 rounded-r-lg transition-colors focus:outline-none focus:ring-2 focus:ring-alo-orange"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowPassword((prev) => !prev);
+                  }}
+                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
+                    <EyeOff className="h-5 w-5 text-gray-500 hover:text-gray-700" />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
+                    <Eye className="h-5 w-5 text-gray-500 hover:text-gray-700" />
                   )}
                 </button>
               </div>
@@ -143,6 +194,8 @@ function LoginForm() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 text-alo-orange focus:ring-alo-orange border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
@@ -181,7 +234,8 @@ function LoginForm() {
               <button
                 type="button"
                 onClick={() => handleSocialLogin('google')}
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                disabled={isLoading}
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
