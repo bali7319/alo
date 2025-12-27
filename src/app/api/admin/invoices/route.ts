@@ -17,6 +17,11 @@ export async function GET(request: NextRequest) {
     // Admin kontrolü
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+      },
     });
 
     if (!user || user.role !== 'admin') {
