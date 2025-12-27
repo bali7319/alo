@@ -19,14 +19,9 @@ export async function GET(
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
     });
 
-    if (!user || user.role !== 'admin') {
+    if (!user || (user as any).role !== 'admin') {
       return NextResponse.json(
         { error: 'Bu işlem için admin yetkisi gerekiyor' },
         { status: 403 }

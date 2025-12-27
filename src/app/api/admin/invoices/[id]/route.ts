@@ -19,11 +19,6 @@ export async function GET(
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
     });
 
     if (!user) {
@@ -56,7 +51,7 @@ export async function GET(
     }
 
     // Admin değilse ve fatura sahibi değilse erişim yok
-    if (user.role !== 'admin' && invoice.userId !== user.id) {
+    if ((user as any).role !== 'admin' && invoice.userId !== user.id) {
       return NextResponse.json(
         { error: 'Bu faturaya erişim yetkiniz yok' },
         { status: 403 }
