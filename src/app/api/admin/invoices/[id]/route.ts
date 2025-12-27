@@ -30,7 +30,7 @@ export async function GET(
 
     const { id } = await params;
     // Admin veya fatura sahibi kontrolü
-    const invoice = await prisma.invoice.findUnique({
+    const invoice = await (prisma as any).invoice.findUnique({
       where: { id },
       include: {
         user: {

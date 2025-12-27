@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     // Faturaları getir
     const [invoices, total] = await Promise.all([
-      prisma.invoice.findMany({
+      (prisma as any).invoice.findMany({
         where,
         include: {
           user: {
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      prisma.invoice.count({ where }),
+      (prisma as any).invoice.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
