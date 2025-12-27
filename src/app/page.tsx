@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { SearchBar } from '@/components/search-bar'
+import { Button } from '@/components/ui/button'
 
 const Sidebar = dynamic(() => import("@/components/sidebar").then(mod => ({ default: mod.Sidebar })), {
   loading: () => <div className="w-full md:w-64 h-64 bg-gray-100 animate-pulse rounded-lg" />
@@ -95,11 +96,14 @@ export default async function Home() {
         <div className="w-full md:w-64 flex-shrink-0">
           {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
           <div className="mb-4">
-            <Link href="/ilan-ver">
-              <button className="w-full flex items-center justify-center px-4 py-2.5 md:py-3 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white text-sm md:text-base font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg">
+            <Link href="/ilan-ver" className="block">
+              <Button 
+                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold shadow-lg"
+                size="lg"
+              >
                 <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                 Reklam Ver
-              </button>
+              </Button>
             </Link>
           </div>
           <Sidebar />

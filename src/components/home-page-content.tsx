@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { Star, Eye, Clock, Camera, TrendingUp, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { SearchBar } from '@/components/search-bar'
+import { Button } from '@/components/ui/button'
 
 // Lazy load components
 const Sidebar = dynamic(() => import("@/components/sidebar").then(mod => ({ default: mod.Sidebar })), {
@@ -73,11 +74,14 @@ export default function HomePageContent() {
           <div className="w-full md:w-64 flex-shrink-0">
             {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
             <div className="mb-4">
-              <Link href="/premium">
-                <button className="w-full flex items-center justify-center px-4 py-2.5 md:py-3 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white text-sm md:text-base font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg">
+              <Link href="/ilan-ver" className="block">
+                <Button 
+                  className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold shadow-lg"
+                  size="lg"
+                >
                   <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                   Reklam Ver
-                </button>
+                </Button>
               </Link>
             </div>
             <Sidebar />
@@ -127,49 +131,53 @@ export default function HomePageContent() {
             </p>
           </div>
 
-          {/* Premium Özellikler Grid */}
+          {/* Premium Özellikler Grid - Minimalist Tasarım */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center transition-all duration-300 hover:bg-white/20 hover:scale-105 hover:shadow-xl">
               <div className="flex justify-center mb-4">
-                <Eye className="h-8 w-8 text-white" />
+                <Eye className="h-8 w-8 text-white transition-transform duration-300 hover:scale-110" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">%70 Daha Fazla Görüntülenme</h3>
-              <p className="text-orange-100">İlanınız daha fazla kişi tarafından görülür</p>
+              <p className="text-orange-100 text-sm">İlanınız daha fazla kişi tarafından görülür</p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center transition-all duration-300 hover:bg-white/20 hover:scale-105 hover:shadow-xl">
               <div className="flex justify-center mb-4">
-                <TrendingUp className="h-8 w-8 text-white" />
+                <TrendingUp className="h-8 w-8 text-white transition-transform duration-300 hover:scale-110" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">%40 Daha Hızlı Satış</h3>
-              <p className="text-orange-100">İlanınız daha kısa sürede satılır</p>
+              <p className="text-orange-100 text-sm">İlanınız daha kısa sürede satılır</p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center transition-all duration-300 hover:bg-white/20 hover:scale-105 hover:shadow-xl">
               <div className="flex justify-center mb-4">
-                <Clock className="h-8 w-8 text-white" />
+                <Clock className="h-8 w-8 text-white transition-transform duration-300 hover:scale-110" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">Premium Yayın</h3>
-              <p className="text-orange-100">İlanınız premium özelliklerle yayında kalır</p>
+              <p className="text-orange-100 text-sm">İlanınız premium özelliklerle yayında kalır</p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center transition-all duration-300 hover:bg-white/20 hover:scale-105 hover:shadow-xl">
               <div className="flex justify-center mb-4">
-                <Camera className="h-8 w-8 text-white" />
+                <Camera className="h-8 w-8 text-white transition-transform duration-300 hover:scale-110" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">5 Fotoğraf</h3>
-              <p className="text-orange-100">5 adete kadar fotoğraf ekleyebilirsiniz</p>
+              <p className="text-orange-100 text-sm">5 adete kadar fotoğraf ekleyebilirsiniz</p>
             </div>
           </div>
 
           <div className="text-center">
-            <Link
-              href="/premium"
-              className="inline-flex items-center px-8 py-4 bg-white text-orange-600 rounded-lg hover:bg-orange-50 transition-colors font-semibold text-lg"
+            <Button
+              asChild
+              variant="secondary"
+              size="lg"
+              className="bg-white text-orange-600 hover:bg-orange-50 font-semibold"
             >
-              <Star className="h-5 w-5 mr-2" />
-              Premium Avantajlarını Keşfet
-            </Link>
+              <Link href="/premium">
+                <Star className="h-5 w-5 mr-2" />
+                Premium Avantajlarını Keşfet
+              </Link>
+            </Button>
           </div>
         </div>
       </section>

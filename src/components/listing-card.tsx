@@ -1,8 +1,8 @@
 import Link from "next/link"
-import Image from "next/image"
-import { Star, Crown, Image as ImageIcon } from "lucide-react"
+import { Star, Crown, Image as ImageIcon, Eye } from "lucide-react"
 import { Listing } from '@/types/listings'
 import { createSlug } from '@/lib/slug'
+import { LazyImage } from '@/components/ui/lazy-image'
 
 interface ListingCardProps {
   listing: Listing
@@ -45,55 +45,37 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
           
           {hasImage && (
-            isBase64 ? (
-              // Base64 resimler için normal img tag kullan (Next.js Image base64'ü optimize edemez)
-              <img
-                src={imageUrl}
-                alt={listing.title || 'İlan resmi'}
-                className="absolute inset-0 w-full h-full object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  // Resim yüklenemezse placeholder göster
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const placeholder = target.parentElement?.querySelector('.image-placeholder');
-                  if (placeholder) {
-                    (placeholder as HTMLElement).classList.remove('hidden');
-                  }
-                }}
-              />
-            ) : (
-              <Image
-                src={imageUrl}
-                alt={listing.title || 'İlan resmi'}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                className="object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  // Resim yüklenemezse placeholder göster
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const placeholder = target.parentElement?.querySelector('.image-placeholder');
-                  if (placeholder) {
-                    (placeholder as HTMLElement).classList.remove('hidden');
-                  }
-                }}
-              />
-            )
+            <LazyImage
+              src={imageUrl}
+              alt={listing.title || 'İlan resmi'}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="absolute inset-0 w-full h-full object-cover"
+              isBase64={isBase64}
+              onError={(e) => {
+                // Resim yüklenemezse placeholder göster
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const placeholder = target.parentElement?.querySelector('.image-placeholder');
+                if (placeholder) {
+                  (placeholder as HTMLElement).classList.remove('hidden');
+                }
+              }}
+            />
           )}
           
           {/* Premium Rozeti */}
           {listing.isPremium && (
-            <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
-              <Crown className="w-3 h-3" />
-              {listing.planName || 'Premium'}
+            <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg z-10 backdrop-blur-sm">
+              <Crown className="w-3 h-3" aria-hidden="true" />
+              <span>{listing.planName || 'Premium'}</span>
             </div>
           )}
           
           {/* Görüntülenme Sayısı */}
-          <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-            {listing.views || 0} görüntülenme
+          <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded text-xs z-10">
+            <Eye className="w-3 h-3 inline mr-1" aria-hidden="true" />
+            {listing.views || 0}
           </div>
         </div>
         
@@ -110,9 +92,9 @@ export function ListingCard({ listing }: ListingCardProps) {
             <span className="font-bold text-lg text-blue-600">
               {listing.price && listing.price !== '0' ? `${listing.price} ₺` : 'Ücretsiz'}
             </span>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-              İncele
-            </button>
+            <span className="text-xs text-gray-400">
+              {new Date(listing.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+            </span>
           </div>
         </div>
       </div>
