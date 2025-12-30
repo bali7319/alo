@@ -1,45 +1,99 @@
-'use client'
-
+// is klasörü dinamik route'u bloke ediyor
+// Bu sayfa dinamik route'un içeriğini doğrudan kullanıyor
 import { categories } from '@/lib/categories'
+import { Sidebar } from '@/components/sidebar'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { listings as rawListings } from '@/lib/listings'
-import { Listing } from '@/types/listings'
+import { Home } from 'lucide-react'
+import { prisma } from '@/lib/prisma'
+import { Metadata } from 'next'
 
-export default function IsPage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [category, setCategory] = useState<any>(null)
-  const [mappedListings, setMappedListings] = useState<Listing[]>([])
-  
-  useEffect(() => {
-    // İş kategorisini bul
-    const foundCategory = categories.find(cat => cat.slug === 'is')
-    
-    if (foundCategory) {
-      setCategory(foundCategory)
-      
-      // Listings data'sını doğru formata dönüştür
-      const mapped = rawListings
-        .filter(listing => listing.category.toLowerCase() === 'iş' || listing.category.toLowerCase() === 'is')
-        
-      
-      setMappedListings(mapped)
-    }
-    
-    setIsLoading(false)
-  }, [])
+// Cache eklendi - performans için kritik
+export const revalidate = 300; // 5 dakika cache
+export const dynamic = 'force-dynamic';
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
+// Timeout wrapper
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
     )
+  ]);
+}
+
+// SEO Metadata
+export async function generateMetadata(): Promise<Metadata> {
+  const foundCategory = categories.find((cat) => cat.slug === 'is');
+  
+  if (!foundCategory) {
+    return {
+      title: 'Kategori Bulunamadı',
+    };
   }
 
-  if (!category) {
+  const categoryName = 'İş';
+  
+  // İlan sayısını al
+  let listingCount = 0;
+  try {
+    listingCount = await withTimeout(
+      prisma.listing.count({
+        where: {
+          OR: [
+            { category: 'is' },
+            { category: 'İş' },
+          ],
+          isActive: true,
+          approvalStatus: 'approved'
+        }
+      }),
+      5000
+    );
+  } catch (error) {
+    console.warn('Database connection failed during build, using default count');
+  }
+
+  const title = `${categoryName} İlanları - Çanakkale | Alo17`;
+  const description = `Çanakkale'de ${categoryName} kategorisinde ${listingCount} aktif ilan. Ücretsiz ilan ver, ikinci el ${categoryName.toLowerCase()} al-sat. En iyi fiyatlar ve güvenilir satıcılar.`;
+
+  return {
+    title,
+    description,
+    keywords: [
+      categoryName.toLowerCase(),
+      `${categoryName} çanakkale`,
+      `ikinci el ${categoryName.toLowerCase()}`,
+      `satılık ${categoryName.toLowerCase()}`,
+      `çanakkale ${categoryName.toLowerCase()} ilanları`,
+      'alo17',
+      'çanakkale ilan'
+    ],
+    openGraph: {
+      title,
+      description,
+      url: `https://alo17.tr/kategori/is`,
+      siteName: 'Alo17',
+      locale: 'tr_TR',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    alternates: {
+      canonical: `https://alo17.tr/kategori/is`,
+    },
+  };
+}
+
+export default async function IsPage() {
+  const slug = 'is';
+  const foundCategory = categories.find((cat) => cat.slug === slug);
+  
+  if (!foundCategory) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -49,90 +103,162 @@ export default function IsPage() {
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
-  // Alt kategori renkleri
-  const subcategoryColors: { [key: string]: string } = {
-    'garson-komi': 'text-orange-500',
-    'guvenlik-gorevlisi': 'text-red-500',
-    'muhasebeci-finans-elemani': 'text-green-500',
-    'nakliyat': 'text-blue-500',
-    'ogretmen-egitmen': 'text-purple-500',
-    'pazarlama-reklam-uzmani': 'text-pink-500',
-    'saglik-personeli': 'text-red-400',
-    'satis-danismani': 'text-yellow-500',
-    'sekreter-ofis-elemani': 'text-indigo-500',
-    'sofor-kurye': 'text-orange-600',
-    'teknik-servis': 'text-gray-500',
-    'tekniker-muhendis': 'text-blue-600',
-    'temizlik-personeli': 'text-green-600',
-    'yazilim-bilisim-uzmani': 'text-cyan-500',
-    'diger': 'text-gray-500'
+  const categoryName = 'İş';
+
+  // Güvenli JSON parse fonksiyonu
+  const safeParseImages = (images: string | null): string[] => {
+    if (!images) return [];
+    try {
+      if (typeof images === 'string') {
+        if (images.startsWith('data:image')) {
+          return [images];
+        }
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(images) ? images : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Veritabanından ilanları çek
+  let listings: any[] = [];
+  try {
+    listings = await withTimeout(
+      prisma.listing.findMany({
+        where: {
+          OR: [
+            { category: slug },
+            { category: categoryName },
+          ],
+          isActive: true,
+          approvalStatus: 'approved',
+          expiresAt: {
+            gt: new Date()
+          }
+        },
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          location: true,
+          category: true,
+          subCategory: true,
+          description: true,
+          images: true,
+          createdAt: true,
+          condition: true,
+          isPremium: true,
+          premiumUntil: true,
+          expiresAt: true,
+          views: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: [
+          { isPremium: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: 50,
+      }),
+      5000
+    );
+  } catch (error) {
+    console.error('Kategori ilanları getirme hatası:', error);
+    listings = [];
   }
+
+  const formattedListings = listings.map(listing => {
+    const parsedImages = safeParseImages(listing.images);
+    const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+
+    return {
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory || undefined,
+      description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''),
+      images: firstImage,
+      createdAt: listing.createdAt.toISOString(),
+      condition: listing.condition,
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil?.toISOString(),
+      expiresAt: listing.expiresAt.toISOString(),
+      views: listing.views,
+      user: {
+        ...listing.user,
+        name: listing.user?.name ?? undefined,
+      },
+    };
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto py-8">
+    <main className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <nav className="flex mb-8" aria-label="Breadcrumb">
           <ol className="inline-flex items-center space-x-1 md:space-x-3">
             <li className="inline-flex items-center">
               <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                <Home className="w-4 h-4 mr-1" />
                 Ana Sayfa
               </Link>
             </li>
             <li aria-current="page">
               <div className="flex items-center">
                 <span className="mx-2 text-gray-400">/</span>
-                <span className="text-gray-500">İş</span>
+                <span className="text-gray-500">{foundCategory.name}</span>
               </div>
             </li>
           </ol>
         </nav>
 
-        <div className="flex gap-8">
-          {/* Sidebar */}
-          <aside className="w-64">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="font-semibold text-lg mb-4">Alt Kategoriler</h2>
-              <ul className="space-y-2">
-                {category.subcategories?.map((subcategory: any) => (
-                  <li key={subcategory.slug}>
-                    <Link 
-                      href={`/kategori/is/${subcategory.slug}`}
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <span className={`text-lg ${subcategoryColors[subcategory.slug] || 'text-gray-500'}`}>
-                        {subcategory.icon}
-                      </span>
-                      <span className="text-sm font-medium text-gray-700">{subcategory.name}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </aside>
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sol Sidebar */}
+          <div className="w-full md:w-64 flex-shrink-0">
+            <Sidebar />
+          </div>
 
           {/* Ana İçerik */}
-          <div className="flex-1">
-            {/* İlanlar */}
-            <div className="space-y-8">
-              <FeaturedAds 
-                category={category.slug}
-                title="Öne Çıkan İlanlar"
-                listings={mappedListings}
-              />
-              
-              <LatestAds 
-                category={category.slug}
-                title="En Son İlanlar"
-                listings={mappedListings}
-              />
+          <div className="flex-1 space-y-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+                <span className="mr-3 text-2xl">{typeof foundCategory.icon === 'string' ? foundCategory.icon : '•'}</span>
+                {foundCategory.name}
+              </h1>
+              <p className="text-gray-600">
+                {foundCategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
+              </p>
             </div>
+
+            <section>
+              <FeaturedAds 
+                title={`Öne Çıkan ${foundCategory.name}`}
+                category={foundCategory.slug} 
+                listings={formattedListings} 
+              />
+            </section>
+            
+            <section>
+              <LatestAds 
+                title={`Son Eklenen ${foundCategory.name}`}
+                category={foundCategory.slug} 
+                listings={formattedListings} 
+              />
+            </section>
           </div>
         </div>
       </div>
-    </div>
-  )
-} 
+    </main>
+  );
+}
