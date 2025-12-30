@@ -313,8 +313,12 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         </nav>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Sol Sidebar */}
-          <div className="w-full md:w-64 flex-shrink-0">
+          {/* Sol Sidebar - Mobilde gizli, toggle butonu ile açılır */}
+          <div className="hidden md:block w-full md:w-64 flex-shrink-0">
+            <Sidebar />
+          </div>
+          {/* Mobil Sidebar - Toggle butonu ile açılır */}
+          <div className="md:hidden">
             <Sidebar />
           </div>
 

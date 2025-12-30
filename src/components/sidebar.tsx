@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
 import { categories } from "@/lib/categories"
 import { 
   Smartphone, 
@@ -22,7 +23,9 @@ import {
   Wrench,
   Store,
   Hotel,
-  MoreHorizontal
+  MoreHorizontal,
+  Menu,
+  X
 } from "lucide-react"
 
 const categoryIcons = {
@@ -65,6 +68,7 @@ const categoryColors = {
 
 export const Sidebar = () => {
   const pathname = usePathname()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   // Pathname'i parse et: /kategori/hizmetler/guvenlik -> ['kategori', 'hizmetler', 'guvenlik']
   const pathSegments = pathname?.split("/").filter(Boolean) || []
@@ -84,7 +88,36 @@ export const Sidebar = () => {
   const currentSubSubcategory = isCategoryRoute && pathSegments.length >= 4 ? pathSegments[3] : undefined
 
   return (
-    <nav className="w-64 bg-white p-4 border-r" aria-label="Kategoriler menüsü">
+    <>
+      {/* Mobil Menü Toggle Butonu */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden fixed top-20 left-4 z-[60] bg-white border border-gray-300 rounded-md p-2 shadow-lg hover:bg-gray-50 transition-colors"
+        aria-label="Kategoriler menüsünü aç/kapat"
+        aria-expanded={isMobileMenuOpen}
+      >
+        {isMobileMenuOpen ? (
+          <X className="w-5 h-5 text-gray-700" />
+        ) : (
+          <Menu className="w-5 h-5 text-gray-700" />
+        )}
+      </button>
+
+      {/* Mobil Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <nav 
+        className={`fixed md:static top-0 left-0 h-full md:h-auto w-64 bg-white p-4 border-r z-50 md:z-auto transform transition-transform duration-300 ease-in-out ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+        aria-label="Kategoriler menüsü"
+      >
       {!isSubCategoryPage ? (
         // Ana kategori sayfasında: O kategorinin alt kategorilerini göster
         activeCategory && activeCategory.subcategories && activeCategory.subcategories.length > 0 ? (
@@ -250,6 +283,7 @@ export const Sidebar = () => {
           <div className="text-sm text-gray-500">Alt kategori bulunamadı</div>
         )
       )}
-    </nav>
+      </nav>
+    </>
   )
 } 
