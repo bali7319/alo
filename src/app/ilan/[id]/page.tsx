@@ -44,32 +44,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         5000 // 5 saniye timeout
       );
     } else {
-      // Slug formatı - Çok optimize edilmiş arama: Slug'dan kelimeleri çıkar ve title'da ara
+      // Slug formatı - Daha esnek arama: En az bir kelime eşleşsin, sonra slug ile tam eşleşen ilanı bul
       const keywords = slugOrId
         .split('-')
-        .filter(word => word.length > 2)
-        .slice(0, 3); // İlk 3 kelimeyi al
+        .filter(word => word.length > 1) // 1 karakterden uzun kelimeleri al (daha esnek)
+        .slice(0, 10); // İlk 10 kelimeyi al (uzun başlıklar için)
       
-      // En az 1 kelime varsa, title'da bu kelimeleri ara
+      // En az 1 kelime varsa, title'da bu kelimelerden en az birini içeren ilanları bul (OR condition - daha esnek)
       if (keywords.length >= 1) {
-        const searchTerm = keywords.length > 1 ? keywords[1] : keywords[0]; // Daha spesifik kelime
+        // En önemli kelimeleri al (ilk 3 kelime genelde en önemli)
+        const importantKeywords = keywords.slice(0, 3);
         
         const candidates = await withTimeout(
           prisma.listing.findMany({
             where: {
               isActive: true,
               approvalStatus: 'approved',
-              title: {
-                contains: searchTerm,
-                mode: 'insensitive',
-              },
+              OR: importantKeywords.map(keyword => ({
+                title: {
+                  contains: keyword,
+                  mode: 'insensitive',
+                },
+              })),
             },
             select: {
               id: true,
               title: true,
             },
             orderBy: { createdAt: 'desc' },
-            take: 50, // Son 50 aday (performans için)
+            take: 200, // Daha fazla aday kontrol et
           }),
           3000 // 3 saniye timeout
         );
@@ -80,7 +83,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         });
       }
       
-      // Eğer hala bulunamadıysa, son 50 ilanı çek (fallback)
+      // Eğer hala bulunamadıysa, son 500 ilanı çek ve slug ile eşleştir (fallback)
       if (!listing) {
         const recentListings = await withTimeout(
           prisma.listing.findMany({
@@ -93,7 +96,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
               title: true,
             },
             orderBy: { createdAt: 'desc' },
-            take: 50, // Son 50 ilan (performans için)
+            take: 500, // Daha fazla ilan kontrol et
           }),
           3000 // 3 saniye timeout
         );
@@ -148,7 +151,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       }
     };
     const images = safeParseImages(listing.images);
-    const firstImage = images[0] || '/images/placeholder.jpg';
+    const firstImage = images[0] || '/images/logo.svg';
     const price = new Intl.NumberFormat('tr-TR', {
       style: 'currency',
       currency: 'TRY',
@@ -165,8 +168,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       : `${listing.title} - ${listing.category} kategorisinde satılık ilan`;
     const description = `${descriptionText}... ${listing.location}, Çanakkale. Fiyat: ${price}. Alo17'de güvenli alışveriş.`;
     
-    // SEO-friendly URL - İlan başlığından slug oluştur
-    const canonicalUrl = `https://alo17.tr/ilan/${listingSlug}-${listing.id}`;
+    // SEO-friendly URL - İlan başlığından slug oluştur (sadece slug)
+    const canonicalUrl = `https://alo17.tr/ilan/${listingSlug}`;
 
     // Keywords array'ini oluştur - undefined değerleri ekleme
     const keywords: string[] = [

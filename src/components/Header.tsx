@@ -182,19 +182,16 @@ export default function Header() {
           </div>
         </div>
       </div>
-    </header>
-  )
-}
 
-        {/* Mobil Menü */}
-        {isMenuOpen && (
-          <>
-            {/* Overlay - Menüyü kapatmak için */}
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-              onClick={() => setIsMenuOpen(false)}
-            />
-            <div className="md:hidden border-t bg-white relative z-50">
+      {/* Mobil Menü */}
+      {isMenuOpen && (
+        <>
+          {/* Overlay - Menüyü kapatmak için */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+            onClick={() => setIsMenuOpen(false)}
+          />
+          <div className="md:hidden border-t bg-white relative z-50">
             <div className="px-4 py-4 space-y-2">
               {/* Giriş yapılmışsa menü öğeleri */}
               {session ? (
@@ -264,9 +261,8 @@ export default function Header() {
               )}
             </div>
           </div>
-          </>
-        )}
-      </div>
+        </>
+      )}
     </header>
-  );
+  )
 } 

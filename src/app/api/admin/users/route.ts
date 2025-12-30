@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search'); // Arama terimi
+    const role = searchParams.get('role'); // Rol filtresi (moderator,admin veya moderator,admin)
 
     const skip = (page - 1) * limit;
 
@@ -41,12 +42,18 @@ export async function GET(request: NextRequest) {
         { phone: { contains: search } },
       ];
     }
+    
+    // Rol filtresi (arma için)
+    if (role) {
+      const roles = role.split(',').map(r => r.trim());
+      where.role = { in: roles };
+    }
 
     // Toplam kayıt sayısı
     const total = await prisma.user.count({ where });
 
     // Kullanıcıları getir (ilan ve mesaj sayıları ile)
-    const users = await prisma.user.findMany({
+    const users = await (prisma.user.findMany as any)({
       where,
       skip,
       take: limit,
@@ -58,6 +65,7 @@ export async function GET(request: NextRequest) {
         phone: true,
         location: true,
         role: true,
+        isActive: true,
         createdAt: true,
         _count: {
           select: {
@@ -70,7 +78,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Date object'lerini ISO string'e çevir ve role field'ını güvenli hale getir
-    const formattedUsers = users.map(user => ({
+    const formattedUsers = users.map((user: any) => ({
       ...user,
       role: user.role || 'user', // Varsayılan olarak 'user' kullan
       createdAt: user.createdAt.toISOString(),

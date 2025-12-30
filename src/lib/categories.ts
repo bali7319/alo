@@ -1,24 +1,8 @@
-import { LucideIcon } from "lucide-react"
-import { 
-  Briefcase,
-  Wrench,
-  Smartphone,
-  Home,
-  Shirt,
-  Baby,
-  Dumbbell,
-  GraduationCap,
-  Utensils,
-  Hotel,
-  Heart,
-  Palette,
-  Gift,
-  MoreHorizontal
-} from "lucide-react"
+// Icon'lar artık string olarak saklanıyor - client-side'da slug'dan map ediliyor
 
 export interface Category {
   name: string
-  icon: LucideIcon | string
+  icon: string // Changed to string only - icons are mapped client-side
   slug: string
   subcategories?: Category[]
 }
@@ -26,7 +10,7 @@ export interface Category {
 export const categories: Category[] = [
   {
     name: "İş",
-    icon: Briefcase,
+    icon: "💼",
     slug: "is",
     subcategories: [
       { name: "Garson/Komi", icon: "🍽️", slug: "garson-komi" },
@@ -47,7 +31,7 @@ export const categories: Category[] = [
   },
   {
     name: "Hizmetler",
-    icon: Wrench,
+    icon: "🔧",
     slug: "hizmetler",
     subcategories: [
       { 
@@ -71,7 +55,7 @@ export const categories: Category[] = [
   },
   {
     name: "Elektronik",
-    icon: Smartphone,
+    icon: "📱",
     slug: "elektronik",
     subcategories: [
       { name: "Bilgisayar", icon: "💻", slug: "bilgisayar" },
@@ -87,7 +71,7 @@ export const categories: Category[] = [
   },
   {
     name: "Ev & Bahçe",
-    icon: Home,
+    icon: "🏠",
     slug: "ev-ve-bahce",
     subcategories: [
       { name: "Aydınlatma", icon: "💡", slug: "aydinlatma" },
@@ -122,7 +106,7 @@ export const categories: Category[] = [
   },
   {
     name: "Giyim",
-    icon: Shirt,
+    icon: "👕",
     slug: "giyim",
     subcategories: [
       { name: "Aksesuar", icon: "💍", slug: "aksesuar" },
@@ -135,7 +119,7 @@ export const categories: Category[] = [
   },
   {
     name: "Moda & Stil",
-    icon: Shirt,
+    icon: "👔",
     slug: "moda-stil",
     subcategories: [
       { name: "Aksesuar", icon: "💍", slug: "aksesuar" },
@@ -146,7 +130,7 @@ export const categories: Category[] = [
   },
   {
     name: "Sporlar, Oyunlar ve Eğlenceler",
-    icon: Dumbbell,
+    icon: "⚽",
     slug: "sporlar-oyunlar-eglenceler",
     subcategories: [
       { name: "Spor Aktiviteleri", icon: "🏃", slug: "spor-aktiviteleri" },
@@ -156,7 +140,7 @@ export const categories: Category[] = [
   },
   {
     name: "Anne & Bebek",
-    icon: Baby,
+    icon: "👶",
     slug: "anne-bebek",
     subcategories: [
       { name: "Bebek Giyim", icon: "👶", slug: "bebek-giyim" },
@@ -168,7 +152,7 @@ export const categories: Category[] = [
   },
   {
     name: "Çocuk Dünyası",
-    icon: Baby,
+    icon: "🧸",
     slug: "cocuk-dunyasi",
     subcategories: [
       { name: "Çocuk Aksesuar", icon: "🎒", slug: "cocuk-aksesuar" },
@@ -184,7 +168,7 @@ export const categories: Category[] = [
   },
   {
     name: "Eğitim & Kurslar",
-    icon: GraduationCap,
+    icon: "📚",
     slug: "egitim-kurslar",
     subcategories: [
       { name: "Akademik Kurslar", icon: "📚", slug: "akademik-kurslar" },
@@ -201,7 +185,7 @@ export const categories: Category[] = [
   },
   {
     name: "Yemek & İçecek",
-    icon: Utensils,
+    icon: "🍽️",
     slug: "yemek-icecek",
     subcategories: [
       { name: "Fast Food", icon: "🍔", slug: "fast-food" },
@@ -213,7 +197,7 @@ export const categories: Category[] = [
   },
   {
     name: "Catering & Ticaret",
-    icon: Utensils,
+    icon: "🏪",
     slug: "catering-ticaret",
     subcategories: [
       { name: "Catering", icon: "🍽️", slug: "catering" },
@@ -223,7 +207,7 @@ export const categories: Category[] = [
   },
   {
     name: "Turizm & Konaklama",
-    icon: Hotel,
+    icon: "🏨",
     slug: "turizm-konaklama",
     subcategories: [
       { name: "Araç Kiralama", icon: "🚗", slug: "arac-kiralama" },
@@ -234,7 +218,7 @@ export const categories: Category[] = [
   },
   {
     name: "Sağlık & Güzellik",
-    icon: Heart,
+    icon: "💄",
     slug: "saglik-guzellik",
     subcategories: [
       { name: "Bayan Kuaför", icon: "💇‍♀️", slug: "bayan-kuafor" },
@@ -249,7 +233,7 @@ export const categories: Category[] = [
   },
   {
     name: "Sanat & Hobi",
-    icon: Palette,
+    icon: "🎨",
     slug: "sanat-hobi",
     subcategories: [
       { name: "El İşi Malzemeleri", icon: "🧶", slug: "el-isi-malzemeleri" },
@@ -262,7 +246,7 @@ export const categories: Category[] = [
   },
   {
     name: "Ücretsiz Gel Al",
-    icon: Gift,
+    icon: "🎁",
     slug: "ucretsiz-gel-al",
     subcategories: [
       { name: "Eşya", icon: "📦", slug: "esya" },

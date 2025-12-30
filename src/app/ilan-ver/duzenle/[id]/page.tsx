@@ -18,8 +18,6 @@ interface ListingData {
   phone: string;
   condition: string;
   brand?: string;
-  model?: string;
-  year?: string;
   images: string[];
   features: string[];
   isPremium: boolean;
@@ -52,8 +50,6 @@ export default function IlanDuzenlePage() {
     phone: '',
     condition: '',
     brand: '',
-    model: '',
-    year: '',
     showPhone: true,
     features: [] as string[],
   });
@@ -84,8 +80,13 @@ export default function IlanDuzenlePage() {
           throw new Error('İlan bulunamadı');
         }
 
-        // Kullanıcı kontrolü - sadece ilan sahibi düzenleyebilir
-        if (session?.user?.email !== listingData.user?.email) {
+        // Kullanıcı kontrolü - sadece ilan sahibi veya admin düzenleyebilir
+        const { getAdminEmail } = await import('@/lib/admin');
+        const adminEmail = getAdminEmail();
+        const isAdmin = session?.user?.email === adminEmail;
+        const isOwner = session?.user?.email === listingData.user?.email;
+        
+        if (!isAdmin && !isOwner) {
           throw new Error('Bu ilanı düzenleme yetkiniz yok');
         }
 
@@ -119,8 +120,6 @@ export default function IlanDuzenlePage() {
           phone: listingData.phone || listingData.user?.phone || '',
           condition: listingData.condition || '',
           brand: listingData.brand || '',
-          model: listingData.model || '',
-          year: listingData.year || '',
           showPhone: listingData.showPhone !== false,
           features: featuresArray,
         });
@@ -244,8 +243,6 @@ export default function IlanDuzenlePage() {
         phone: formData.phone,
         condition: formData.condition || null,
         brand: formData.brand || null,
-        model: formData.model || null,
-        year: formData.year || null,
         images: JSON.stringify(allImages),
         features: JSON.stringify(formData.features),
         showPhone: formData.showPhone,
@@ -417,22 +414,20 @@ export default function IlanDuzenlePage() {
               </div>
             </div>
 
-            {/* Durum, Marka, Model, Yıl */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Durum, Marka */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Durum</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Durum *</label>
                 <select
                   name="condition"
                   value={formData.condition}
                   onChange={handleInputChange}
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-alo-orange"
                 >
-                  <option value="">Seçin</option>
+                  <option value="">Durum seçin</option>
                   <option value="Yeni">Yeni</option>
-                  <option value="Az Kullanılmış">Az Kullanılmış</option>
-                  <option value="İyi">İyi</option>
-                  <option value="Orta">Orta</option>
-                  <option value="Kötü">Kötü</option>
+                  <option value="İkinci El">İkinci El</option>
                 </select>
               </div>
 
@@ -442,28 +437,6 @@ export default function IlanDuzenlePage() {
                   type="text"
                   name="brand"
                   value={formData.brand}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-alo-orange"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Model</label>
-                <input
-                  type="text"
-                  name="model"
-                  value={formData.model}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-alo-orange"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Yıl</label>
-                <input
-                  type="text"
-                  name="year"
-                  value={formData.year}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-alo-orange"
                 />

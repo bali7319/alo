@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getAdminEmail } from '@/lib/admin';
 
 // Tüm ilanları getir (sayfalama ile)
 export async function GET(request: NextRequest) {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     // Admin kullanıcısını bul (ilanlarını hariç tutmak için)
     const adminUser = await prisma.user.findUnique({
-      where: { email: 'admin@alo17.tr' },
+      where: { email: getAdminEmail() },
       select: { id: true },
     });
 
@@ -66,17 +67,29 @@ export async function GET(request: NextRequest) {
 
     console.log(`[GET /api/listings] Found ${listings.length} listings, total: ${total}`);
 
-    // Images'ı parse et
+    // Images'ı parse et - Base64 kontrolü ile
     const formattedListings = listings.map(listing => {
       let images: string[] = [];
-      try {
-        if (typeof listing.images === 'string') {
-          images = JSON.parse(listing.images);
-        } else if (Array.isArray(listing.images)) {
-          images = listing.images;
+      
+      // Base64 resim kontrolü
+      if (typeof listing.images === 'string' && listing.images.startsWith('data:image')) {
+        images = [listing.images];
+      } else if (Array.isArray(listing.images)) {
+        images = listing.images;
+      } else if (typeof listing.images === 'string') {
+        // JSON parse denemesi - sadece JSON formatında ise
+        if (listing.images.startsWith('[') || listing.images.startsWith('{')) {
+          try {
+            images = JSON.parse(listing.images);
+            if (!Array.isArray(images)) {
+              images = images ? [images] : [];
+            }
+          } catch {
+            images = [];
+          }
+        } else {
+          images = [listing.images];
         }
-      } catch {
-        images = [];
       }
 
       return {
@@ -135,8 +148,6 @@ export async function POST(request: NextRequest) {
       features,
       condition,
       brand,
-      model,
-      year,
       isPremium,
       premiumFeatures,
       premiumUntil,
@@ -201,8 +212,6 @@ export async function POST(request: NextRequest) {
         features: JSON.stringify(features || []),
         condition: condition || null,
         brand: brand || null,
-        model: model || null,
-        year: year || null,
         isPremium: isPremium || false,
         premiumFeatures: premiumFeatures ? JSON.stringify({
           ...(typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures),

@@ -1,10 +1,20 @@
 import { categories } from '@/lib/categories'
+import { Sidebar } from '@/components/sidebar'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { listings as rawListings } from '@/lib/listings'
-import { Listing } from '@/types/listings'
-import { Hotel, Plane, Car, Ship, Calendar, Star } from 'lucide-react'
+import { Home } from 'lucide-react'
+import { prisma } from '@/lib/prisma'
+
+// Timeout wrapper
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    )
+  ]);
+}
 
 // generateStaticParams fonksiyonu ekle
 export async function generateStaticParams() {
@@ -52,145 +62,177 @@ export default async function TurizmAltKategoriPage({ params }: { params: Promis
     )
   }
   
-  const mappedListings = rawListings
-    .filter(listing => listing.category.toLowerCase() === 'turizm-konaklama' && listing.subCategory?.toLowerCase() === subSlug)
-    .map(listing => ({
-      id: listing.id.toString(),
+  // Güvenli JSON parse fonksiyonu
+  const safeParseImages = (images: string | null): string[] => {
+    if (!images) return [];
+    try {
+      if (typeof images === 'string') {
+        if (images.startsWith('data:image')) {
+          return [images];
+        }
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(images) ? images : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Veritabanından ilanları çek
+  let listings: any[] = [];
+  try {
+    listings = await withTimeout(
+      prisma.listing.findMany({
+        where: {
+          AND: [
+            {
+              OR: [
+                { category: 'turizm-konaklama' },
+                { category: 'Turizm & Konaklama' },
+              ],
+            },
+            {
+              OR: [
+                { subCategory: subSlug },
+                { subCategory: foundSubcategory.name },
+              ],
+            },
+            {
+              isActive: true,
+              approvalStatus: 'approved',
+              expiresAt: {
+                gt: new Date()
+              }
+            }
+          ]
+        },
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          location: true,
+          category: true,
+          subCategory: true,
+          description: true,
+          images: true,
+          createdAt: true,
+          condition: true,
+          isPremium: true,
+          premiumUntil: true,
+          expiresAt: true,
+          views: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: [
+          { isPremium: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: 50,
+      }),
+      5000
+    );
+  } catch (error) {
+    console.error('Alt kategori ilanları getirme hatası:', error);
+    listings = [];
+  }
+
+  const formattedListings = listings.map(listing => {
+    const parsedImages = safeParseImages(listing.images);
+    const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+
+    return {
+      id: listing.id,
       title: listing.title,
-      description: listing.description,
       price: listing.price,
       location: listing.location,
       category: listing.category,
-      subCategory: listing.subCategory,
-      subSubCategory: undefined,
-      images: [''],
+      subCategory: listing.subCategory || undefined,
+      description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''),
+      images: firstImage,
+      createdAt: listing.createdAt.toISOString(),
+      condition: listing.condition,
       isPremium: listing.isPremium,
-      premiumUntil: listing.premiumUntil,
-      createdAt: listing.createdAt,
+      premiumUntil: listing.premiumUntil?.toISOString(),
+      expiresAt: listing.expiresAt.toISOString(),
+      views: listing.views,
       user: {
-        id: '',
-        name: listing.title,
-        email: '',
+        ...listing.user,
+        name: listing.user?.name ?? undefined,
       },
-    }))
-
-  const getIconComponent = (iconName: string) => {
-    const iconMap: { [key: string]: any } = {
-      '🏨': <Hotel className="w-6 h-6 text-blue-500" />,
-      '🚢': <Ship className="w-6 h-6 text-blue-600" />,
-      '✈️': <Plane className="w-6 h-6 text-blue-400" />,
-      '🚗': <Car className="w-6 h-6 text-green-500" />,
-      '🏠': <div className="w-6 h-6 text-orange-500 text-xl">🏠</div>,
-      '🏢': <div className="w-6 h-6 text-gray-600 text-xl">🏢</div>,
-      '🏖️': <div className="w-6 h-6 text-yellow-500 text-xl">🏖️</div>,
-      '🏰': <div className="w-6 h-6 text-purple-500 text-xl">🏰</div>,
-      '🏛️': <div className="w-6 h-6 text-red-500 text-xl">🏛️</div>,
-      '🚌': <div className="w-6 h-6 text-green-600 text-xl">🚌</div>,
-      '🌍': <div className="w-6 h-6 text-blue-700 text-xl">🌍</div>,
-      '🛩️': <div className="w-6 h-6 text-indigo-500 text-xl">🛩️</div>,
-      '🚙': <div className="w-6 h-6 text-green-400 text-xl">🚙</div>,
-      '🚐': <div className="w-6 h-6 text-gray-500 text-xl">🚐</div>,
-      '🏍️': <div className="w-6 h-6 text-red-600 text-xl">🏍️</div>,
-    }
-    return iconMap[iconName] || <div className="w-6 h-6 text-gray-500 text-xl">{iconName}</div>
-  }
+    };
+  });
 
   return (
-    <div className="container mx-auto py-8 px-2 md:px-0">
-      {/* Breadcrumb */}
-      <nav className="flex mb-6" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-1 md:space-x-3">
-          <li className="inline-flex items-center">
-            <Link href="/" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-              Ana Sayfa
-            </Link>
-          </li>
-          <li>
-            <div className="flex items-center">
-              <span className="mx-2 text-gray-400">/</span>
-              <Link href="/kategori/turizm-konaklama" className="text-sm font-medium text-gray-700 hover:text-blue-600">
-                {foundCategory.name}
+    <main className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                <Home className="w-4 h-4 mr-1" />
+                Ana Sayfa
               </Link>
-            </div>
-          </li>
-          <li>
-            <div className="flex items-center">
-              <span className="mx-2 text-gray-400">/</span>
-              <span className="text-sm font-medium text-gray-500">{foundSubcategory.name}</span>
-            </div>
-          </li>
-        </ol>
-      </nav>
+            </li>
+            <li>
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <Link href="/kategori/turizm-konaklama" className="text-gray-700 hover:text-blue-600">
+                  {foundCategory.name}
+                </Link>
+              </div>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">{foundSubcategory.name}</span>
+              </div>
+            </li>
+          </ol>
+        </nav>
 
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow">
-            {getIconComponent(typeof foundSubcategory.icon === 'string' ? foundSubcategory.icon : '🏨')}
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sol Sidebar */}
+          <div className="w-full md:w-64 flex-shrink-0">
+            <Sidebar />
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{foundSubcategory.name}</h1>
-            <p className="text-gray-600 max-w-xl">{`${foundSubcategory.name} ile ilgili ilanlar burada.`}</p>
+
+          {/* Ana İçerik */}
+          <div className="flex-1 space-y-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+                <span className="mr-3 text-2xl">{typeof foundSubcategory.icon === 'string' ? foundSubcategory.icon : '•'}</span>
+                {foundSubcategory.name}
+              </h1>
+              <p className="text-gray-600">
+                {foundSubcategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
+              </p>
+            </div>
+
+            <section>
+              <FeaturedAds 
+                title={`Öne Çıkan ${foundSubcategory.name}`}
+                category="turizm-konaklama" 
+                listings={formattedListings} 
+              />
+            </section>
+            
+            <section>
+              <LatestAds 
+                title={`Son Eklenen ${foundSubcategory.name}`}
+                category="turizm-konaklama" 
+                listings={formattedListings} 
+              />
+            </section>
           </div>
         </div>
       </div>
-
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Sidebar */}
-        <aside className="w-full md:w-64 mb-8 md:mb-0">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="font-semibold text-lg mb-4 text-gray-900">Alt Kategoriler</h2>
-            <ul className="space-y-3">
-              {foundCategory.subcategories?.map((sub: any) => (
-                <li key={sub.slug}>
-                  <Link 
-                    href={`/kategori/turizm-konaklama/${sub.slug}`}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors group ${sub.slug === subSlug ? 'bg-blue-100 font-bold text-blue-700' : 'hover:bg-blue-50'}`}
-                  >
-                    <div className="flex-shrink-0">
-                      {getIconComponent(typeof sub.icon === 'string' ? sub.icon : '🏨')}
-                    </div>
-                    <div className="flex-1">
-                      <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {sub.name}
-                      </span>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-
-        {/* Ana İçerik */}
-        <main className="flex-1">
-          {/* Öne Çıkan İlanlar */}
-          <section className="mb-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Star className="w-6 h-6 text-yellow-500" />
-              <h2 className="text-2xl font-bold text-gray-900">Öne Çıkan İlanlar</h2>
-            </div>
-            <FeaturedAds 
-              category="turizm-konaklama" 
-              subcategory={foundSubcategory.slug}
-              listings={mappedListings.filter(l => l.isPremium)} 
-            />
-          </section>
-
-          {/* En Yeni İlanlar */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <Calendar className="w-6 h-6 text-green-500" />
-              <h2 className="text-2xl font-bold text-gray-900">En Yeni İlanlar</h2>
-            </div>
-            <LatestAds 
-              category="turizm-konaklama" 
-              subcategory={foundSubcategory.slug}
-              listings={mappedListings} 
-            />
-          </section>
-        </main>
-      </div>
-    </div>
+    </main>
   )
 } 

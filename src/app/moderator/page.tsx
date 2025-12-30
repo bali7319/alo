@@ -22,8 +22,6 @@ interface Listing {
   features: string[];
   condition: string | null;
   brand: string | null;
-  model: string | null;
-  year: string | null;
   approvalStatus: 'pending' | 'approved' | 'rejected';
   createdAt: string;
   updatedAt: string;
@@ -152,8 +150,6 @@ export default function ModeratorPage() {
       showPhone: listing.showPhone,
       condition: listing.condition || '',
       brand: listing.brand || '',
-      model: listing.model || '',
-      year: listing.year || '',
       moderatorNotes: listing.moderatorNotes || '',
     });
   };
@@ -522,6 +518,54 @@ export default function ModeratorPage() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                      <input
+                        type="tel"
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
+                      <select
+                        value={editForm.condition}
+                        onChange={(e) => setEditForm({ ...editForm, condition: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Seçin</option>
+                        <option value="Yeni">Yeni</option>
+                        <option value="İkinci El">İkinci El</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Marka</label>
+                    <input
+                      type="text"
+                      value={editForm.brand}
+                      onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Marka adı"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="showPhone"
+                      checked={editForm.showPhone}
+                      onChange={(e) => setEditForm({ ...editForm, showPhone: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="showPhone" className="text-sm font-medium text-gray-700">
+                      Telefon numarasını göster
+                    </label>
                   </div>
 
                   <div>

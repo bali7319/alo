@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -38,16 +38,16 @@ async function checkAndDeleteDemoListings() {
     const demoListings = await prisma.listing.findMany({
       where: {
         OR: [
-          { title: { contains: 'Demo', mode: 'insensitive' } },
-          { title: { contains: 'Örnek', mode: 'insensitive' } },
-          { title: { contains: 'Test', mode: 'insensitive' } },
-          { title: { contains: 'örnek', mode: 'insensitive' } },
-          { title: { contains: 'demo', mode: 'insensitive' } },
-          { title: { contains: 'test', mode: 'insensitive' } },
-          { brand: { contains: 'Demo', mode: 'insensitive' } },
-          { brand: { contains: 'örnek', mode: 'insensitive' } },
-          { model: { contains: 'Demo', mode: 'insensitive' } },
-          { model: { contains: 'örnek', mode: 'insensitive' } },
+          { title: { contains: 'Demo', mode: Prisma.QueryMode.insensitive } },
+          { title: { contains: 'Örnek', mode: Prisma.QueryMode.insensitive } },
+          { title: { contains: 'Test', mode: Prisma.QueryMode.insensitive } },
+          { title: { contains: 'örnek', mode: Prisma.QueryMode.insensitive } },
+          { title: { contains: 'demo', mode: Prisma.QueryMode.insensitive } },
+          { title: { contains: 'test', mode: Prisma.QueryMode.insensitive } },
+          { brand: { contains: 'Demo', mode: Prisma.QueryMode.insensitive } },
+          { brand: { contains: 'örnek', mode: Prisma.QueryMode.insensitive } },
+          { model: { contains: 'Demo', mode: Prisma.QueryMode.insensitive } },
+          { model: { contains: 'örnek', mode: Prisma.QueryMode.insensitive } },
         ],
       },
       select: {

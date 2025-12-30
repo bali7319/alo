@@ -379,11 +379,9 @@ function OdemePageContent() {
               </div>
               
               <div className="mt-4 flex items-center justify-center gap-4">
-                <Image 
+                <img 
                   src="https://www.paytr.com/img/odeme-logo.png" 
                   alt="PayTR" 
-                  width={120}
-                  height={32}
                   className="h-8 opacity-60"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';

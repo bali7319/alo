@@ -10,6 +10,7 @@ import { Metadata } from 'next'
 // Cache eklendi - performans için kritik
 export const revalidate = 300; // 5 dakika cache
 export const dynamic = 'force-dynamic'; // Her istekte fresh data (cache ile birlikte çalışır)
+export const dynamicParams = true; // Bilinmeyen slug'lar için runtime'da render et
 
 // Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -21,18 +22,12 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Pr
   ]);
 }
 
-// generateStaticParams fonksiyonu ekle
+// generateStaticParams fonksiyonu - Runtime'da render için boş döndür
+// Statik sayfalar yerine runtime'da render edilecek (dynamic = 'force-dynamic' sayesinde)
 export async function generateStaticParams() {
-  const params: { slug: string }[] = [];
-  
-  // Tüm kategoriler için statik parametreler oluştur
-  categories.forEach((category) => {
-    params.push({
-      slug: category.slug,
-    });
-  });
-  
-  return params;
+  // Runtime'da render için boş array döndür
+  // Bu sayede tüm sayfalar runtime'da render edilecek ve debug log'ları görünecek
+  return [];
 }
 
 // SEO Metadata
@@ -125,13 +120,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
+  // Debug: Kategorileri ve slug'ı logla
+  console.log('CategoryPage - Slug:', slug);
+  console.log('CategoryPage - Categories count:', categories.length);
+  console.log('CategoryPage - Category slugs:', categories.map(c => c.slug));
+
   // Ana kategoriyi bul
   const foundCategory = categories.find((cat) => cat.slug === slug)
+  
   if (!foundCategory) {
+    console.error('CategoryPage - Category not found for slug:', slug);
+    console.error('CategoryPage - Available slugs:', categories.map(c => c.slug));
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
+          <p className="text-gray-600 mb-2">Slug: {slug}</p>
           <Link href="/" className="text-blue-600 hover:text-blue-800">
             Ana sayfaya dön
           </Link>
@@ -139,6 +143,10 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       </div>
     )
   }
+  
+  console.log('CategoryPage - Found category:', foundCategory.name);
+  console.log('CategoryPage - Subcategories:', foundCategory.subcategories);
+  console.log('CategoryPage - Subcategories length:', foundCategory.subcategories?.length);
 
   // Diğer kategoriler
   const otherCategories = categories.filter((cat) => cat.slug !== slug)
@@ -317,9 +325,72 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                 <span className="mr-3 text-2xl">{typeof foundCategory.icon === 'string' ? foundCategory.icon : '•'}</span>
                 {foundCategory.name}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-gray-600 mb-6">
                 {foundCategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
               </p>
+
+              {/* Alt Kategoriler */}
+              {foundCategory.subcategories && foundCategory.subcategories.length > 0 ? (
+                <div className="mb-8">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Alt Kategoriler</h2>
+                  <div className="space-y-4">
+                    {foundCategory.subcategories.map((subcategory) => {
+                      const subSubcategories = subcategory.subcategories;
+                      const hasSubSubcategories = subSubcategories && subSubcategories.length > 0;
+                      console.log(`Subcategory: ${subcategory.name}, hasSubSubcategories: ${hasSubSubcategories}, count: ${subSubcategories?.length || 0}`);
+                      return (
+                        <div key={subcategory.slug} className="bg-white border border-gray-200 rounded-lg p-4">
+                          <Link
+                            href={`/kategori/${foundCategory.slug}/${subcategory.slug}`}
+                            className="flex items-center gap-2 mb-2 hover:text-blue-600 transition-colors"
+                          >
+                            <span className="text-xl">
+                              {typeof subcategory.icon === 'string' ? subcategory.icon : '•'}
+                            </span>
+                            <span className="text-base font-semibold text-gray-900">
+                              {subcategory.name}
+                            </span>
+                          </Link>
+                          {/* Alt kategorinin alt kategorileri */}
+                          {subSubcategories && subSubcategories.length > 0 ? (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <h3 className="text-sm font-semibold text-gray-600 mb-2">Alt Kategoriler:</h3>
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                                {subSubcategories.map((subsubcategory) => (
+                                  <Link
+                                    key={subsubcategory.slug}
+                                    href={`/kategori/${foundCategory.slug}/${subcategory.slug}/${subsubcategory.slug}`}
+                                    className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-md hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 group"
+                                  >
+                                    <span className="text-base">
+                                      {typeof subsubcategory.icon === 'string' ? subsubcategory.icon : '•'}
+                                    </span>
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                      {subsubcategory.name}
+                                    </span>
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-2 text-xs text-gray-400">
+                              Debug: subSubcategories = {subSubcategories ? `array(${subSubcategories.length})` : 'undefined/null'}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    Bu kategoride alt kategori bulunmamaktadır.
+                    <br />
+                    Debug: foundCategory.subcategories = {foundCategory.subcategories ? JSON.stringify(foundCategory.subcategories.length) : 'undefined'}
+                  </p>
+                </div>
+              )}
             </div>
 
             <section>

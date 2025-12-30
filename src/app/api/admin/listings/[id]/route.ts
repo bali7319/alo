@@ -83,6 +83,19 @@ export async function PATCH(
       );
     }
 
+    // Admin kullanıcıyı bul
+    const adminUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, name: true, email: true, role: true },
+    });
+
+    if (!adminUser) {
+      return NextResponse.json(
+        { error: 'Admin kullanıcı bulunamadı' },
+        { status: 404 }
+      );
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { action, days } = body;
@@ -98,18 +111,31 @@ export async function PATCH(
       );
     }
 
-    let updateData: any = {};
+    // Tüm işlemlerde moderator bilgilerini kaydet
+    let updateData: any = {
+      moderatorId: adminUser.id,
+      moderatedAt: new Date(),
+    };
 
     switch (action) {
       case 'approve':
+        // Eğer expiresAt geçmiş bir tarihse, yeni bir bitiş tarihi ayarla (30 gün sonra)
+        const now = new Date();
+        const expiresAt = listing.expiresAt < now 
+          ? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 gün sonra
+          : listing.expiresAt;
+        
         updateData = {
+          ...updateData,
           approvalStatus: 'approved',
           isActive: true,
+          expiresAt: expiresAt,
         };
         break;
       
       case 'reject':
         updateData = {
+          ...updateData,
           approvalStatus: 'rejected',
           isActive: false,
         };
@@ -120,6 +146,7 @@ export async function PATCH(
         const premiumUntil = new Date();
         premiumUntil.setDate(premiumUntil.getDate() + premiumDays);
         updateData = {
+          ...updateData,
           isPremium: true,
           premiumUntil,
         };
@@ -127,6 +154,7 @@ export async function PATCH(
       
       case 'unpremium':
         updateData = {
+          ...updateData,
           isPremium: false,
           premiumUntil: null,
         };
@@ -134,12 +162,14 @@ export async function PATCH(
       
       case 'activate':
         updateData = {
+          ...updateData,
           isActive: true,
         };
         break;
       
       case 'deactivate':
         updateData = {
+          ...updateData,
           isActive: false,
         };
         break;

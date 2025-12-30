@@ -61,11 +61,20 @@ export default async function Home() {
       const parsedImages = safeParseImages(l.images);
       const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
       return {
-        ...l,
+        id: l.id,
+        title: l.title,
+        price: l.price,
+        location: l.location,
+        category: l.category,
         images: firstImage,
         description: "",
         createdAt: l.createdAt.toISOString(),
-        views: l.views || 0
+        isPremium: l.isPremium,
+        views: l.views || 0,
+        user: {
+          id: l.user?.id || '',
+          name: l.user?.name || null,
+        }
       };
     });
     
@@ -73,11 +82,20 @@ export default async function Home() {
       const parsedImages = safeParseImages(l.images);
       const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
       return {
-        ...l,
+        id: l.id,
+        title: l.title,
+        price: l.price,
+        location: l.location,
+        category: l.category,
         images: firstImage,
         description: "",
         createdAt: l.createdAt.toISOString(),
-        views: l.views || 0
+        isPremium: l.isPremium,
+        views: l.views || 0,
+        user: {
+          id: l.user?.id || '',
+          name: l.user?.name || null,
+        }
       };
     });
   } catch (error) {
@@ -85,13 +103,17 @@ export default async function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-8 md:py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-2xl md:text-5xl font-bold text-white mb-4">Ücretsiz İlan Platformu</h1>
         </div>
       </section>
-      <section className="bg-white border-b py-6"><div className="container mx-auto px-4"><SearchBar /></div></section>
+      <section className="bg-white border-b py-6">
+        <div className="container mx-auto px-4">
+          <SearchBar />
+        </div>
+      </section>
       <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-64 flex-shrink-0">
           {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
@@ -113,6 +135,6 @@ export default async function Home() {
           <LatestAds title="Son Eklenen İlanlar" listings={latestListings} />
         </div>
       </div>
-    </main>
+    </div>
   );
 }

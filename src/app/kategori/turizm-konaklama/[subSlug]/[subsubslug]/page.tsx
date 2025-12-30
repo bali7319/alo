@@ -4,7 +4,7 @@ import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
 import { listings as rawListings } from '@/lib/listings'
 import { Listing } from '@/types/listings'
-import { Hotel, Plane, Car, Ship, Calendar, Star } from 'lucide-react'
+import { Calendar, Star } from 'lucide-react'
 
 export default async function TurizmAltAltKategoriPage({ params }: { params: Promise<{ subSlug: string, subsubslug: string }> }) {
   const { subSlug, subsubslug } = await params;
@@ -75,25 +75,9 @@ export default async function TurizmAltAltKategoriPage({ params }: { params: Pro
       },
     }))
 
-  const getIconComponent = (iconName: string) => {
-    const iconMap: { [key: string]: any } = {
-      '🏨': <Hotel className="w-6 h-6 text-blue-500" />,
-      '🚢': <Ship className="w-6 h-6 text-blue-600" />,
-      '✈️': <Plane className="w-6 h-6 text-blue-400" />,
-      '🚗': <Car className="w-6 h-6 text-green-500" />,
-      '🏠': <div className="w-6 h-6 text-orange-500 text-xl">🏠</div>,
-      '🏢': <div className="w-6 h-6 text-gray-600 text-xl">🏢</div>,
-      '🏖️': <div className="w-6 h-6 text-yellow-500 text-xl">🏖️</div>,
-      '🏰': <div className="w-6 h-6 text-purple-500 text-xl">🏰</div>,
-      '🏛️': <div className="w-6 h-6 text-red-500 text-xl">🏛️</div>,
-      '🚌': <div className="w-6 h-6 text-green-600 text-xl">🚌</div>,
-      '🌍': <div className="w-6 h-6 text-blue-700 text-xl">🌍</div>,
-      '🛩️': <div className="w-6 h-6 text-indigo-500 text-xl">🛩️</div>,
-      '🚙': <div className="w-6 h-6 text-green-400 text-xl">🚙</div>,
-      '🚐': <div className="w-6 h-6 text-gray-500 text-xl">🚐</div>,
-      '🏍️': <div className="w-6 h-6 text-red-600 text-xl">🏍️</div>,
-    }
-    return iconMap[iconName] || <div className="w-6 h-6 text-gray-500 text-xl">{iconName}</div>
+  // Icon'lar artık sadece string emoji olarak döndürülüyor
+  const getIcon = (iconName: string): string => {
+    return iconName || '🏨'
   }
 
   return (
@@ -135,7 +119,7 @@ export default async function TurizmAltAltKategoriPage({ params }: { params: Pro
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow">
-            {getIconComponent(typeof foundSubSubcategory.icon === 'string' ? foundSubSubcategory.icon : '🏨')}
+            <span className="text-4xl">{getIcon(typeof foundSubSubcategory.icon === 'string' ? foundSubSubcategory.icon : '🏨')}</span>
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{foundSubSubcategory.name}</h1>
@@ -157,7 +141,7 @@ export default async function TurizmAltAltKategoriPage({ params }: { params: Pro
                     className={`flex items-center gap-3 p-3 rounded-lg transition-colors group ${subsub.slug === subsubslug ? 'bg-blue-100 font-bold text-blue-700' : 'hover:bg-blue-50'}`}
                   >
                     <div className="flex-shrink-0">
-                      {getIconComponent(subsub.icon)}
+                      <span className="text-2xl">{getIcon(typeof subsub.icon === 'string' ? subsub.icon : '🏨')}</span>
                     </div>
                     <div className="flex-1">
                       <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">

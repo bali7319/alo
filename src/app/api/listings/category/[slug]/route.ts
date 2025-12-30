@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCategoryNameBySlug, getSubCategoryNameBySlug } from '@/lib/category-mappings';
+import type { ListingWhereInput, ListingResponse, CategoryListingsResponse } from '@/types/api';
+import { categoryQuerySchema } from '@/lib/validations/category';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { getCache, setCache, createCacheKey } from '@/lib/cache';
+import { 
+  createBaseListingWhereClause, 
+  createCategoryFilter, 
+  safeParseImages, 
+  truncateDescription 
+} from '@/services/listing-service';
 
 // Cache kaldırıldı - "Single item size exceeds maxSize" hatasını önlemek için
 // export const revalidate = 60; // Büyük response'lar için cache kullanmayın
@@ -9,95 +20,88 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Rate limiting - IP bazlı (100 istek/dakika)
+    const clientIP = getClientIP(request);
+    const rateLimit = checkRateLimit(`category:${clientIP}`, 100, 60000);
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Çok fazla istek. Lütfen daha sonra tekrar deneyin.',
+          retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '100',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+            'Retry-After': Math.ceil((rateLimit.resetTime - Date.now()) / 1000).toString(),
+          }
+        }
+      );
+    }
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
-    const subSlug = searchParams.get('subSlug');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    
+    // Input validation - Zod ile
+    const validationResult = categoryQuerySchema.safeParse({
+      slug,
+      subSlug: searchParams.get('subSlug'),
+      page: searchParams.get('page'),
+      limit: searchParams.get('limit'),
+    });
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Geçersiz parametreler', 
+          details: validationResult.error.issues 
+        },
+        { status: 400 }
+      );
+    }
+
+    const { page, limit, subSlug } = validationResult.data;
     const skip = (page - 1) * limit;
 
-    // Kategori slug'ını kategori adına çevir
-    const categoryMap: { [key: string]: string } = {
-      'is': 'İş',
-      'hizmetler': 'Hizmetler',
-      'elektronik': 'Elektronik',
-      'ev-ve-bahce': 'Ev & Bahçe',
-      'giyim': 'Giyim',
-      'moda-stil': 'Moda & Stil',
-      'sporlar-oyunlar-eglenceler': 'Sporlar, Oyunlar ve Eğlenceler',
-      'anne-bebek': 'Anne & Bebek',
-      'cocuk-dunyasi': 'Çocuk Dünyası',
-      'egitim-kurslar': 'Eğitim & Kurslar',
-      'yemek-icecek': 'Yemek & İçecek',
-      'catering-ticaret': 'Catering & Ticaret',
-      'turizm-konaklama': 'Turizm & Konaklama',
-      'saglik-guzellik': 'Sağlık & Güzellik',
-      'sanat-hobi': 'Sanat & Hobi',
-      'ucretsiz-gel-al': 'Ücretsiz Gel Al'
-    };
-
-    const categoryName = categoryMap[slug];
+    // Cache key oluştur (selective caching - sadece ilk sayfa için)
+    const cacheKey = createCacheKey('category-listings', slug, subSlug || '', page, limit);
     
-    // Kategori filtresi - hem slug hem de kategori adı ile arama yap
-    const categoryFilter = categoryName 
-      ? {
-          OR: [
-            { category: categoryName }, // Tam kategori adı formatında (örn: "Elektronik")
-            { category: slug }, // Slug formatında (örn: "elektronik")
-          ]
-        }
-      : { category: slug }; // Eğer kategori map'te yoksa, slug ile direkt arama yap
-
-    let whereClause: any = {
-      ...categoryFilter,
-      isActive: true,
-      approvalStatus: 'approved',
-      expiresAt: {
-        gt: new Date() // Süresi dolmamış ilanlar
-      }
-    };
-
-    // Alt kategori varsa ekle
-    if (subSlug) {
-      const subCategoryMap: { [key: string]: string } = {
-        'guvenlik': 'Güvenlik',
-        'nakliyat': 'Nakliyat',
-        'tasarim': 'Tasarım',
-        'teknik-servis': 'Teknik Servis',
-        'temizlik': 'Temizlik',
-        'bilgisayar': 'Bilgisayar',
-        'kamera': 'Kamera',
-        'kulaklik': 'Kulaklık',
-        'network': 'Network',
-        'oyun-konsolu': 'Oyun Konsolu',
-        'tablet': 'Tablet',
-        'telefon': 'Telefon',
-        'televizyon': 'Televizyon',
-        'yazici': 'Yazıcı',
-        'aydinlatma': 'Aydınlatma',
-        'bahce-aletleri': 'Bahçe Aletleri',
-        'beyaz-esya': 'Beyaz Eşya',
-        'dekorasyon': 'Dekorasyon',
-        'isitma-sogutma': 'Isıtma/Soğutma',
-        'mobilya': 'Mobilya',
-        'mutfak-gerecleri': 'Mutfak Gereçleri',
-        'aksesuar': 'Aksesuar',
-        'ayakkabi': 'Ayakkabı',
-        'ayakkabi-canta': 'Ayakkabı & Çanta',
-        'bayan-giyim': 'Bayan Giyim',
-        'cocuk-giyim': 'Çocuk Giyim',
-        'erkek-giyim': 'Erkek Giyim',
-        'kadin': 'Kadın',
-        'kadin-giyim': 'Kadın Giyim',
-        'cocuk': 'Çocuk',
-        'erkek': 'Erkek'
-      };
-
-      const subCategoryName = subCategoryMap[subSlug];
-      if (subCategoryName) {
-        whereClause.subCategory = subCategoryName;
+    // İlk sayfa için cache kontrolü (büyük response'lar için cache yok)
+    // Sadece küçük sayfalarda cache kullan (performans için)
+    if (page === 1 && limit <= 20) {
+      const cached = getCache<CategoryListingsResponse>(cacheKey);
+      if (cached) {
+        return NextResponse.json(cached, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Cache': 'HIT',
+            'X-RateLimit-Limit': '100',
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+          }
+        });
       }
     }
+
+    // Kategori slug'ını kategori adına çevir (merkezi mapping kullan)
+    const categoryName = getCategoryNameBySlug(slug);
+    
+    // Kategori filtresi oluştur
+    const categoryFilter = createCategoryFilter(slug, categoryName);
+    
+    // Alt kategori filtresi ekle
+    const additionalFilters: ListingWhereInput = { ...categoryFilter };
+    if (subSlug) {
+      const subCategoryName = getSubCategoryNameBySlug(subSlug);
+      if (subCategoryName) {
+        additionalFilters.subCategory = subCategoryName;
+      }
+    }
+
+    // Base where clause oluştur (admin hariç, aktif, onaylı, süresi dolmamış)
+    const whereClause = await createBaseListingWhereClause(additionalFilters);
 
     // Pagination ve limit ekle - performans için kritik!
     const [listings, total] = await Promise.all([
@@ -143,25 +147,8 @@ export async function GET(
       throw dbError;
     });
 
-    // Güvenli JSON parse fonksiyonu
-    const safeParseImages = (images: string | null): string[] => {
-      if (!images) return [];
-      try {
-        if (typeof images === 'string') {
-          if (images.startsWith('data:image')) {
-            return [images];
-          }
-          const parsed = JSON.parse(images);
-          return Array.isArray(parsed) ? parsed : [];
-        }
-        return Array.isArray(images) ? images : [];
-      } catch {
-        return [];
-      }
-    };
-
-    // Description'ı kısalt (liste görünümü için)
-    const formattedListings = listings.map(listing => {
+    // Listing'leri formatla (service layer kullan)
+    const formattedListings: ListingResponse[] = listings.map(listing => {
       const parsedImages = safeParseImages(listing.images);
       // Sadece ilk resmi gönder (performans için)
       const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
@@ -173,32 +160,48 @@ export async function GET(
         location: listing.location,
         category: listing.category,
         subCategory: listing.subCategory,
-        description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''),
+        description: truncateDescription(listing.description),
         images: firstImage, // İlk resmi gönder
         createdAt: listing.createdAt.toISOString(),
         condition: listing.condition,
         isPremium: listing.isPremium,
-        premiumUntil: listing.premiumUntil?.toISOString(),
+        premiumUntil: listing.premiumUntil?.toISOString() || null,
         expiresAt: listing.expiresAt.toISOString(),
         views: listing.views,
-        user: listing.user,
+        user: {
+          id: listing.user.id,
+          name: listing.user.name,
+          email: listing.user.email,
+        },
       };
     });
 
-    return NextResponse.json(
-      { 
-        listings: formattedListings,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        }
-      },
+    const response: CategoryListingsResponse = {
+      listings: formattedListings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      }
+    };
+
+    // İlk sayfa için cache'e kaydet (30 saniye TTL)
+    if (page === 1 && limit <= 20) {
+      setCache(cacheKey, response, 30000);
+    }
+
+    return NextResponse.json(response,
       {
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate', // Büyük response'lar için cache yok
+          'Cache-Control': page === 1 && limit <= 20 
+            ? 'public, s-maxage=30, stale-while-revalidate=60' 
+            : 'no-store, no-cache, must-revalidate',
+          'X-Cache': 'MISS',
+          'X-RateLimit-Limit': '100',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+          'X-RateLimit-Reset': rateLimit.resetTime.toString(),
         }
       }
     );

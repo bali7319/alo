@@ -1,3 +1,5 @@
+'use client'
+
 import Link from "next/link"
 import { Star, Crown, Image as ImageIcon, Eye } from "lucide-react"
 import { Listing } from '@/types/listings'
@@ -38,7 +40,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       <div className={`bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${
         listing.isPremium ? 'ring-2 ring-yellow-400 shadow-lg' : ''
       }`}>
-        <div className="relative h-48 w-full bg-gray-100 overflow-hidden">
+        <div className="relative aspect-[4/3] w-full bg-gray-100 overflow-hidden">
           {/* Placeholder - resim yoksa veya yüklenemezse gösterilir */}
           <div className={`absolute inset-0 w-full h-full flex items-center justify-center bg-gray-100 image-placeholder ${hasImage ? 'hidden' : ''}`}>
             <ImageIcon className="w-12 h-12 text-gray-400" />
@@ -46,13 +48,13 @@ export function ListingCard({ listing }: ListingCardProps) {
           
           {hasImage && (
             <LazyImage
-              src={imageUrl}
-              alt={listing.title || 'İlan resmi'}
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                src={imageUrl}
+                alt={listing.title || 'İlan resmi'}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="absolute inset-0 w-full h-full object-cover"
               isBase64={isBase64}
-              onError={(e) => {
+                onError={(e) => {
                 // Resim yüklenemezse placeholder göster
                 const target = e.target as HTMLImageElement;
                 target.style.display = 'none';

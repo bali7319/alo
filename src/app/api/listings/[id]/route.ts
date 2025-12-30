@@ -20,6 +20,7 @@ export async function GET(
 ) {
   try {
     const { id: slugOrId } = await params;
+    console.log(`[GET /api/listings/${slugOrId}] İstek alındı`);
 
     if (!slugOrId) {
       return NextResponse.json(
@@ -34,6 +35,7 @@ export async function GET(
     let listing;
     if (possibleId) {
       // Eski ID formatı - direkt ID ile ara
+      // İlan detay sayfasında admin ilanlarını da göster (direkt linke tıklanmışsa)
       listing = await withTimeout(
         prisma.listing.findUnique({
           where: { id: possibleId },
@@ -51,88 +53,200 @@ export async function GET(
         }),
         5000 // 5 saniye timeout
       );
+      
+      // İlan bulunduysa ama aktif değilse veya onaylanmamışsa kontrol et
+      if (listing && (!listing.isActive || listing.approvalStatus !== 'approved')) {
+        // Admin ilanı olabilir, yine de göster
+        // Ama normal kullanıcı ilanları için aktif ve onaylı olmalı
+        const { getAdminEmail } = await import('@/lib/admin');
+        const adminEmail = getAdminEmail();
+        
+        // İlan sahibi kontrolü - pending durumundaki ilanlar sahibi tarafından görülebilir
+        const session = await getServerSession(authOptions);
+        const isOwner = session?.user?.email && listing.user.email === session.user.email;
+        
+        if (listing.user.email !== adminEmail && !isOwner) {
+          // Normal kullanıcı ilanı ama aktif değil ve sahibi değil - gösterme
+          listing = null;
+        }
+        // Admin ilanı veya sahibi ise göster (aktif olmasa bile)
+      }
     } else {
-      // Slug formatı - Çok optimize edilmiş arama: En uzun kelimeyi bul ve title'da ara
+      // Slug formatı - Daha esnek arama: En az bir kelime eşleşsin, sonra slug ile tam eşleşen ilanı bul
       const keywords = slugOrId
         .split('-')
-        .filter(word => word.length > 3) // 3 karakterden uzun kelimeleri al (daha spesifik)
-        .sort((a, b) => b.length - a.length) // En uzun kelimeyi önce al
-        .slice(0, 1); // Sadece en uzun kelimeyi kullan
+        .filter(word => word.length > 1) // 1 karakterden uzun kelimeleri al (daha esnek)
+        .slice(0, 10); // İlk 10 kelimeyi al (uzun başlıklar için)
       
-      // En az 1 kelime varsa, title'da bu kelimeyi ara
+      // İlan detay sayfasında admin ilanlarını da dahil et (direkt linke tıklanmışsa)
+      const { getAdminEmail } = await import('@/lib/admin');
+      const adminEmail = getAdminEmail();
+      
+      // Admin user'ı bul
+      const adminUser = await prisma.user.findUnique({
+        where: { email: adminEmail },
+        select: { id: true },
+      }).catch(() => null);
+      
+      // En az 1 kelime varsa, title'da bu kelimelerden en az birini içeren ilanları bul (OR condition - daha esnek)
       if (keywords.length >= 1) {
-        const searchTerm = keywords[0]; // En uzun ve en spesifik kelime
+        // En önemli kelimeleri al (ilk 3 kelime genelde en önemli)
+        const importantKeywords = keywords.slice(0, 3);
         
-        const candidates = await withTimeout(
-          prisma.listing.findMany({
-            where: {
-              isActive: true,
-              approvalStatus: 'approved',
+        const whereClause: any = {
+          OR: [
+            // En az bir önemli kelimeyi içeren ilanlar
+            ...importantKeywords.map(keyword => ({
               title: {
-                contains: searchTerm,
+                contains: keyword,
                 mode: 'insensitive',
               },
+            })),
+          ],
+          AND: [
+            {
+              OR: [
+                {
+                  isActive: true,
+                  approvalStatus: 'approved',
+                },
+                // Admin ilanları için daha esnek filtre
+                ...(adminUser ? [{
+                  userId: adminUser.id,
+                }] : []),
+              ],
             },
-            select: {
-              id: true,
-              title: true,
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 30, // Son 30 aday (daha agresif limit)
-          }),
-          3000 // 3 saniye timeout (daha kısa - hızlı başarısızlık)
-        );
+          ],
+        };
         
-        // Adaylar arasında slug'ı eşleşen ilanı bul
+        let candidates = [];
+        try {
+          candidates = await withTimeout(
+            prisma.listing.findMany({
+              where: whereClause,
+              select: {
+                id: true,
+                title: true,
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 200, // Daha fazla aday kontrol et
+            }),
+            5000 // 5 saniye timeout
+          );
+        } catch (error) {
+          console.error(`[GET /api/listings/${slugOrId}] Aday ilanlar çekilirken hata:`, error);
+          candidates = [];
+        }
+        
+        // Adaylar arasında slug'ı tam eşleşen ilanı bul
         listing = candidates.find(l => {
-          const listingSlug = createSlug(l.title);
-          return listingSlug === slugOrId;
+          try {
+            const listingSlug = createSlug(l.title);
+            return listingSlug === slugOrId;
+          } catch (error) {
+            console.error(`[GET /api/listings/${slugOrId}] Slug oluşturulurken hata:`, error);
+            return false;
+          }
         });
       }
       
-      // Eğer hala bulunamadıysa, son 30 ilanı çek ve slug ile eşleştir (fallback)
+      // Eğer hala bulunamadıysa, son 500 ilanı çek ve slug ile eşleştir (fallback)
+      // Admin ilanlarını da dahil et
       if (!listing) {
-        const recentListings = await withTimeout(
-          prisma.listing.findMany({
-            where: {
+        const whereClause: any = {
+          OR: [
+            {
               isActive: true,
               approvalStatus: 'approved'
             },
-            select: {
-              id: true,
-              title: true,
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 30, // Son 30 ilan (daha agresif limit)
-          }),
-          3000 // 3 saniye timeout (daha kısa - hızlı başarısızlık)
-        );
+            // Admin ilanları için daha esnek filtre
+            ...(adminUser ? [{
+              userId: adminUser.id,
+            }] : []),
+          ],
+        };
+        
+        let recentListings = [];
+        try {
+          recentListings = await withTimeout(
+            prisma.listing.findMany({
+              where: whereClause,
+              select: {
+                id: true,
+                title: true,
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 500, // Daha fazla ilan kontrol et
+            }),
+            5000 // 5 saniye timeout
+          );
+        } catch (error) {
+          console.error(`[GET /api/listings/${slugOrId}] Son ilanlar çekilirken hata:`, error);
+          recentListings = [];
+        }
         
         listing = recentListings.find(l => {
-          const listingSlug = createSlug(l.title);
-          return listingSlug === slugOrId;
+          try {
+            const listingSlug = createSlug(l.title);
+            return listingSlug === slugOrId;
+          } catch (error) {
+            console.error(`[GET /api/listings/${slugOrId}] Slug oluşturulurken hata:`, error);
+            return false;
+          }
         });
       }
       
       // Eğer listing bulunduysa, tam detaylarını çek
       if (listing) {
-        listing = await withTimeout(
-          prisma.listing.findUnique({
-            where: { id: listing.id },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  phone: true,
-                  location: true,
+        let fullListing;
+        try {
+          fullListing = await withTimeout(
+            prisma.listing.findUnique({
+              where: { id: listing.id },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
+                    location: true,
+                  },
                 },
               },
-            },
-          }),
-          5000 // 5 saniye timeout
-        );
+            }),
+            5000 // 5 saniye timeout
+          );
+        } catch (error) {
+          console.error(`[GET /api/listings/${slugOrId}] İlan detayları çekilirken hata:`, error);
+          fullListing = null;
+        }
+        
+        if (!fullListing) {
+          console.log(`[GET /api/listings/${slugOrId}] İlan detayları bulunamadı - ID: ${listing.id}`);
+          listing = null;
+        } else {
+          // İlan bulunduysa ama aktif değilse veya onaylanmamışsa kontrol et
+          if (!fullListing.isActive || fullListing.approvalStatus !== 'approved') {
+          // Admin ilanı olabilir, yine de göster
+          const { getAdminEmail } = await import('@/lib/admin');
+          const adminEmail = getAdminEmail();
+          
+          // İlan sahibi kontrolü - pending durumundaki ilanlar sahibi tarafından görülebilir
+          const session = await getServerSession(authOptions);
+          const isOwner = session?.user?.email && fullListing.user.email === session.user.email;
+          
+            if (fullListing.user.email !== adminEmail && !isOwner) {
+              // Normal kullanıcı ilanı ama aktif değil ve sahibi değil - gösterme
+              listing = null;
+            } else {
+              // Admin ilanı veya sahibi ise göster (aktif olmasa bile)
+              listing = fullListing;
+            }
+          } else {
+            listing = fullListing;
+          }
+        }
       }
     }
 
@@ -145,22 +259,57 @@ export async function GET(
 
     const parseArray = (val: string | null) => {
       if (!val) return [];
-      try {
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed)) return parsed;
-        return parsed ? [parsed] : [];
-      } catch {
-        return typeof val === 'string' ? [val] : [];
+      
+      // Base64 resim kontrolü - eğer veri zaten Base64 resim ise parse etme
+      const isBase64 = typeof val === 'string' && val.startsWith('data:image');
+      if (isBase64) {
+        return [val];
       }
+      
+      // Eğer string değilse ve zaten array ise direkt döndür
+      if (Array.isArray(val)) {
+        return val;
+      }
+      
+      // JSON parse denemesi - sadece JSON formatında ise
+      if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) return parsed;
+          return parsed ? [parsed] : [];
+        } catch {
+          // JSON parse başarısız - string olarak döndür
+          return [val];
+        }
+      }
+      
+      // Diğer durumlarda string olarak döndür
+      return typeof val === 'string' ? [val] : [];
     };
 
     const parseJson = (val: string | null) => {
       if (!val) return null;
-      try {
-        return JSON.parse(val);
-      } catch {
-        return null;
+      
+      // Base64 resim kontrolü - eğer veri zaten Base64 resim ise parse etme
+      if (typeof val === 'string' && val.startsWith('data:image')) {
+        return val;
       }
+      
+      // Zaten object ise direkt döndür
+      if (typeof val === 'object') {
+        return val;
+      }
+      
+      // JSON parse denemesi - sadece JSON formatında ise
+      if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return null;
+        }
+      }
+      
+      return null;
     };
 
     const premiumFeatures = parseJson(listing.premiumFeatures);
@@ -180,17 +329,15 @@ export async function GET(
       features: parseArray(listing.features),
       condition: listing.condition,
       brand: listing.brand,
-      model: listing.model,
-      year: listing.year,
       isPremium: listing.isPremium,
       premiumFeatures,
       premiumUntil: listing.premiumUntil?.toISOString(),
-      expiresAt: listing.expiresAt.toISOString(),
+      expiresAt: listing.expiresAt?.toISOString() || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Varsayılan 30 gün
       views: listing.views,
       isActive: listing.isActive,
       approvalStatus: listing.approvalStatus,
-      createdAt: listing.createdAt.toISOString(),
-      updatedAt: listing.updatedAt.toISOString(),
+      createdAt: listing.createdAt?.toISOString() || new Date().toISOString(),
+      updatedAt: listing.updatedAt?.toISOString() || new Date().toISOString(),
       user: listing.user,
     };
 
@@ -205,6 +352,7 @@ export async function GET(
     );
   } catch (error) {
     console.error('İlan getirme hatası:', error);
+    console.error('Hata detayı:', error instanceof Error ? error.stack : String(error));
     
     // Timeout hatası
     if (error instanceof Error && error.message.includes('timeout')) {
@@ -238,8 +386,19 @@ export async function GET(
       }
     }
     
+    // Detaylı hata mesajı (development için)
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : String(error);
+    const errorDetails = process.env.NODE_ENV === 'development' 
+      ? { message: errorMessage, stack: error instanceof Error ? error.stack : undefined }
+      : { message: 'İlan yüklenirken hata oluştu' };
+    
     return NextResponse.json(
-      { error: 'İlan yüklenirken hata oluştu' },
+      { 
+        error: 'İlan yüklenirken hata oluştu',
+        ...errorDetails
+      },
       { 
         status: 500,
         headers: {
@@ -286,24 +445,27 @@ export async function PUT(
         },
       });
     } else {
-      // Slug formatı - Optimize edilmiş arama (GET ile aynı mantık)
+      // Slug formatı - Daha esnek arama (GET ile aynı mantık)
       const keywords = slugOrId
         .split('-')
-        .filter(word => word.length > 2)
-        .slice(0, 3); // Performans için 3 kelimeye düşürüldü
+        .filter(word => word.length > 1) // 1 karakterden uzun kelimeleri al (daha esnek)
+        .slice(0, 10); // İlk 10 kelimeyi al
       
       if (keywords.length >= 1) {
-        const searchTerm = keywords.length > 1 ? keywords[1] : keywords[0]; // Daha spesifik kelime
+        // En önemli kelimeleri al (ilk 3 kelime genelde en önemli)
+        const importantKeywords = keywords.slice(0, 3);
         
         const candidates = await withTimeout(
           prisma.listing.findMany({
             where: {
               isActive: true,
               approvalStatus: 'approved',
-              title: {
-                contains: searchTerm,
-                mode: 'insensitive',
-              },
+              OR: importantKeywords.map(keyword => ({
+                title: {
+                  contains: keyword,
+                  mode: 'insensitive',
+                },
+              })),
             },
             select: {
               id: true,
@@ -311,9 +473,9 @@ export async function PUT(
               userId: true,
             },
             orderBy: { createdAt: 'desc' },
-            take: 50, // Performans için azaltıldı
+            take: 200, // Daha fazla aday kontrol et
           }),
-          5000 // Timeout artırıldı
+          5000 // Timeout
         );
         
         listing = candidates.find(l => {
@@ -335,9 +497,9 @@ export async function PUT(
               userId: true,
             },
             orderBy: { createdAt: 'desc' },
-            take: 50, // Performans için azaltıldı
+            take: 500, // Daha fazla ilan kontrol et
           }),
-          5000 // Timeout artırıldı
+          5000 // Timeout
         );
         
         listing = recentListings.find(l => {
@@ -419,8 +581,6 @@ export async function PUT(
       phone: body.phone || null,
       condition: body.condition || null,
       brand: body.brand || null,
-      model: body.model || null,
-      year: body.year || null,
       images: typeof body.images === 'string' ? body.images : JSON.stringify(imagesArray),
       features: typeof body.features === 'string' ? body.features : JSON.stringify(body.features || []),
       showPhone: body.showPhone !== false,
@@ -446,13 +606,32 @@ export async function PUT(
     // Formatlanmış veriyi döndür
     const parseArray = (val: string | null) => {
       if (!val) return [];
-      try {
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed)) return parsed;
-        return parsed ? [parsed] : [];
-      } catch {
-        return typeof val === 'string' ? [val] : [];
+      
+      // Base64 resim kontrolü - eğer veri zaten Base64 resim ise parse etme
+      const isBase64 = typeof val === 'string' && val.startsWith('data:image');
+      if (isBase64) {
+        return [val];
       }
+      
+      // Eğer string değilse ve zaten array ise direkt döndür
+      if (Array.isArray(val)) {
+        return val;
+      }
+      
+      // JSON parse denemesi - sadece JSON formatında ise
+      if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) return parsed;
+          return parsed ? [parsed] : [];
+        } catch {
+          // JSON parse başarısız - string olarak döndür
+          return [val];
+        }
+      }
+      
+      // Diğer durumlarda string olarak döndür
+      return typeof val === 'string' ? [val] : [];
     };
 
     const formattedListing = {
@@ -470,16 +649,14 @@ export async function PUT(
       features: parseArray(updatedListing.features),
       condition: updatedListing.condition,
       brand: updatedListing.brand,
-      model: updatedListing.model,
-      year: updatedListing.year,
       isPremium: updatedListing.isPremium,
       premiumUntil: updatedListing.premiumUntil?.toISOString(),
-      expiresAt: updatedListing.expiresAt.toISOString(),
+      expiresAt: updatedListing.expiresAt?.toISOString() || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Varsayılan 30 gün
       views: updatedListing.views,
       isActive: updatedListing.isActive,
       approvalStatus: updatedListing.approvalStatus,
-      createdAt: updatedListing.createdAt.toISOString(),
-      updatedAt: updatedListing.updatedAt.toISOString(),
+      createdAt: updatedListing.createdAt?.toISOString() || new Date().toISOString(),
+      updatedAt: updatedListing.updatedAt?.toISOString() || new Date().toISOString(),
       user: updatedListing.user,
     };
 
@@ -491,6 +668,170 @@ export async function PUT(
     console.error('İlan güncelleme hatası:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'İlan güncellenirken bir hata oluştu' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - İlan durumunu güncelle (sadece ilan sahibi)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Oturum açmanız gerekiyor' },
+        { status: 401 }
+      );
+    }
+
+    const { id: slugOrId } = await params;
+    const body = await request.json();
+
+    // Slug'dan ID çıkarmayı dene
+    const possibleId = extractIdFromSlug(slugOrId);
+    
+    let listing;
+    if (possibleId) {
+      listing = await prisma.listing.findUnique({
+        where: { id: possibleId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
+        },
+      });
+    } else {
+      // Slug formatı - basit arama
+      const keywords = slugOrId
+        .split('-')
+        .filter(word => word.length > 1)
+        .slice(0, 3);
+      
+      if (keywords.length >= 1) {
+        const candidates = await withTimeout(
+          prisma.listing.findMany({
+            where: {
+              OR: keywords.map(keyword => ({
+                title: {
+                  contains: keyword,
+                  mode: 'insensitive',
+                },
+              })),
+            },
+            select: {
+              id: true,
+              title: true,
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+          }),
+          5000
+        );
+        
+        listing = candidates.find(l => {
+          const listingSlug = createSlug(l.title);
+          return listingSlug === slugOrId;
+        });
+      }
+      
+      if (listing) {
+        listing = await withTimeout(
+          prisma.listing.findUnique({
+            where: { id: listing.id },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                },
+              },
+            },
+          }),
+          5000
+        ) as any;
+      }
+    }
+
+    if (!listing) {
+      return NextResponse.json(
+        { error: 'İlan bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    // Kullanıcı bilgilerini al
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Kullanıcı bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    // İlan sahibi kontrolü
+    const isOwner = listing.userId === user.id;
+    const userRole = (user as any)?.role;
+    const isAdmin = userRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Bu ilanı güncelleme yetkiniz yok' },
+        { status: 403 }
+      );
+    }
+
+    // Güncelleme verilerini hazırla (sadece approvalStatus güncellenebilir)
+    const updateData: any = {};
+    
+    if (body.approvalStatus) {
+      updateData.approvalStatus = body.approvalStatus;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: 'Güncellenecek alan belirtilmedi' },
+        { status: 400 }
+      );
+    }
+
+    // İlanı güncelle
+    const updatedListing = await prisma.listing.update({
+      where: { id: listing.id },
+      data: updateData,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            location: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ 
+      message: 'İlan durumu başarıyla güncellendi',
+      listing: {
+        id: updatedListing.id,
+        approvalStatus: updatedListing.approvalStatus,
+      }
+    });
+  } catch (error) {
+    console.error('İlan durumu güncelleme hatası:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'İlan durumu güncellenirken bir hata oluştu' },
       { status: 500 }
     );
   }
@@ -531,24 +872,27 @@ export async function DELETE(
         },
       });
     } else {
-      // Slug formatı - Optimize edilmiş arama (GET ile aynı mantık)
+      // Slug formatı - Daha esnek arama (GET ile aynı mantık)
       const keywords = slugOrId
         .split('-')
-        .filter(word => word.length > 2)
-        .slice(0, 3); // Performans için 3 kelimeye düşürüldü
+        .filter(word => word.length > 1) // 1 karakterden uzun kelimeleri al (daha esnek)
+        .slice(0, 10); // İlk 10 kelimeyi al
       
       if (keywords.length >= 1) {
-        const searchTerm = keywords.length > 1 ? keywords[1] : keywords[0]; // Daha spesifik kelime
+        // En önemli kelimeleri al (ilk 3 kelime genelde en önemli)
+        const importantKeywords = keywords.slice(0, 3);
         
         const candidates = await withTimeout(
           prisma.listing.findMany({
             where: {
               isActive: true,
               approvalStatus: 'approved',
-              title: {
-                contains: searchTerm,
-                mode: 'insensitive',
-              },
+              OR: importantKeywords.map(keyword => ({
+                title: {
+                  contains: keyword,
+                  mode: 'insensitive',
+                },
+              })),
             },
             select: {
               id: true,
@@ -556,9 +900,9 @@ export async function DELETE(
               userId: true,
             },
             orderBy: { createdAt: 'desc' },
-            take: 50, // Performans için azaltıldı
+            take: 200, // Daha fazla aday kontrol et
           }),
-          5000 // Timeout artırıldı
+          5000 // Timeout
         );
         
         listing = candidates.find(l => {
@@ -580,9 +924,9 @@ export async function DELETE(
               userId: true,
             },
             orderBy: { createdAt: 'desc' },
-            take: 50, // Performans için azaltıldı
+            take: 500, // Daha fazla ilan kontrol et
           }),
-          5000 // Timeout artırıldı
+          5000 // Timeout
         );
         
         listing = recentListings.find(l => {

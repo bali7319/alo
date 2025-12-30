@@ -34,10 +34,10 @@ import Footer from '@/components/footer'
 export const metadata: Metadata = {
   metadataBase: new URL('https://alo17.tr'),
   title: {
-    default: 'Alo17 - Çanakkale\'nin En Büyük İlan Sitesi',
+    default: 'Alo17 - Çanakkalenin En Büyük İlan Sitesi',
     template: '%s | Alo17'
   },
-  description: 'Çanakkale\'de ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul. Elektronik, giyim, ev eşyaları, araba ve daha fazlası için güvenilir platform.',
+  description: 'Çanakkalede ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul. Elektronik, giyim, ev eşyaları, araba ve daha fazlası için güvenilir platform.',
   keywords: [
     'alo17',
     'çanakkale ilan',
@@ -67,8 +67,8 @@ export const metadata: Metadata = {
     locale: 'tr_TR',
     url: 'https://alo17.tr',
     siteName: 'Alo17',
-    title: 'Alo17 - Çanakkale\'nin En Büyük İlan Sitesi',
-    description: 'Çanakkale\'de ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul. Elektronik, giyim, ev eşyaları ve daha fazlası.',
+    title: 'Alo17 - Çanakkalenin En Büyük İlan Sitesi',
+    description: 'Çanakkalede ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul. Elektronik, giyim, ev eşyaları ve daha fazlası.',
     images: [
       {
         url: '/images/og-image.jpg',
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Alo17 - Çanakkale\'nin En Büyük İlan Sitesi',
+    title: 'Alo17 - Çanakkalenin En Büyük İlan Sitesi',
     description: 'Çanakkale\'de ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul.',
     images: ['/images/og-image.jpg'],
   },
@@ -118,8 +118,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="tr">
-      <body className="font-sans">
+    <html lang="tr" className="h-full">
+      <body className="h-full font-sans antialiased">
         <Providers>
           <div className="min-h-screen flex flex-col">
             <Header />

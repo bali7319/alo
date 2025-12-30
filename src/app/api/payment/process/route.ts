@@ -117,18 +117,18 @@ export async function POST(request: NextRequest) {
     // Fatura numarası oluştur
     let invoiceNumber = generateInvoiceNumber();
     // Benzersizlik kontrolü
-    let existingInvoice = await prisma.invoice.findUnique({
+    let existingInvoice = await (prisma as any).invoice.findUnique({
       where: { invoiceNumber },
     });
     while (existingInvoice) {
       invoiceNumber = generateInvoiceNumber();
-      existingInvoice = await prisma.invoice.findUnique({
+      existingInvoice = await (prisma as any).invoice.findUnique({
         where: { invoiceNumber },
       });
     }
 
     // Fatura oluştur
-    const invoice = await prisma.invoice.create({
+    const invoice = await (prisma as any).invoice.create({
       data: {
         invoiceNumber,
         userId: user.id,
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     const excelData = generateInvoiceExcel(invoice, user);
 
     // Faturayı güncelle (XML ve Excel verilerini ekle)
-    const updatedInvoice = await prisma.invoice.update({
+    const updatedInvoice = await (prisma as any).invoice.update({
       where: { id: invoice.id },
       data: {
         xmlData,

@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Download, FileText, Mail, Calendar, User, CreditCard, ArrowLeft } from 'lucide-react';
+import { Download, FileText, Mail, Calendar, User, CreditCard, ArrowLeft, Send } from 'lucide-react';
 import Link from 'next/link';
 
 interface Invoice {
   id: string;
   invoiceNumber: string;
+  listingId: string | null;
   amount: number;
   taxRate: number;
   taxAmount: number;
@@ -26,12 +27,19 @@ interface Invoice {
   createdAt: Date;
 }
 
+interface Listing {
+  id: string;
+  approvalStatus: string;
+}
+
 export default function FaturaPage() {
   const router = useRouter();
   const params = useParams();
   const { data: session } = useSession();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (params.id && session) {
@@ -49,11 +57,57 @@ export default function FaturaPage() {
 
       const data = await response.json();
       setInvoice(data.invoice);
+
+      // İlan bilgisini de al
+      if (data.invoice.listingId) {
+        try {
+          const listingResponse = await fetch(`/api/listings/${data.invoice.listingId}`);
+          if (listingResponse.ok) {
+            const listingData = await listingResponse.json();
+            setListing(listingData.listing);
+          }
+        } catch (error) {
+          console.error('İlan yükleme hatası:', error);
+        }
+      }
     } catch (error) {
       console.error('Fatura yükleme hatası:', error);
       alert('Fatura yüklenirken bir hata oluştu');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!invoice?.listingId) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/listings/${invoice.listingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approvalStatus: 'pending',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('İlan onaya gönderilemedi');
+      }
+
+      // İlan durumunu güncelle
+      if (listing) {
+        setListing({ ...listing, approvalStatus: 'pending' });
+      }
+
+      alert('İlanınız başarıyla onaya gönderildi. Moderatör onayından sonra yayınlanacaktır.');
+    } catch (error: any) {
+      console.error('Onaya gönderme hatası:', error);
+      alert(error.message || 'İlan onaya gönderilirken bir hata oluştu');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -174,6 +228,47 @@ export default function FaturaPage() {
               </button>
             </div>
           </div>
+
+          {/* İlan Onay Durumu */}
+          {invoice.listingId && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800 mb-3">
+                Faturanız başarıyla oluşturuldu.
+                {listing?.approvalStatus === 'pending' ? (
+                  ' İlanınız moderatör onayına gönderildi.'
+                ) : (
+                  ' İlanınızı onaya göndermek için aşağıdaki butona tıklayın.'
+                )}
+              </p>
+              <div className="flex gap-3">
+                {listing?.approvalStatus !== 'pending' ? (
+                  <button
+                    onClick={handleSubmitForApproval}
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Gönderiliyor...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        İlanı Onaya Gönder
+                      </>
+                    )}
+                  </button>
+                ) : null}
+                <button
+                  onClick={() => router.push('/ilanlarim')}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                >
+                  İlan Onay Durumunu Görüntüle
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div>

@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Heart, Phone, Mail, Share2, Facebook, Twitter, Instagram, MessageCircle, ChevronRight, Eye, MessageSquare, AlertTriangle, User } from 'lucide-react';
+import { Heart, Phone, Mail, Share2, Facebook, Twitter, Instagram, MessageCircle, ChevronRight, Eye, MessageSquare, AlertTriangle, User, Flag } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+
+const FALLBACK_IMAGE_SRC = '/images/logo.svg';
 
 interface Listing {
   id: string;
@@ -29,8 +32,6 @@ interface Listing {
   views: number;
   condition: string;
   brand: string;
-  model: string;
-  year: number;
   approvalStatus: string;
   contactOptions?: {
     showPhone?: boolean;
@@ -51,6 +52,11 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [isReporting, setIsReporting] = useState(false);
 
   // Telefon numarasını WhatsApp formatına çevir
   const formatPhoneForWhatsApp = (phone: string): string => {
@@ -69,33 +75,75 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
     return cleaned;
   };
 
+  // Güvenli resim parse fonksiyonu - Base64 kontrolü ile
+  const parseImages = (images: any): string[] => {
+    if (!images) return [];
+    
+    // Zaten array ise direkt döndür
+    if (Array.isArray(images)) {
+      return images;
+    }
+    
+    // Base64 resim kontrolü - eğer veri zaten Base64 resim ise parse etme
+    if (typeof images === 'string' && images.startsWith('data:image')) {
+      return [images];
+    }
+    
+    // JSON parse denemesi - sadece JSON formatında ise
+    if (typeof images === 'string' && (images.startsWith('[') || images.startsWith('{'))) {
+      try {
+        const parsed = JSON.parse(images);
+        if (Array.isArray(parsed)) return parsed;
+        return parsed ? [parsed] : [];
+      } catch (e) {
+        console.error('JSON Parse Hatası:', e);
+        // JSON parse başarısız - string olarak döndür
+        return [images];
+      }
+    }
+    
+    // Diğer durumlarda string olarak döndür
+    return typeof images === 'string' ? [images] : [];
+  };
+
   useEffect(() => {
     if (status === 'loading') return;
     
     fetchListing();
-    if (session) {
+  }, [id, status]);
+
+  useEffect(() => {
+    if (session && listing) {
       checkFavoriteStatus();
     }
-  }, [id, session, status]);
+  }, [session, listing]);
 
   const fetchListing = async () => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       // Slug veya ID'yi API'ye gönder
       const response = await fetch(`/api/listings/${encodeURIComponent(id)}`);
       
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error:', response.status, errorData);
         if (response.status === 404) {
           setError('İlan bulunamadı');
         } else {
-          setError('İlan yüklenirken bir hata oluştu');
+          setError(errorData.error || 'İlan yüklenirken bir hata oluştu');
         }
         return;
       }
 
       const data = await response.json();
+      console.log('API Response:', data);
+      
       const listingData = data.listing;
 
       if (!listingData) {
+        console.error('Listing data is missing:', data);
         setError('İlan bulunamadı');
         return;
       }
@@ -140,7 +188,7 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
         isPremium: listingData.isPremium || false,
         premiumUntil: listingData.premiumUntil ? new Date(listingData.premiumUntil) : null,
         features: listingData.features || [],
-        images: listingData.images || [],
+        images: parseImages(listingData.images),
         seller: {
           id: listingData.user?.id || '',
           name: listingData.user?.name || 'İsimsiz',
@@ -151,13 +199,13 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
         views: listingData.views || 0,
         condition: listingData.condition || '',
         brand: listingData.brand || '',
-        model: listingData.model || '',
-        year: listingData.year || null,
         approvalStatus: listingData.approvalStatus || 'pending',
         contactOptions: contactOptions
       };
 
       setListing(listing);
+      setSelectedImageIndex(0);
+      console.log('Listing set successfully:', listing);
     } catch (err) {
       console.error('İlan yükleme hatası:', err);
       setError(err instanceof Error ? err.message : 'Bir hata oluştu');
@@ -167,8 +215,10 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
   };
 
   const checkFavoriteStatus = async () => {
+    if (!listing) return; // Listing yüklenmeden favori kontrolü yapma
+    
     try {
-      const response = await fetch(`/api/listings/${id}/favorite`);
+      const response = await fetch(`/api/listings/${listing.id}/favorite`);
       if (response.ok) {
         const data = await response.json();
         setIsFavorite(data.isFavorite);
@@ -185,12 +235,17 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
       return;
     }
 
+    if (!listing) {
+      alert('İlan bilgisi yüklenemedi. Lütfen sayfayı yenileyin.');
+      return;
+    }
+
     setIsFavoriteLoading(true);
     
     try {
       if (isFavorite) {
         // Favorilerden çıkar
-        const response = await fetch(`/api/listings/favorites/${id}`, {
+        const response = await fetch(`/api/listings/favorites/${listing.id}`, {
           method: 'DELETE',
         });
 
@@ -209,7 +264,7 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ listingId: id }),
+          body: JSON.stringify({ listingId: listing.id }),
         });
 
         if (response.ok) {
@@ -309,6 +364,49 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
     }
   };
 
+  const handleReport = async () => {
+    if (!session) {
+      const currentPath = window.location.pathname;
+      router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
+      return;
+    }
+
+    if (!listing || !reportReason) {
+      alert('Lütfen şikayet nedenini seçin');
+      return;
+    }
+
+    setIsReporting(true);
+    try {
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          listingId: listing.id,
+          reason: reportReason,
+          description: reportDescription || null,
+        }),
+      });
+
+      if (response.ok) {
+        alert('Şikayetiniz başarıyla gönderildi. İnceleme sürecine alındı.');
+        setShowReportDialog(false);
+        setReportReason('');
+        setReportDescription('');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Şikayet gönderilirken bir hata oluştu');
+      }
+    } catch (error) {
+      console.error('Şikayet gönderme hatası:', error);
+      alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setIsReporting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -394,51 +492,62 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
             {listing.images && listing.images.length > 0 && listing.images[0] ? (
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="aspect-w-16 aspect-h-9 mb-4">
-                  {listing.images[0].startsWith('data:image') ? (
-                    <img
-                      src={listing.images[0]}
-                      alt={listing.title}
-                      className="w-full h-96 object-cover rounded-lg"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <Image
-                      src={listing.images[0]}
-                      alt={listing.title}
-                      width={800}
-                      height={600}
-                      className="w-full h-96 object-cover rounded-lg"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  )}
+                  {(() => {
+                    const selected = listing.images[selectedImageIndex] || listing.images[0];
+                    const src = selected || FALLBACK_IMAGE_SRC;
+                    if (src.startsWith('data:image')) {
+                      return (
+                        <img
+                          src={src}
+                          alt={listing.title}
+                          className="w-full h-96 object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
+                          }}
+                        />
+                      );
+                    }
+                    return (
+                      <Image
+                        src={src}
+                        alt={listing.title}
+                        width={800}
+                        height={600}
+                        className="w-full h-96 object-cover rounded-lg"
+                        onError={(e) => {
+                          const img = e.target as unknown as HTMLImageElement;
+                          img.src = FALLBACK_IMAGE_SRC;
+                        }}
+                      />
+                    );
+                  })()}
                 </div>
                 {listing.images.length > 1 && (
                   <div className="grid grid-cols-4 gap-2">
-                    {listing.images.slice(1).map((image, index) => (
+                    {listing.images.map((image, index) => (
                       image && image.startsWith('data:image') ? (
                         <img
                           key={index}
                           src={image}
                           alt={`${listing.title} - ${index + 2}`}
-                          className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75"
+                          className={`w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
+                          onClick={() => setSelectedImageIndex(index)}
                           onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
                           }}
                         />
                       ) : (
                         <Image
                           key={index}
-                          src={image}
+                          src={image || FALLBACK_IMAGE_SRC}
                           alt={`${listing.title} - ${index + 2}`}
                           width={200}
                           height={150}
-                          className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75"
+                          className={`w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
+                          onClick={() => setSelectedImageIndex(index)}
                           onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
+                            const img = e.target as unknown as HTMLImageElement;
+                            img.src = FALLBACK_IMAGE_SRC;
                           }}
                         />
                       )
@@ -467,14 +576,6 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600">Marka:</span>
                   <span className="font-medium">{listing.brand}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-600">Model:</span>
-                  <span className="font-medium">{listing.model}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-600">Yıl:</span>
-                  <span className="font-medium">{listing.year}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600">Kategori:</span>
@@ -520,14 +621,14 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
                 </div>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {/* Telefon butonu - telefon numarası varsa ve showPhone false değilse göster */}
                 {listing.seller.phone && (listing.contactOptions?.showPhone !== false) && (
                   <a
                     href={`tel:${listing.seller.phone.replace(/\s/g, '')}`}
-                    className="w-full flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                    className="w-full flex items-center justify-center px-2 py-1 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                   >
-                    <Phone className="h-5 w-5 mr-2" />
+                    <Phone className="h-3 w-3 mr-1.5" />
                     {listing.seller.phone}
                   </a>
                 )}
@@ -538,9 +639,9 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
                     href={`https://wa.me/${formatPhoneForWhatsApp(listing.seller.phone)}?text=Merhaba, ${encodeURIComponent(listing.title)} ilanı hakkında bilgi almak istiyorum.`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] transition-colors"
+                    className="w-full flex items-center justify-center px-2 py-1 text-xs bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] transition-colors"
                   >
-                    <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-3 w-3 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
                     </svg>
                     WhatsApp ile Yaz
@@ -551,9 +652,9 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
                 {(listing.contactOptions?.showMessage !== false) && (
                   <button
                     onClick={handleMessage}
-                    className="w-full flex items-center justify-center px-4 py-2 bg-alo-orange text-white rounded-lg hover:bg-alo-dark-orange transition-colors"
+                    className="w-full flex items-center justify-center px-2 py-1 text-xs bg-alo-orange text-white rounded-lg hover:bg-alo-dark-orange transition-colors"
                   >
-                    <MessageSquare className="h-5 w-5 mr-2" />
+                    <MessageSquare className="h-3 w-3 mr-1.5" />
                     Mesaj Gönder
                   </button>
                 )}
@@ -561,25 +662,104 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
                 <button
                   onClick={handleFavoriteToggle}
                   disabled={isFavoriteLoading}
-                  className={`w-full flex items-center justify-center px-4 py-2 rounded-lg transition-colors ${
+                  className={`w-full flex items-center justify-center px-2 py-1 text-xs rounded-lg transition-colors ${
                     isFavorite
                       ? 'bg-red-500 text-white hover:bg-red-600'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <Heart className={`h-5 w-5 mr-2 ${isFavorite ? 'fill-current' : ''}`} />
+                  <Heart className={`h-3 w-3 mr-1.5 ${isFavorite ? 'fill-current' : ''}`} />
                   {isFavoriteLoading ? 'İşleniyor...' : isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
                 </button>
                 
                 <button
                   onClick={handleShare}
-                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="w-full flex items-center justify-center px-2 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                 >
-                  <Share2 className="h-5 w-5 mr-2" />
+                  <Share2 className="h-3 w-3 mr-1.5" />
                   Paylaş
+                </button>
+                
+                <button
+                  onClick={() => {
+                    if (!session) {
+                      const currentPath = window.location.pathname;
+                      router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
+                      return;
+                    }
+                    setShowReportDialog(true);
+                  }}
+                  className="w-full flex items-center justify-center px-2 py-1 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  <Flag className="h-3 w-3 mr-1.5" />
+                  İlanı Bildir
                 </button>
               </div>
             </div>
+
+            {/* Şikayet Dialog */}
+            <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>İlanı Bildir</DialogTitle>
+                  <DialogDescription>
+                    Bu ilanı neden bildirmek istiyorsunuz? Şikayetiniz incelenecektir.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Şikayet Nedeni <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={reportReason}
+                      onChange={(e) => setReportReason(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-alo-orange"
+                      required
+                    >
+                      <option value="">Seçiniz...</option>
+                      <option value="spam">Spam / Gereksiz İçerik</option>
+                      <option value="inappropriate">Uygunsuz İçerik</option>
+                      <option value="fake">Sahte / Yanıltıcı İlan</option>
+                      <option value="duplicate">Tekrar Eden İlan</option>
+                      <option value="other">Diğer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Açıklama (Opsiyonel)
+                    </label>
+                    <textarea
+                      value={reportDescription}
+                      onChange={(e) => setReportDescription(e.target.value)}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-alo-orange"
+                      placeholder="Şikayetiniz hakkında daha fazla bilgi verin..."
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <button
+                    onClick={() => {
+                      setShowReportDialog(false);
+                      setReportReason('');
+                      setReportDescription('');
+                    }}
+                    className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    disabled={isReporting}
+                  >
+                    İptal
+                  </button>
+                  <button
+                    onClick={handleReport}
+                    disabled={isReporting || !reportReason}
+                    className="px-4 py-2 text-sm text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isReporting ? 'Gönderiliyor...' : 'Gönder'}
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* Güvenlik Uyarısı */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

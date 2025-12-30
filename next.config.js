@@ -6,6 +6,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'picsum.photos',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.paytr.com',
+        pathname: '/**',
       }
     ],
     formats: ['image/avif', 'image/webp'],

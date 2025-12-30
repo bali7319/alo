@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getAdminEmail } from '@/lib/admin';
 
 // Admin için ilanları getir (sayfalama ve filtreleme ile)
 export async function GET(request: NextRequest) {
@@ -16,7 +17,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Admin kontrolü
-    if (session.user.email !== 'admin@alo17.tr') {
+    const adminEmail = getAdminEmail();
+    if (session.user.email !== adminEmail) {
       return NextResponse.json(
         { error: 'Yetkiniz yok' },
         { status: 403 }
@@ -39,7 +41,7 @@ export async function GET(request: NextRequest) {
     // Toplam kayıt sayısı
     const total = await prisma.listing.count({ where });
 
-    // İlanları getir
+    // İlanları getir (moderator bilgileri ile)
     const listings = await prisma.listing.findMany({
       where,
       skip,
@@ -52,6 +54,14 @@ export async function GET(request: NextRequest) {
             name: true,
             email: true,
             phone: true,
+          },
+        },
+        moderator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
           },
         },
       },
@@ -98,8 +108,6 @@ export async function GET(request: NextRequest) {
         features,
         condition: listing.condition,
         brand: listing.brand,
-        model: listing.model,
-        year: listing.year,
         isPremium: listing.isPremium,
         premiumFeatures,
         premiumUntil: listing.premiumUntil?.toISOString(),
@@ -107,9 +115,18 @@ export async function GET(request: NextRequest) {
         views: listing.views,
         isActive: listing.isActive,
         approvalStatus: listing.approvalStatus,
+        moderatorId: listing.moderatorId,
+        moderatedAt: listing.moderatedAt?.toISOString(),
+        moderatorNotes: listing.moderatorNotes,
         createdAt: listing.createdAt.toISOString(),
         updatedAt: listing.updatedAt.toISOString(),
         user: listing.user,
+        moderator: listing.moderator ? {
+          id: listing.moderator.id,
+          name: listing.moderator.name,
+          email: listing.moderator.email,
+          role: listing.moderator.role,
+        } : null,
       };
     });
 

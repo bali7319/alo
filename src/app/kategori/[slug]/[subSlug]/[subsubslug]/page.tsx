@@ -3,9 +3,18 @@ import { Sidebar } from '@/components/sidebar'
 import { FeaturedAds } from '@/components/featured-ads'
 import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
-import { listings as rawListings } from '@/lib/listings'
-import { Listing } from '@/types/listings'
-import { Home, Sparkles, Star, MapPin, Users, Clock, Shield, Award } from 'lucide-react'
+import { Home } from 'lucide-react'
+import { prisma } from '@/lib/prisma'
+
+// Timeout wrapper
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    )
+  ]);
+}
 
 export default async function SubSubCategoryPage({ params }: { params: Promise<{ slug: string; subSlug: string; subSubSlug: string }> }) {
   const { slug, subSlug, subSubSlug } = await params;
@@ -55,14 +64,112 @@ export default async function SubSubCategoryPage({ params }: { params: Promise<{
     )
   }
 
-  // Diğer alt-alt kategoriler
-  const otherSubSubcategories = foundSubcategory.subcategories?.filter((subsub) => subsub.slug !== subSubSlug) || []
+  // Güvenli JSON parse fonksiyonu
+  const safeParseImages = (images: string | null): string[] => {
+    if (!images) return [];
+    try {
+      if (typeof images === 'string') {
+        if (images.startsWith('data:image')) {
+          return [images];
+        }
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(images) ? images : [];
+    } catch {
+      return [];
+    }
+  };
 
-  // Listings data'sını filtrele
-  const mappedListings = rawListings.filter(listing => 
-    listing.category.toLowerCase() === slug.toLowerCase() && 
-    listing.subCategory?.toLowerCase() === subSlug.toLowerCase()
-  )
+  // Veritabanından ilanları çek
+  let listings: any[] = [];
+  try {
+    listings = await withTimeout(
+      prisma.listing.findMany({
+        where: {
+          AND: [
+            {
+              OR: [
+                { category: slug },
+                { category: foundCategory.name },
+              ],
+            },
+            {
+              OR: [
+                { subCategory: subSlug },
+                { subCategory: foundSubcategory.name },
+                { subCategory: foundSubSubcategory.name },
+              ],
+            },
+            {
+              isActive: true,
+              approvalStatus: 'approved',
+              expiresAt: {
+                gt: new Date()
+              }
+            }
+          ]
+        },
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          location: true,
+          category: true,
+          subCategory: true,
+          description: true,
+          images: true,
+          createdAt: true,
+          condition: true,
+          isPremium: true,
+          premiumUntil: true,
+          expiresAt: true,
+          views: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: [
+          { isPremium: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: 50,
+      }),
+      5000
+    );
+  } catch (error) {
+    console.error('Alt-alt kategori ilanları getirme hatası:', error);
+    listings = [];
+  }
+
+  const formattedListings = listings.map(listing => {
+    const parsedImages = safeParseImages(listing.images);
+    const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+
+    return {
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory || undefined,
+      description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''),
+      images: firstImage,
+      createdAt: listing.createdAt.toISOString(),
+      condition: listing.condition,
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil?.toISOString(),
+      expiresAt: listing.expiresAt.toISOString(),
+      views: listing.views,
+      user: {
+        ...listing.user,
+        name: listing.user?.name ?? undefined,
+      },
+    };
+  });
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -121,21 +228,17 @@ export default async function SubSubCategoryPage({ params }: { params: Promise<{
 
             <section>
               <FeaturedAds 
-                title={`Öne Çıkan ${foundSubSubcategory.name} Hizmetleri`}
+                title={`Öne Çıkan ${foundSubSubcategory.name}`}
                 category={foundCategory.slug} 
-                subcategory={foundSubcategory.slug} 
-                subSubcategory={foundSubSubcategory.slug} 
-                listings={mappedListings} 
+                listings={formattedListings} 
               />
             </section>
             
             <section>
               <LatestAds 
-                title={`Son Eklenen ${foundSubSubcategory.name} Hizmetleri`}
+                title={`Son Eklenen ${foundSubSubcategory.name}`}
                 category={foundCategory.slug} 
-                subcategory={foundSubcategory.slug} 
-                subSubcategory={foundSubSubcategory.slug} 
-                listings={mappedListings} 
+                listings={formattedListings} 
               />
             </section>
           </div>

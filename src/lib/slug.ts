@@ -27,13 +27,15 @@ export function createSlug(title: string): string {
 
 /**
  * Slug'dan ilan ID'sini çıkarır (geriye dönük uyumluluk için)
- * Eğer slug bir ID formatındaysa (uzun alfanumerik), ID olarak kabul eder
+ * Artık slug formatında URL kullanıyoruz: "/ilan/kiralik-mobil-jenerator"
+ * Eski ID formatı desteği: "/ilan/cmjkhx5h60001bf7lsliv4tvy"
  */
 export function extractIdFromSlug(slug: string): string | null {
-  // Eğer slug 20+ karakter ve sadece alfanumerik ise, muhtemelen ID'dir
+  // Eski format: sadece ID (20+ karakter alfanumerik) - geriye dönük uyumluluk
   if (slug.length >= 20 && /^[a-z0-9]+$/i.test(slug)) {
     return slug;
   }
+  // Yeni format: slug - null döndür, API route slug'dan arama yapacak
   return null;
 }
 

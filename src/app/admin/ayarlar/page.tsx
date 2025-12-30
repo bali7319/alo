@@ -92,8 +92,18 @@ export default function AdminAyarlarPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lastSaveTime, setLastSaveTime] = useState<number | null>(null);
 
-  const fetchSettings = async () => {
+  const fetchSettings = async (skipIfRecentSave = false) => {
+    // Eğer yakın zamanda kaydetme yapıldıysa (60 saniye içinde), fetchSettings'i atla
+    if (skipIfRecentSave && lastSaveTime) {
+      const timeSinceSave = Date.now() - lastSaveTime;
+      if (timeSinceSave < 60000) { // 60 saniye
+        console.log('Yakın zamanda kaydetme yapıldı, fetchSettings atlanıyor');
+        return;
+      }
+    }
+    
     setLoading(true);
     try {
       const response = await fetch('/api/admin/settings', {
@@ -130,6 +140,7 @@ export default function AdminAyarlarPage() {
       if (response.ok) {
         // Kaydetme başarılı, state'teki değerler zaten doğru ve kaydedildi
         // State'i güncellemeye gerek yok, kullanıcının girdiği değerler korunmalı
+        setLastSaveTime(Date.now()); // Kaydetme zamanını kaydet
         alert('Ayarlar başarıyla güncellendi! Tüm sayfalardaki (İlan Ver, Premium, vb.) fiyatlar ve limitler otomatik olarak güncellenecek.');
       } else {
         alert('Hata: ' + data.error);
@@ -157,7 +168,10 @@ export default function AdminAyarlarPage() {
     fetchSettings();
     
     // Her 30 saniyede bir admin ayarlarını kontrol et (başka sekmede değişiklik yapıldıysa)
-    const interval = setInterval(fetchSettings, 30000);
+    // Ancak yakın zamanda kaydetme yapıldıysa fetchSettings'i atla
+    const interval = setInterval(() => {
+      fetchSettings(true); // skipIfRecentSave = true
+    }, 30000);
     
     return () => clearInterval(interval);
   }, [session, status, router]);

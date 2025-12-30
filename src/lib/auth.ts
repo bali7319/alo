@@ -83,16 +83,25 @@ export const authOptions: NextAuthOptions = {
       // Google ile giriş yapıldığında
       if (account?.provider === 'google') {
         try {
+          // Email kontrolü
+          if (!user.email) {
+            console.error('Google sign in error: Email bulunamadı', { user, profile });
+            return false;
+          }
+
+          console.log('Google sign in başladı:', { email: user.email, name: user.name });
+
           // Kullanıcıyı veritabanında ara
           let dbUser = await prisma.user.findUnique({
-            where: { email: user.email! },
+            where: { email: user.email },
           });
 
           // Kullanıcı yoksa oluştur
           if (!dbUser) {
+            console.log('Yeni kullanıcı oluşturuluyor:', user.email);
             dbUser = await prisma.user.create({
               data: {
-                email: user.email!,
+                email: user.email,
                 name: user.name || (profile as any)?.name || 'Kullanıcı',
                 password: '', // Google ile giriş yapanların şifresi yok
                 phone: null,
@@ -100,8 +109,10 @@ export const authOptions: NextAuthOptions = {
                 image: user.image || (profile as any)?.picture || null,
               },
             });
+            console.log('Kullanıcı oluşturuldu:', dbUser.id);
           } else {
             // Kullanıcı varsa bilgilerini güncelle (isim ve resim)
+            console.log('Kullanıcı güncelleniyor:', dbUser.id);
             dbUser = await prisma.user.update({
               where: { id: dbUser.id },
               data: {
@@ -169,8 +180,15 @@ export const authOptions: NextAuthOptions = {
           // Kullanıcı bilgilerini güncelle
           user.id = dbUser.id;
           (user as any).role = dbUser.role || (dbUser.email === 'admin@alo17.tr' ? 'admin' : 'user');
-        } catch (error) {
+          
+          console.log('Google sign in başarılı:', { userId: dbUser.id, email: dbUser.email });
+        } catch (error: any) {
           console.error('Google sign in error:', error);
+          console.error('Error details:', {
+            message: error?.message,
+            stack: error?.stack,
+            email: user?.email,
+          });
           return false;
         }
       }

@@ -10,6 +10,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams?.get('callbackUrl') || '/';
+  const errorParam = searchParams?.get('error');
   
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -20,9 +21,28 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Sayfa yüklendiğinde kaydedilmiş bilgileri yükle
+  // Sayfa yüklendiğinde kaydedilmiş bilgileri yükle ve hata mesajını kontrol et
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
+    // URL'den gelen hata mesajını göster
+    if (errorParam) {
+      const errorMessages: { [key: string]: string } = {
+        'Configuration': 'Sunucu yapılandırma hatası. Lütfen yöneticiye başvurun.',
+        'AccessDenied': 'Giriş reddedildi. Lütfen tekrar deneyin.',
+        'Verification': 'Doğrulama hatası. Lütfen tekrar deneyin.',
+        'OAuthSignin': 'OAuth giriş hatası. Lütfen tekrar deneyin.',
+        'OAuthCallback': 'OAuth callback hatası. Lütfen tekrar deneyin.',
+        'OAuthCreateAccount': 'Hesap oluşturma hatası. Lütfen tekrar deneyin.',
+        'EmailCreateAccount': 'Email ile hesap oluşturma hatası.',
+        'Callback': 'Callback hatası. Lütfen tekrar deneyin.',
+        'OAuthAccountNotLinked': 'Bu email adresi başka bir hesap ile bağlantılı.',
+        'EmailSignin': 'Email gönderme hatası. Lütfen tekrar deneyin.',
+        'CredentialsSignin': 'Geçersiz email veya şifre.',
+        'SessionRequired': 'Oturum açmanız gerekiyor.',
+      };
+      setError(errorMessages[errorParam] || 'Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.');
+    }
     
     const savedEmail = localStorage.getItem('savedEmail');
     const savedPassword = localStorage.getItem('savedPassword');
@@ -35,7 +55,7 @@ function LoginForm() {
       setFormData(prev => ({ ...prev, password: savedPassword }));
     }
     setRememberMe(savedRememberMe);
-  }, []);
+  }, [errorParam]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

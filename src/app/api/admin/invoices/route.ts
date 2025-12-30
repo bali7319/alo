@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || '';
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     const skip = (page - 1) * limit;
 
@@ -47,6 +49,20 @@ export async function GET(request: NextRequest) {
         { billingName: { contains: search } },
         { billingEmail: { contains: search } },
       ];
+    }
+
+    // Tarih aralığı filtresi
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Bitiş tarihini günün sonuna kadar dahil et
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endDateTime;
+      }
     }
 
     // Faturaları getir

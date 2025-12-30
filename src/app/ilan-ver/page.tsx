@@ -65,6 +65,7 @@ export default function IlanVerPage() {
     subCategory: '',
     location: '',
     phone: '',
+    condition: 'Yeni', // 'Yeni' veya 'İkinci El'
     termsAccepted: false,
   });
 
@@ -494,7 +495,11 @@ export default function IlanVerPage() {
         const feature = premiumFeatures.find(f => f.id === settingId);
         return total + (feature?.price || 0);
       }, 0);
-    return planPrice + premiumFeaturesPrice;
+    // KDV dahil toplam (KDV oranı %20)
+    const taxRate = 20;
+    const amountWithoutTax = planPrice + premiumFeaturesPrice;
+    const totalWithTax = amountWithoutTax * (1 + taxRate / 100);
+    return totalWithTax;
   };
 
   // Resimleri base64'e çevir (optimize edilmiş - boyut küçültülür)
@@ -616,10 +621,8 @@ export default function IlanVerPage() {
         features: optionalFeatures.length > 0 
           ? optionalFeatures.map(f => `${f.key}: ${f.value}`)
           : [],
-        condition: 'Yeni', // Varsayılan
+        condition: formData.condition || 'Yeni',
         brand: null,
-        model: null,
-        year: null,
         isPremium: selectedPlan !== 'none',
         premiumFeatures: enabledPremiumFeatures.length > 0 ? enabledPremiumFeatures : null,
         premiumUntil: selectedPlan !== 'none' 
@@ -650,6 +653,15 @@ export default function IlanVerPage() {
         throw new Error(data.error || 'İlan oluşturulurken bir hata oluştu');
       }
 
+      // ID kontrolü
+      const listingId = data.listing?.id || data.id;
+      if (!listingId) {
+        console.error('API Response:', data);
+        throw new Error('İlan oluşturuldu ancak ID alınamadı. Lütfen tekrar deneyin.');
+      }
+
+      console.log('İlan oluşturuldu, ID:', listingId);
+
       // Premium özellikler fiyatını hesapla
       const premiumFeaturesPrice = Object.entries(premiumSettings)
         .filter(([_, enabled]) => enabled)
@@ -661,13 +673,15 @@ export default function IlanVerPage() {
           return total;
         }, 0);
 
-      const totalPrice = selectedPlanData.price + premiumFeaturesPrice;
+      // KDV dahil toplam (KDV oranı %20)
+      const taxRate = 20;
+      const amountWithoutTax = selectedPlanData.price + premiumFeaturesPrice;
+      const totalPrice = amountWithoutTax * (1 + taxRate / 100);
 
-      // Ödeme sayfasına yönlendir (eğer ücretli plan seçildiyse)
+      // Ödeme bilgilerini localStorage'a kaydet (premium seçiliyse)
       if (selectedPlan !== 'none' || premiumFeaturesPrice > 0) {
-        // Ödeme bilgilerini localStorage'a kaydet
         const paymentData = {
-          listingId: data.id,
+          listingId: listingId,
           planType: selectedPlan,
           planName: selectedPlanData.name,
           planPrice: selectedPlanData.price,
@@ -684,52 +698,16 @@ export default function IlanVerPage() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('paymentData', JSON.stringify(paymentData));
         }
-
-        // Ödeme sayfasına yönlendir
-        router.push(`/odeme?listingId=${data.id}`);
-        return;
       }
 
-      // Ücretsiz plan için direkt başarı mesajı
-      alert('İlanınız başarıyla oluşturuldu. Moderatör onayından sonra yayınlanacaktır.');
-      
-      // Form'u temizle
-      setFormData({
-        title: '',
-        description: '',
-        price: '',
-        category: '',
-        subCategory: '',
-        location: '',
-        phone: '',
-        termsAccepted: false,
-      });
-      setImages([]);
-      setSelectedCategory(null);
-      setSelectedSubCategory(null);
-      setSelectedPlan('none');
-      setOptionalFeatures([]);
-      setShowOptionalFeatures(false);
-      setPremiumSettings({
-        featured: false,
-        urgent: false,
-        highlight: false,
-        topPosition: false
-      });
-
-      // localStorage'ı temizle
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('ilanFormData');
-        localStorage.removeItem('ilanFormCategory');
-        localStorage.removeItem('ilanFormSubCategory');
-        localStorage.removeItem('ilanFormPlan');
-        localStorage.removeItem('ilanFormPremiumSettings');
-        localStorage.removeItem('ilanFormOptionalFeatures');
-        localStorage.removeItem('ilanFormPhoneVisibility');
+      // Önizleme sayfasına yönlendir
+      if (listingId) {
+        router.push(`/ilan-ver/onizle/${listingId}`);
+      } else {
+        console.error('İlan ID bulunamadı! API Response:', data);
+        alert('İlan oluşturuldu ancak yönlendirme yapılamadı. Lütfen ilanlarım sayfasından kontrol edin.');
+        router.push('/ilanlarim');
       }
-
-      // İlanlarım sayfasına yönlendir
-      router.push('/ilanlarim');
 
     } catch (error: any) {
       console.error('İlan oluşturma hatası:', error);
@@ -941,11 +919,11 @@ export default function IlanVerPage() {
               {/* Toplam Fiyat */}
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">Toplam Premium Ücret:</span>
-                  <span className="text-2xl font-bold text-purple-600">₺{calculateTotalPrice()}</span>
+                  <span className="text-lg font-semibold">Toplam Premium Ücret (KDV Dahil):</span>
+                  <span className="text-2xl font-bold text-purple-600">₺{calculateTotalPrice().toFixed(2)}</span>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
-                  Plan ücreti + seçilen özellikler
+                  Plan ücreti + seçilen özellikler (KDV %20 dahil)
                 </p>
               </div>
             </div>
@@ -1057,6 +1035,22 @@ export default function IlanVerPage() {
                   </p>
                 </div>
               )}
+
+              {/* Condition - Yeni/İkinci El */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Durum *
+                </label>
+                <select
+                  required
+                  value={formData.condition}
+                  onChange={(e) => setFormData(prev => ({ ...prev, condition: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Yeni">Yeni</option>
+                  <option value="İkinci El">İkinci El</option>
+                </select>
+              </div>
 
               {/* Location */}
               <div>

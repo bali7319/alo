@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
+// Client-side'da process.env kullanılamaz, bu yüzden hardcoded değer kullanıyoruz
+const ADMIN_EMAIL = 'admin@alo17.tr';
+
 interface Listing {
   id: string;
   title: string;
@@ -16,11 +19,20 @@ interface Listing {
   premiumUntil?: string | null;
   expiresAt?: string;
   createdAt: string;
+  moderatorId?: string | null;
+  moderatedAt?: string | null;
+  moderatorNotes?: string | null;
   user: {
     name: string;
     email: string;
     phone: string;
   };
+  moderator?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  } | null;
 }
 
 export default function AdminIlanlarPage() {
@@ -28,6 +40,7 @@ export default function AdminIlanlarPage() {
   const router = useRouter();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -38,7 +51,7 @@ export default function AdminIlanlarPage() {
     }
 
     // Admin kontrolü
-    if (!session || session.user?.email !== 'admin@alo17.tr') {
+    if (!session || session.user?.email !== ADMIN_EMAIL) {
       router.push(`/giris?callbackUrl=${encodeURIComponent('/admin/ilanlar')}`);
       return;
     }
@@ -47,11 +60,12 @@ export default function AdminIlanlarPage() {
   }, [session, sessionStatus, router, status, page]);
 
   const fetchListings = async () => {
-    if (!session || session.user?.email !== 'admin@alo17.tr') {
+    if (!session || session.user?.email !== ADMIN_EMAIL) {
       return;
     }
 
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -69,12 +83,14 @@ export default function AdminIlanlarPage() {
         setTotalPages(data.totalPages || 1);
       } else {
         console.error('API Hatası:', data.error);
+        setError(data.error || 'İlanlar yüklenirken bir hata oluştu');
         if (response.status === 401 || response.status === 403) {
           router.push(`/giris?callbackUrl=${encodeURIComponent('/admin/ilanlar')}`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('API hatası:', error);
+      setError('İlanlar yüklenirken bir hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
     } finally {
       setLoading(false);
     }
@@ -146,17 +162,26 @@ export default function AdminIlanlarPage() {
     }
   };
 
-  if (sessionStatus === 'loading' || loading) {
+  if (sessionStatus === 'loading') {
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p>Yükleniyor...</p>
+        <p>Oturum kontrol ediliyor...</p>
       </div>
     );
   }
 
-  if (!session || session.user?.email !== 'admin@alo17.tr') {
+  if (!session || session.user?.email !== ADMIN_EMAIL) {
     return null; // Router zaten yönlendirecek
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p>İlanlar yükleniyor...</p>
+      </div>
+    );
   }
 
   return (
@@ -191,6 +216,13 @@ export default function AdminIlanlarPage() {
         </Button>
       </div>
 
+      {/* Hata Mesajı */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">
+          {error}
+        </div>
+      )}
+
       {/* İlanlar Tablosu */}
       <div className="bg-white rounded shadow overflow-x-auto">
         <table className="w-full text-left">
@@ -200,13 +232,21 @@ export default function AdminIlanlarPage() {
               <th className="p-3 border-b">Fiyat</th>
               <th className="p-3 border-b">Kullanıcı</th>
               <th className="p-3 border-b">Durum</th>
+              <th className="p-3 border-b">İşlem Yapan</th>
               <th className="p-3 border-b">Premium</th>
               <th className="p-3 border-b">Tarih</th>
               <th className="p-3 border-b">Aksiyonlar</th>
             </tr>
           </thead>
           <tbody>
-            {listings.map((listing) => (
+            {listings.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="p-8 text-center text-gray-500">
+                  Henüz ilan bulunmuyor.
+                </td>
+              </tr>
+            ) : (
+              listings.map((listing) => (
               <tr key={listing.id} className="hover:bg-gray-50">
                 <td className="p-3 border-b">
                   <div className="font-medium">{listing.title}</div>
@@ -227,6 +267,23 @@ export default function AdminIlanlarPage() {
                   <div className="text-xs text-gray-500 mt-1">
                     {listing.isActive ? 'Aktif' : 'Pasif'}
                   </div>
+                </td>
+                <td className="p-3 border-b">
+                  {listing.moderator && listing.moderatedAt ? (
+                    <div className="text-xs">
+                      <div className="font-medium text-gray-900">
+                        {listing.moderator.role === 'admin' ? '👑' : '🛡️'} {listing.moderator.name}
+                      </div>
+                      <div className="text-gray-500 mt-1">
+                        {new Date(listing.moderatedAt).toLocaleDateString('tr-TR')}
+                      </div>
+                      <div className="text-gray-400 mt-1">
+                        {listing.moderator.email}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">İşlem yapılmadı</span>
+                  )}
                 </td>
                 <td className="p-3 border-b">
                   <div className="text-xs">
@@ -298,7 +355,8 @@ export default function AdminIlanlarPage() {
                   </div>
                 </td>
               </tr>
-            ))}
+            ))
+            )}
           </tbody>
         </table>
       </div>

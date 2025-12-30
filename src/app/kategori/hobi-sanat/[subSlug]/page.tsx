@@ -1,65 +1,37 @@
-import { listings } from "@/lib/listings";
-import { ListingCard } from "@/components/listing-card";
-import { Listing } from "@/types/listings";
-import Link from "next/link";
+import { categories } from "@/lib/categories";
+import { Sidebar } from "@/components/sidebar";
 import { FeaturedAds } from "@/components/featured-ads";
 import { LatestAds } from "@/components/latest-ads";
+import Link from "next/link";
+import { Home } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 
-// Hobi & Sanat kategorisi tanımı
-const hobiSanatCategory = {
-  name: "Hobi & Sanat",
-  slug: "hobi-sanat",
-  icon: "🎨",
-  subcategories: [
-    { name: "Resim", slug: "resim", icon: "🎨" },
-    { name: "Müzik", slug: "muzik", icon: "🎵" },
-    { name: "Seramik", slug: "seramik", icon: "🏺" },
-    { name: "Fotoğrafçılık", slug: "fotografcilik", icon: "📸" },
-    { name: "El Sanatları", slug: "el-sanatlari", icon: "🧶" },
-    { name: "Koleksiyon", slug: "koleksiyon", icon: "📦" },
-    { name: "Diğer", slug: "diger", icon: "🎭" }
-  ]
+// Timeout wrapper
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    )
+  ]);
 }
 
 // generateStaticParams fonksiyonu ekle
 export async function generateStaticParams() {
-  return hobiSanatCategory.subcategories.map((subcategory) => ({
+  const hobiSanatCategory = categories.find(cat => cat.slug === 'hobi-sanat');
+  return hobiSanatCategory?.subcategories?.map((subcategory) => ({
     subSlug: subcategory.slug,
-  }));
+  })) || [];
 }
 
 export default async function HobiSanatSubPage({ params }: { params: Promise<{ subSlug: string }> }) {
   const { subSlug } = await params;
 
-  // Alt kategoriyi bul
-  const subcategory = hobiSanatCategory.subcategories.find(sub => sub.slug === subSlug);
+  // Hobi & Sanat kategorisini bul
+  const hobiSanatCategory = categories.find(cat => cat.slug === 'hobi-sanat');
+  const subcategory = hobiSanatCategory?.subcategories?.find(sub => sub.slug === subSlug);
 
-  // İlgili alt kategorinin ilanlarını filtrele
-  const filteredListings = listings
-    .filter(listing => 
-      (listing.category.toLowerCase() === 'hobi-sanat' || listing.category.toLowerCase() === 'sanat-hobi') && 
-      (listing.subCategory?.toLowerCase() === subSlug.toLowerCase())
-    )
-    .map(listing => ({
-      id: listing.id.toString(),
-      title: listing.title,
-      description: listing.description,
-      price: listing.price,
-      location: listing.location,
-      category: listing.category,
-      subCategory: listing.subCategory ?? '',
-      subSubCategory: undefined,
-      images: [],
-      isPremium: listing.isPremium,
-      premiumUntil: listing.premiumUntil ?? '',
-      createdAt: listing.createdAt ?? '',
-      user: { id: '', name: '', email: '' },
-    }));
-
-  // Diğer alt kategoriler
-  const otherSubcategories = hobiSanatCategory.subcategories.filter(sub => sub.slug !== subSlug);
-
-  if (!subcategory) {
+  if (!hobiSanatCategory || !subcategory) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -72,60 +44,179 @@ export default async function HobiSanatSubPage({ params }: { params: Promise<{ s
     );
   }
 
+  // Güvenli JSON parse fonksiyonu
+  const safeParseImages = (images: string | null): string[] => {
+    if (!images) return [];
+    try {
+      if (typeof images === 'string') {
+        if (images.startsWith('data:image')) {
+          return [images];
+        }
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(images) ? images : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Veritabanından ilanları çek
+  let listings: any[] = [];
+  try {
+    listings = await withTimeout(
+      prisma.listing.findMany({
+        where: {
+          AND: [
+            {
+              OR: [
+                { category: 'hobi-sanat' },
+                { category: 'Hobi & Sanat' },
+                { category: 'sanat-hobi' },
+                { category: 'Sanat & Hobi' },
+              ],
+            },
+            {
+              OR: [
+                { subCategory: subSlug },
+                { subCategory: subcategory.name },
+              ],
+            },
+            {
+              isActive: true,
+              approvalStatus: 'approved',
+              expiresAt: {
+                gt: new Date()
+              }
+            }
+          ]
+        },
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          location: true,
+          category: true,
+          subCategory: true,
+          description: true,
+          images: true,
+          createdAt: true,
+          condition: true,
+          isPremium: true,
+          premiumUntil: true,
+          expiresAt: true,
+          views: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: [
+          { isPremium: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: 50,
+      }),
+      5000
+    );
+  } catch (error) {
+    console.error('Alt kategori ilanları getirme hatası:', error);
+    listings = [];
+  }
+
+  const formattedListings = listings.map(listing => {
+    const parsedImages = safeParseImages(listing.images);
+    const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+
+    return {
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory || undefined,
+      description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''),
+      images: firstImage,
+      createdAt: listing.createdAt.toISOString(),
+      condition: listing.condition,
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil?.toISOString(),
+      expiresAt: listing.expiresAt.toISOString(),
+      views: listing.views,
+      user: {
+        ...listing.user,
+        name: listing.user?.name ?? undefined,
+      },
+    };
+  });
+
   return (
-    <div className="container mx-auto py-8">
-      {/* Breadcrumb */}
-      <nav className="flex mb-8" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-1 md:space-x-3">
-          <li className="inline-flex items-center">
-            <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
-              Ana Sayfa
-            </Link>
-          </li>
-          <li>
-            <div className="flex items-center">
-              <span className="mx-2 text-gray-400">/</span>
-              <Link href="/kategori/hobi-sanat" className="text-gray-700 hover:text-blue-600">
-                Hobi & Sanat
+    <main className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <nav className="flex mb-8" aria-label="Breadcrumb">
+          <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 flex items-center">
+                <Home className="w-4 h-4 mr-1" />
+                Ana Sayfa
               </Link>
-            </div>
-          </li>
-          <li aria-current="page">
-            <div className="flex items-center">
-              <span className="mx-2 text-gray-400">/</span>
-              <span className="text-gray-500">{subcategory.name}</span>
-            </div>
-          </li>
-        </ol>
-      </nav>
-
-      <div className="flex gap-8">
-        {/* Sidebar */}
-        <aside className="w-64">
-          <h2 className="font-semibold mb-4 text-lg">Diğer Kategoriler</h2>
-          <ul className="space-y-2">
-            {otherSubcategories.map((sub) => (
-              <li key={sub.slug}>
-                <Link 
-                  href={`/kategori/hobi-sanat/${sub.slug}`}
-                  className="flex items-center space-x-2 p-2 rounded hover:bg-gray-100 transition-colors"
-                >
-                  <span className="text-lg">{sub.icon}</span>
-                  <span>{sub.name}</span>
+            </li>
+            <li>
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <Link href="/kategori/hobi-sanat" className="text-gray-700 hover:text-blue-600">
+                  Hobi & Sanat
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </aside>
+              </div>
+            </li>
+            <li aria-current="page">
+              <div className="flex items-center">
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-500">{subcategory.name}</span>
+              </div>
+            </li>
+          </ol>
+        </nav>
 
-        {/* Main Content */}
-        <main className="flex-1">
-          <h1 className="text-3xl font-bold mb-6">{subcategory.name}</h1>
-          
-          <FeaturedAds category="hobi-sanat" subcategory={subSlug} listings={filteredListings} />
-          <LatestAds category="hobi-sanat" subcategory={subSlug} listings={filteredListings} />
-        </main>
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sol Sidebar */}
+          <div className="w-full md:w-64 flex-shrink-0">
+            <Sidebar />
+          </div>
+
+          {/* Ana İçerik */}
+          <div className="flex-1 space-y-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+                <span className="mr-3 text-2xl">{typeof subcategory.icon === 'string' ? subcategory.icon : '•'}</span>
+                {subcategory.name}
+              </h1>
+              <p className="text-gray-600">
+                {subcategory.name} kategorisinde en iyi ürünleri ve hizmetleri keşfedin.
+              </p>
+            </div>
+
+            <section>
+              <FeaturedAds 
+                title={`Öne Çıkan ${subcategory.name}`}
+                category="hobi-sanat" 
+                listings={formattedListings} 
+              />
+            </section>
+            
+            <section>
+              <LatestAds 
+                title={`Son Eklenen ${subcategory.name}`}
+                category="hobi-sanat" 
+                listings={formattedListings} 
+              />
+            </section>
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   );
 } 

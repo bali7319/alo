@@ -40,13 +40,15 @@ export default function FaturalarPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 20;
 
   useEffect(() => {
     fetchInvoices();
-  }, [currentPage, filterStatus, searchTerm]);
+  }, [currentPage, filterStatus, searchTerm, startDate, endDate]);
 
   const fetchInvoices = async () => {
     try {
@@ -57,6 +59,13 @@ export default function FaturalarPage() {
         status: filterStatus,
         search: searchTerm,
       });
+
+      if (startDate) {
+        params.append('startDate', startDate);
+      }
+      if (endDate) {
+        params.append('endDate', endDate);
+      }
 
       const response = await fetch(`/api/admin/invoices?${params}`);
       if (!response.ok) {
@@ -164,6 +173,80 @@ export default function FaturalarPage() {
     );
   };
 
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+
+  const handleBulkDownloadHTML = async () => {
+    if (selectedInvoices.length === 0) {
+      alert('Lütfen en az bir fatura seçin');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/invoices/bulk-html', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ invoiceIds: selectedInvoices }),
+      });
+
+      if (!response.ok) {
+        throw new Error('HTML indirilemedi');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `faturalar-${new Date().toISOString().split('T')[0]}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setSelectedInvoices([]);
+    } catch (error) {
+      console.error('Toplu HTML indirme hatası:', error);
+      alert('HTML dosyası indirilemedi');
+    }
+  };
+
+  const handleBulkDownloadExcel = async () => {
+    if (selectedInvoices.length === 0) {
+      alert('Lütfen en az bir fatura seçin');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/invoices/bulk-excel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ invoiceIds: selectedInvoices }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Excel indirilemedi');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `faturalar-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setSelectedInvoices([]);
+    } catch (error) {
+      console.error('Toplu Excel indirme hatası:', error);
+      alert('Excel dosyası indirilemedi');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -171,11 +254,29 @@ export default function FaturalarPage() {
           <h1 className="text-3xl font-bold text-gray-900">Faturalar</h1>
           <p className="text-gray-600 mt-1">Tüm faturaları görüntüleyin ve yönetin</p>
         </div>
+        {selectedInvoices.length > 0 && (
+          <div className="flex gap-2">
+            <button
+              onClick={handleBulkDownloadHTML}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              HTML İndir ({selectedInvoices.length})
+            </button>
+            <button
+              onClick={handleBulkDownloadExcel}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Excel İndir ({selectedInvoices.length})
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filtreler */}
       <div className="bg-white rounded-lg shadow-sm p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -203,6 +304,70 @@ export default function FaturalarPage() {
             <option value="paid">Ödendi</option>
             <option value="cancelled">İptal</option>
           </select>
+
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="date"
+              placeholder="Başlangıç Tarihi"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="date"
+              placeholder="Bitiş Tarihi"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            {(startDate || endDate) && (
+              <>
+                <button
+                  onClick={() => {
+                    // Tarih aralığındaki tüm faturaları seç
+                    const filteredInvoices = invoices.filter((inv: Invoice) => {
+                      const invDate = new Date(inv.createdAt);
+                      if (startDate && invDate < new Date(startDate)) return false;
+                      if (endDate) {
+                        const endDateTime = new Date(endDate);
+                        endDateTime.setHours(23, 59, 59, 999);
+                        if (invDate > endDateTime) return false;
+                      }
+                      return true;
+                    });
+                    setSelectedInvoices(filteredInvoices.map((inv: Invoice) => inv.id));
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  Filtrelenmiş Faturaları Seç
+                </button>
+                <button
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm"
+                >
+                  Tarih Filtresini Temizle
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -224,6 +389,20 @@ export default function FaturalarPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={selectedInvoices.length === invoices.length && invoices.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedInvoices(invoices.map((inv: Invoice) => inv.id));
+                          } else {
+                            setSelectedInvoices([]);
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Fatura No
                     </th>
@@ -256,6 +435,20 @@ export default function FaturalarPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {invoices.map((invoice) => (
                     <tr key={invoice.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedInvoices.includes(invoice.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedInvoices([...selectedInvoices, invoice.id]);
+                            } else {
+                              setSelectedInvoices(selectedInvoices.filter(id => id !== invoice.id));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {invoice.invoiceNumber}

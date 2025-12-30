@@ -16,11 +16,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Admin veya moderator kontrolü
-    const user = await prisma.user.findUnique({
+    const user = await (prisma.user.findUnique as any)({
       where: { email: session.user.email },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+      },
     });
 
-    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
+    if (!user || ((user as any).role !== 'admin' && (user as any).role !== 'moderator')) {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin ve moderatörler bu sayfaya erişebilir.' },
         { status: 403, headers: { 'Content-Type': 'application/json' } }

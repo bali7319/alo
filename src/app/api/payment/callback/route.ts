@@ -40,9 +40,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // merchant_oid'den listingId'yi çıkar (format: alo17_listingId_timestamp)
-    const parts = merchant_oid.split('_');
-    const listingId = parts.length >= 2 ? parts[1] : null;
+    // merchant_oid'den listingId'yi bul (format: alo17{listingIdHash}{timestamp})
+    // Hash'ten listingId'yi geri çıkaramayız, bu yüzden veritabanında hash ile eşleştirme yapıyoruz
+    let listingId: string | null = null;
+    
+    if (merchant_oid.startsWith('alo17') && merchant_oid.length >= 29) {
+      const withoutPrefix = merchant_oid.substring(5); // 'alo17' prefix'ini kaldır
+      const listingIdHash = withoutPrefix.substring(0, 16); // İlk 16 karakter hash
+      
+      // Hash ile eşleşen listingId'yi bul
+      // Not: Bu yaklaşım hash collision riski taşır, production'da PaymentTransaction modeli kullanılmalı
+      try {
+        // Son 100 ilanı kontrol et (performans için optimize edilebilir)
+        const listings = await prisma.listing.findMany({
+          select: { id: true },
+          orderBy: { createdAt: 'desc' },
+          take: 100, // Son 100 ilanı kontrol et
+        });
+        
+        for (const listing of listings) {
+          const hash = crypto.createHash('md5').update(listing.id).digest('hex').substring(0, 16);
+          if (hash === listingIdHash) {
+            listingId = listing.id;
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('listingId bulma hatası:', error);
+        listingId = null;
+      }
+    }
 
     if (status === 'success') {
       // Ödeme başarılı
@@ -53,6 +80,7 @@ export async function POST(request: NextRequest) {
           data: {
             isPremium: true,
             premiumUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 gün
+            approvalStatus: 'pending', // Ödeme sonrası onaya gönderildi
           },
         });
       }
@@ -67,7 +95,11 @@ export async function POST(request: NextRequest) {
         timestamp: new Date().toISOString(),
       });
 
-      return NextResponse.json({ status: 'success' }, { status: 200 });
+      return NextResponse.json({ 
+        status: 'success',
+        listingId,
+        merchant_oid 
+      }, { status: 200 });
     } else {
       // Ödeme başarısız
       console.log('Ödeme başarısız:', {

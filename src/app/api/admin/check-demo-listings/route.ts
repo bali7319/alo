@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getAdminEmail } from '@/lib/admin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,11 +16,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Admin kontrolü
-    const user = await prisma.user.findUnique({
+    const user = await (prisma.user.findUnique as any)({
       where: { email: session.user.email },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+      },
     });
 
-    if (!user || user.role !== 'admin') {
+    if (!user || (user as any).role !== 'admin') {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin bu işlemi yapabilir.' },
         { status: 403 }
@@ -28,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Admin kullanıcısını bul (sadece hariç tutmak için)
     const adminUser = await prisma.user.findUnique({
-      where: { email: 'admin@alo17.tr' },
+      where: { email: getAdminEmail() },
     });
 
     // Sadece Demo/örnek/test içeren başlıklara sahip ilanları bul
@@ -38,16 +44,16 @@ export async function GET(request: NextRequest) {
         AND: [
           {
             OR: [
-              { title: { contains: 'Demo', mode: 'insensitive' } },
-              { title: { contains: 'Örnek', mode: 'insensitive' } },
-              { title: { contains: 'Test', mode: 'insensitive' } },
-              { title: { contains: 'örnek', mode: 'insensitive' } },
-              { title: { contains: 'demo', mode: 'insensitive' } },
-              { title: { contains: 'test', mode: 'insensitive' } },
-              { brand: { contains: 'Demo', mode: 'insensitive' } },
-              { brand: { contains: 'örnek', mode: 'insensitive' } },
-              { model: { contains: 'Demo', mode: 'insensitive' } },
-              { model: { contains: 'örnek', mode: 'insensitive' } },
+              { title: { contains: 'Demo' } },
+              { title: { contains: 'Örnek' } },
+              { title: { contains: 'Test' } },
+              { title: { contains: 'örnek' } },
+              { title: { contains: 'demo' } },
+              { title: { contains: 'test' } },
+              { brand: { contains: 'Demo' } },
+              { brand: { contains: 'örnek' } },
+              { model: { contains: 'Demo' } },
+              { model: { contains: 'örnek' } },
             ],
           },
           // Admin kullanıcısının ilanlarını hariç tut
@@ -107,11 +113,16 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Admin kontrolü
-    const user = await prisma.user.findUnique({
+    const user = await (prisma.user.findUnique as any)({
       where: { email: session.user.email },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+      },
     });
 
-    if (!user || user.role !== 'admin') {
+    if (!user || (user as any).role !== 'admin') {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin bu işlemi yapabilir.' },
         { status: 403 }
@@ -120,7 +131,7 @@ export async function DELETE(request: NextRequest) {
 
     // Admin kullanıcısını bul (sadece hariç tutmak için)
     const adminUser = await prisma.user.findUnique({
-      where: { email: 'admin@alo17.tr' },
+      where: { email: getAdminEmail() },
     });
 
     // Sadece Demo/örnek/test içeren başlıklara sahip ilanları bul
@@ -130,16 +141,16 @@ export async function DELETE(request: NextRequest) {
         AND: [
           {
             OR: [
-              { title: { contains: 'Demo', mode: 'insensitive' } },
-              { title: { contains: 'Örnek', mode: 'insensitive' } },
-              { title: { contains: 'Test', mode: 'insensitive' } },
-              { title: { contains: 'örnek', mode: 'insensitive' } },
-              { title: { contains: 'demo', mode: 'insensitive' } },
-              { title: { contains: 'test', mode: 'insensitive' } },
-              { brand: { contains: 'Demo', mode: 'insensitive' } },
-              { brand: { contains: 'örnek', mode: 'insensitive' } },
-              { model: { contains: 'Demo', mode: 'insensitive' } },
-              { model: { contains: 'örnek', mode: 'insensitive' } },
+              { title: { contains: 'Demo' } },
+              { title: { contains: 'Örnek' } },
+              { title: { contains: 'Test' } },
+              { title: { contains: 'örnek' } },
+              { title: { contains: 'demo' } },
+              { title: { contains: 'test' } },
+              { brand: { contains: 'Demo' } },
+              { brand: { contains: 'örnek' } },
+              { model: { contains: 'Demo' } },
+              { model: { contains: 'örnek' } },
             ],
           },
           // Admin kullanıcısının ilanlarını hariç tut

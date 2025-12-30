@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Shield, ShieldOff, AlertCircle } from 'lucide-react';
+import { Shield, ShieldOff, AlertCircle, Trash2, UserX, UserCheck, Crown, Users } from 'lucide-react';
 
 interface User {
   id: string;
@@ -12,6 +12,7 @@ interface User {
   location: string;
   role: string;
   createdAt: string;
+  isActive?: boolean;
   _count: {
     listings: number;
     sentMessages: number;
@@ -27,6 +28,8 @@ export default function AdminUyelerPage() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
   const [fetchError, setFetchError] = useState<string>('');
+  const [showArmy, setShowArmy] = useState(false);
+  const [armyUsers, setArmyUsers] = useState<User[]>([]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -99,6 +102,11 @@ export default function AdminUyelerPage() {
       setUsers(users.map(user => 
         user.id === userId ? { ...user, role: newRole } : user
       ));
+      
+      // Arma listesini de güncelle
+      if (showArmy) {
+        fetchArmyUsers();
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Bir hata oluştu');
       console.error('Rol güncelleme hatası:', error);
@@ -106,6 +114,91 @@ export default function AdminUyelerPage() {
       setUpdatingUserId(null);
     }
   };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+      return;
+    }
+
+    setUpdatingUserId(userId);
+    setError('');
+    
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Kullanıcı silinirken bir hata oluştu');
+      }
+
+      // Kullanıcıyı listeden kaldır
+      setUsers(users.filter(user => user.id !== userId));
+      
+      if (showArmy) {
+        setArmyUsers(armyUsers.filter(user => user.id !== userId));
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Bir hata oluştu');
+      console.error('Kullanıcı silme hatası:', error);
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const handleToggleActive = async (userId: string, isActive: boolean) => {
+    setUpdatingUserId(userId);
+    setError('');
+    
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isActive: !isActive }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Kullanıcı durumu güncellenirken bir hata oluştu');
+      }
+
+      // Kullanıcı listesini güncelle
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, isActive: !isActive } : user
+      ));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Bir hata oluştu');
+      console.error('Kullanıcı durum güncelleme hatası:', error);
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const fetchArmyUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users?role=moderator,admin&limit=100');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setArmyUsers((data.users || []).filter((user: User) => 
+          user.role === 'moderator' || user.role === 'admin'
+        ));
+      }
+    } catch (error) {
+      console.error('Arma kullanıcıları yükleme hatası:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (showArmy) {
+      fetchArmyUsers();
+    }
+  }, [showArmy]);
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -124,7 +217,22 @@ export default function AdminUyelerPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Kullanıcı Yönetimi</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Kullanıcı Yönetimi</h1>
+        <Button
+          onClick={() => {
+            setShowArmy(!showArmy);
+            if (!showArmy) {
+              fetchArmyUsers();
+            }
+          }}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <Users className="w-4 h-4" />
+          {showArmy ? 'Tüm Kullanıcılar' : 'Arma (Moderatör/Admin)'}
+        </Button>
+      </div>
       
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative flex items-center">
@@ -146,6 +254,45 @@ export default function AdminUyelerPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Arma Ekranı */}
+      {showArmy && (
+        <div className="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Crown className="w-6 h-6 text-purple-600" />
+            <h2 className="text-xl font-bold text-gray-900">Arma - Moderatör ve Admin Listesi</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {armyUsers.map((user) => (
+              <div key={user.id} className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {user.role === 'admin' ? (
+                      <Crown className="w-5 h-5 text-red-500" />
+                    ) : (
+                      <Shield className="w-5 h-5 text-purple-500" />
+                    )}
+                    <span className="font-semibold">{user.name}</span>
+                  </div>
+                  {getRoleBadge(user.role)}
+                </div>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <div>{user.email}</div>
+                  {user.phone && <div>{user.phone}</div>}
+                  <div className="text-xs text-gray-500">
+                    {user._count.listings} ilan • {user._count.sentMessages + user._count.receivedMessages} mesaj
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {armyUsers.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              Henüz moderatör veya admin bulunmuyor.
+            </div>
+          )}
         </div>
       )}
       
@@ -189,30 +336,46 @@ export default function AdminUyelerPage() {
                   {new Date(user.createdAt).toLocaleDateString('tr-TR')}
                 </td>
                 <td className="p-3 border-b">
-                  <div className="flex gap-2">
-                    {user.role !== 'moderator' ? (
+                  <div className="flex flex-col gap-2 min-w-[200px]">
+                    {/* Rol Değiştirme Dropdown */}
+                    <select
+                      value={user.role || 'user'}
+                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                      disabled={updatingUserId === user.id}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    >
+                      <option value="user">Kullanıcı</option>
+                      <option value="moderator">Moderatör</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    
+                    {/* İşlem Butonları */}
+                    <div className="flex gap-1 flex-wrap">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleRoleChange(user.id, 'moderator')}
+                        onClick={() => handleToggleActive(user.id, user.isActive !== false)}
+                        disabled={updatingUserId === user.id}
+                        className="text-xs px-2 py-1"
+                        title={user.isActive !== false ? 'Pasife Al' : 'Aktif Et'}
+                      >
+                        {user.isActive !== false ? (
+                          <UserX className="w-3 h-3" />
+                        ) : (
+                          <UserCheck className="w-3 h-3" />
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteUser(user.id)}
                         disabled={updatingUserId === user.id || user.role === 'admin'}
-                        className="text-xs"
+                        className="text-xs px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="Sil"
                       >
-                        <Shield className="w-3 h-3 mr-1" />
-                        Moderatör Yap
+                        <Trash2 className="w-3 h-3" />
                       </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleRoleChange(user.id, 'user')}
-                        disabled={updatingUserId === user.id || (user.role as string) === 'admin'}
-                        className="text-xs text-red-600 hover:text-red-700"
-                      >
-                        <ShieldOff className="w-3 h-3 mr-1" />
-                        Moderatörlükten Çıkar
-                      </Button>
-                    )}
+                    </div>
                   </div>
                 </td>
               </tr>

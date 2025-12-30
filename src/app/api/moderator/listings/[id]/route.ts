@@ -19,11 +19,16 @@ export async function PATCH(
     }
 
     // Admin veya moderator kontrolü
-    const user = await prisma.user.findUnique({
+    const user = await (prisma.user.findUnique as any)({
       where: { email: session.user.email },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+      },
     });
 
-    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
+    if (!user || ((user as any).role !== 'admin' && (user as any).role !== 'moderator')) {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin ve moderatörler bu işlemi yapabilir.' },
         { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -140,11 +145,16 @@ export async function PUT(
     }
 
     // Admin veya moderator kontrolü
-    const user = await prisma.user.findUnique({
+    const user = await (prisma.user.findUnique as any)({
       where: { email: session.user.email },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+      },
     });
 
-    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
+    if (!user || ((user as any).role !== 'admin' && (user as any).role !== 'moderator')) {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin ve moderatörler bu işlemi yapabilir.' },
         { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -183,8 +193,6 @@ export async function PUT(
     if (body.features) updateData.features = JSON.stringify(body.features);
     if (body.condition !== undefined) updateData.condition = body.condition;
     if (body.brand !== undefined) updateData.brand = body.brand;
-    if (body.model !== undefined) updateData.model = body.model;
-    if (body.year !== undefined) updateData.year = body.year;
     if (body.moderatorNotes) updateData.moderatorNotes = body.moderatorNotes;
 
     const updatedListing = await prisma.listing.update({

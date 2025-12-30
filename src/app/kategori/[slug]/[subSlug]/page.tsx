@@ -138,16 +138,28 @@ export default async function SubCategoryPage({ params }: { params: Promise<{ sl
     listings = await withTimeout(
       prisma.listing.findMany({
         where: {
-          OR: [
-            { category: categoryName }, // Tam kategori adı formatında
-            { category: slug }, // Slug formatında
-          ],
-          subCategory: subCategoryName,
-          isActive: true,
-          approvalStatus: 'approved',
-          expiresAt: {
-            gt: new Date() // Süresi dolmamış ilanlar
-          }
+          AND: [
+            {
+              OR: [
+                { category: categoryName }, // Tam kategori adı formatında
+                { category: slug }, // Slug formatında
+              ],
+            },
+            {
+              OR: [
+                { subCategory: subCategoryName },
+                { subCategory: subSlug },
+                { subCategory: foundSubcategory.name },
+              ].filter(Boolean), // undefined değerleri filtrele
+            },
+            {
+              isActive: true,
+              approvalStatus: 'approved',
+              expiresAt: {
+                gt: new Date() // Süresi dolmamış ilanlar
+              }
+            }
+          ]
         },
         select: {
           id: true,
