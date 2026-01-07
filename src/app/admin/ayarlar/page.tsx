@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Star, Zap, Crown, TrendingUp, Eye, MessageSquare, Calendar, DollarSign } from 'lucide-react';
+import { Star, Zap, Crown, TrendingUp, Eye, MessageSquare, Calendar, DollarSign, Sparkles } from 'lucide-react';
 
 interface Settings {
   premiumPrice: number;
@@ -529,6 +529,108 @@ export default function AdminAyarlarPage() {
             </div>
 
 
+          {/* Premium Özellik Fiyatları */}
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 md:p-8 w-full">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 md:mb-6 flex items-center">
+              <Star className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 mr-2" />
+              Premium Özellik Fiyatları
+            </h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Öne Çıkan İlan */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <Star className="h-5 w-5 text-yellow-500 mr-2" />
+                  <h3 className="font-semibold text-gray-900">Öne Çıkan İlan</h3>
+                </div>
+                <input
+                  type="number"
+                  value={settings.featuredPrice}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const numValue = value === '' ? 0 : (isNaN(Number(value)) ? settings.featuredPrice : Number(value));
+                    setSettings({
+                      ...settings,
+                      featuredPrice: Math.max(0, Math.floor(numValue))
+                    });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  min="0"
+                />
+                <p className="text-xs text-gray-500 mt-2">İlanınız ana sayfada öne çıkarılır</p>
+              </div>
+
+              {/* Acil Satılık */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <Zap className="h-5 w-5 text-orange-500 mr-2" />
+                  <h3 className="font-semibold text-gray-900">Acil Satılık</h3>
+                </div>
+                <input
+                  type="number"
+                  value={settings.urgentPrice}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const numValue = value === '' ? 0 : (isNaN(Number(value)) ? settings.urgentPrice : Number(value));
+                    setSettings({
+                      ...settings,
+                      urgentPrice: Math.max(0, Math.floor(numValue))
+                    });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  min="0"
+                />
+                <p className="text-xs text-gray-500 mt-2">Acil satılık rozeti ile dikkat çekin</p>
+              </div>
+
+              {/* Renkli Vurgu */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <Sparkles className="h-5 w-5 text-purple-500 mr-2" />
+                  <h3 className="font-semibold text-gray-900">Renkli Vurgu</h3>
+                </div>
+                <input
+                  type="number"
+                  value={settings.highlightPrice}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const numValue = value === '' ? 0 : (isNaN(Number(value)) ? settings.highlightPrice : Number(value));
+                    setSettings({
+                      ...settings,
+                      highlightPrice: Math.max(0, Math.floor(numValue))
+                    });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  min="0"
+                />
+                <p className="text-xs text-gray-500 mt-2">İlanınız renkli çerçeve ile vurgulanır</p>
+              </div>
+
+              {/* Üst Sıralama */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <TrendingUp className="h-5 w-5 text-blue-500 mr-2" />
+                  <h3 className="font-semibold text-gray-900">Üst Sıralama</h3>
+                </div>
+                <input
+                  type="number"
+                  value={settings.topPrice}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const numValue = value === '' ? 0 : (isNaN(Number(value)) ? settings.topPrice : Number(value));
+                    setSettings({
+                      ...settings,
+                      topPrice: Math.max(0, Math.floor(numValue))
+                    });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  min="0"
+                />
+                <p className="text-xs text-gray-500 mt-2">Kategori sayfalarında üst sıralarda yer alın</p>
+              </div>
+            </div>
+          </div>
+
           {/* Fiyat Özeti */}
           <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold mb-4 md:mb-6 flex items-center">
@@ -556,6 +658,29 @@ export default function AdminAyarlarPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Yıllık Premium:</span>
                     <span className="text-sm text-gray-600">{settings.yearlyPremiumPrice} TL</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Premium Özellikler */}
+              <div className="pt-3 border-t">
+                <h4 className="text-sm font-semibold text-gray-800 mb-2">Premium Özellikler</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Öne Çıkan İlan:</span>
+                    <span className="text-sm text-gray-600">{settings.featuredPrice} TL</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Acil Satılık:</span>
+                    <span className="text-sm text-gray-600">{settings.urgentPrice} TL</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Renkli Vurgu:</span>
+                    <span className="text-sm text-gray-600">{settings.highlightPrice} TL</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Üst Sıralama:</span>
+                    <span className="text-sm text-gray-600">{settings.topPrice} TL</span>
                   </div>
                 </div>
               </div>
