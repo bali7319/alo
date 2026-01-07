@@ -114,46 +114,9 @@ async function saveSettingsToDB(settings: any) {
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    // GET isteği için admin kontrolü yok - herkes ayarları okuyabilir (sadece okuma)
+    // PUT isteği için admin kontrolü var (yazma için)
     
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü - önce session'dan role'ü kontrol et
-    let isAdmin = false;
-    
-    // Önce session'dan role bilgisini kontrol et (veritabanı bağlantısı gerektirmez)
-    const userRole = (session.user as any)?.role;
-    if (userRole === 'admin') {
-      isAdmin = true;
-    } else {
-      // Session'da role yoksa veritabanından kontrol et
-      try {
-        const user = await prisma.user.findUnique({
-          where: { email: session.user.email },
-          select: { role: true }
-        });
-        isAdmin = user?.role === 'admin';
-      } catch (dbError) {
-        console.error('Admin kontrolü sırasında veritabanı hatası:', dbError);
-        // Veritabanı hatası durumunda email'e göre kontrol et
-        if (session.user.email) {
-          isAdmin = isAdminEmail(session.user.email);
-        }
-      }
-    }
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok. Sadece admin bu işlemi yapabilir.' },
-        { status: 403 }
-      );
-    }
-
     // Timeout koruması ile veritabanından ayarları getir
     let settings;
     try {
