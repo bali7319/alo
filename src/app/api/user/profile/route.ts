@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { decryptPhone, encryptPhone } from '@/lib/encryption';
+import { sanitizeEmail, sanitizeInput } from '@/lib/sanitize';
+import { safeError, safeLog } from '@/lib/logger';
 
 // Profil bilgilerini getir
 export async function GET() {
@@ -35,9 +38,15 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ user });
+    // Telefon numarasını çöz (şifrelenmişse)
+    const decryptedUser = {
+      ...user,
+      phone: user.phone ? decryptPhone(user.phone) : null,
+    };
+
+    return NextResponse.json({ user: decryptedUser });
   } catch (error) {
-    console.error('Profil getirme hatası:', error);
+    safeError('Profil getirme hatası:', error);
     return NextResponse.json(
       { error: 'Profil bilgileri yüklenirken hata oluştu' },
       { status: 500 }
@@ -58,11 +67,21 @@ export async function PUT(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const phone = formData.get('phone') as string;
-    const location = formData.get('location') as string;
+    let name = formData.get('name') as string;
+    let email = formData.get('email') as string;
+    let phone = formData.get('phone') as string;
+    let location = formData.get('location') as string;
     const avatar = formData.get('avatar') as File | null;
+    
+    // Input sanitization
+    name = sanitizeInput(name);
+    email = sanitizeEmail(email);
+    if (phone) {
+      phone = sanitizeInput(phone);
+    }
+    if (location) {
+      location = sanitizeInput(location);
+    }
 
     // Validasyon
     if (!name || !email) {
@@ -104,12 +123,65 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Profil fotoğrafı işleme (basit implementasyon)
+    // Profil fotoğrafı işleme
     let imageUrl = user.image;
-    if (avatar) {
-      // Gerçek uygulamada burada dosya yükleme işlemi yapılır
-      // Şimdilik basit bir simülasyon
-      imageUrl = `/images/avatars/${Date.now()}-${avatar.name}`;
+    if (avatar && avatar.size > 0) {
+      try {
+        // Dosya boyutu kontrolü (5MB)
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        if (avatar.size > MAX_FILE_SIZE) {
+          return NextResponse.json(
+            { error: 'Dosya boyutu 5MB\'dan küçük olmalıdır' },
+            { status: 400 }
+          );
+        }
+
+        // Dosya tipi kontrolü
+        const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+        if (!ALLOWED_TYPES.includes(avatar.type)) {
+          return NextResponse.json(
+            { error: 'Sadece JPG, PNG, WEBP veya GIF dosyaları yüklenebilir' },
+            { status: 400 }
+          );
+        }
+
+        // Dosyayı okuma
+        const bytes = await avatar.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        // Dosya adı oluştur
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 15);
+        const extension = avatar.name.split('.').pop() || 'jpg';
+        const fileName = `${timestamp}-${random}.${extension}`;
+
+        // Upload dizinini oluştur
+        const { writeFile, mkdir } = await import('fs/promises');
+        const { join } = await import('path');
+        const { existsSync } = await import('fs');
+        
+        const uploadDir = join(process.cwd(), 'public', 'uploads', 'avatars');
+        if (!existsSync(uploadDir)) {
+          await mkdir(uploadDir, { recursive: true });
+        }
+
+        // Dosyayı kaydet
+        const filePath = join(uploadDir, fileName);
+        await writeFile(filePath, buffer);
+
+        // Public URL oluştur
+        imageUrl = `/uploads/avatars/${fileName}`;
+      } catch (uploadError) {
+        safeError('Avatar yükleme hatası:', uploadError);
+        // Avatar yüklenemezse mevcut resmi koru
+      }
+    }
+
+    // Telefon numarasını şifrele (varsa)
+    let encryptedPhone = null;
+    if (phone?.trim()) {
+      const phoneData = encryptPhone(phone.trim());
+      encryptedPhone = phoneData.encrypted; // Sadece encrypted kısmını sakla
     }
 
     // Kullanıcı bilgilerini güncelle
@@ -118,7 +190,7 @@ export async function PUT(request: NextRequest) {
       data: {
         name: name.trim(),
         email: email.trim(),
-        phone: phone?.trim() || null,
+        phone: encryptedPhone, // Şifrelenmiş telefon numarası
         location: location?.trim() || null,
         image: imageUrl,
       },
@@ -133,12 +205,18 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    // Telefon numarasını çöz (response için)
+    const decryptedUser = {
+      ...updatedUser,
+      phone: updatedUser.phone ? decryptPhone(updatedUser.phone) : null,
+    };
+
     return NextResponse.json({ 
       message: 'Profil başarıyla güncellendi',
-      user: updatedUser 
+      user: decryptedUser 
     });
   } catch (error) {
-    console.error('Profil güncelleme hatası:', error);
+    safeError('Profil güncelleme hatası:', error);
     return NextResponse.json(
       { error: 'Profil güncellenirken hata oluştu' },
       { status: 500 }

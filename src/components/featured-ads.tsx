@@ -56,7 +56,7 @@ export function FeaturedAds({ category, subcategory, subSubcategory, limit = 6, 
           </Link>
         )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Öne çıkan ilanlar listesi">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" role="list" aria-label="Öne çıkan ilanlar listesi">
         {displayAds.map((ad) => (
           <div key={ad.id} role="listitem">
             <ListingCard listing={ad} />

@@ -27,9 +27,12 @@ export default function AdminPage() {
   const [deletingDemo, setDeletingDemo] = useState(false);
 
   useEffect(() => {
-    console.log('Admin sayfası yüklendi');
-    console.log('Session:', session);
-    console.log('Status:', status);
+    // Console log'lar sadece development'ta
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Admin sayfası yüklendi');
+      console.log('Session:', session);
+      console.log('Status:', status);
+    }
     
     if (status === 'loading') {
       return; // Hala yükleniyor
@@ -38,7 +41,9 @@ export default function AdminPage() {
     // Admin kontrolü
     const userRole = (session?.user as any)?.role;
     if (!session || userRole !== 'admin') {
-      console.log('Admin yetkisi yok, giriş sayfasına yönlendiriliyor');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Admin yetkisi yok, giriş sayfasına yönlendiriliyor');
+      }
       setError('Admin girişi gerekli. Lütfen giriş yapın.');
       setTimeout(() => {
         const currentPath = window.location.pathname;
@@ -47,13 +52,17 @@ export default function AdminPage() {
       return;
     }
 
-    console.log('Admin kimlik doğrulama başarılı');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Admin kimlik doğrulama başarılı');
+    }
     fetchStats();
   }, [session, status, router]);
 
   const fetchStats = async () => {
     try {
-      console.log('İstatistikler getiriliyor');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('İstatistikler getiriliyor');
+      }
       
       // Demo istatistikler
       const demoStats: Stats = {
@@ -68,7 +77,9 @@ export default function AdminPage() {
       };
       
       setStats(demoStats);
-      console.log('İstatistikler başarıyla yüklendi');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('İstatistikler başarıyla yüklendi');
+      }
     } catch (error) {
       console.error('İstatistik getirme hatası:', error);
       setError('İstatistikler yüklenirken hata oluştu');
@@ -78,7 +89,9 @@ export default function AdminPage() {
   };
 
   const handleLogout = () => {
-    console.log('Çıkış yapılıyor');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Çıkış yapılıyor');
+    }
     signOut({ callbackUrl: '/giris' });
   };
 

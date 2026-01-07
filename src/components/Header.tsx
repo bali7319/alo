@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, Bell, LogOut, Settings, Heart, MessageCircle, Menu, X } from "lucide-react"
+import { User, Bell, LogOut, Settings, Heart, MessageCircle, Menu, X, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -16,10 +16,24 @@ import {
 import { useSession, signOut } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const previousUnreadCountRef = useRef(0);
+  const isInitialLoadRef = useRef(true);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' });
@@ -31,10 +45,107 @@ export default function Header() {
     return `/giris?callbackUrl=${encodeURIComponent(targetPath)}`;
   };
 
+  // Sesli uyarı çal
+  const playNotificationSound = () => {
+    try {
+      // Web Audio API ile basit bir bip sesi oluştur
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800; // 800 Hz
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (error) {
+      // Ses çalma hatası (tarayıcı desteklemiyor olabilir)
+      console.log('Sesli uyarı çalınamadı:', error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    if (!session?.user) return;
+    
+    setLoadingNotifications(true);
+    try {
+      const response = await fetch('/api/notifications');
+      if (response.ok) {
+        const data = await response.json();
+        const newUnreadCount = data.unreadCount || 0;
+        const previousUnreadCount = previousUnreadCountRef.current;
+        
+        // Yeni bildirim geldiğinde sesli uyarı çal (ilk yüklemede çalma)
+        if (!isInitialLoadRef.current && newUnreadCount > previousUnreadCount && previousUnreadCount >= 0) {
+          playNotificationSound();
+        }
+        
+        // İlk yükleme tamamlandı
+        if (isInitialLoadRef.current) {
+          isInitialLoadRef.current = false;
+        }
+        
+        setNotifications(data.notifications || []);
+        setUnreadCount(newUnreadCount);
+        previousUnreadCountRef.current = newUnreadCount;
+      }
+    } catch (error) {
+      console.error('Bildirim yükleme hatası:', error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  // Bildirimleri yükle
+  useEffect(() => {
+    if (session?.user) {
+      fetchNotifications();
+      // Her 30 saniyede bir bildirimleri kontrol et
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [session]);
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId }),
+      });
+      setNotifications(prev =>
+        prev.map(n => (n.id === notificationId ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Bildirim okundu işaretleme hatası:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllAsRead: true }),
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Tüm bildirimleri okundu işaretleme hatası:', error);
+    }
+  };
+
   return (
-    <header className="bg-white border-b shadow-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="bg-white border-b shadow-sm sticky top-0 z-50 print:hidden">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo ve Hamburger Menü */}
           <div className="flex items-center space-x-3">
             {/* Hamburger Menü Butonu - Mobil */}
@@ -76,6 +187,83 @@ export default function Header() {
 
           {/* User Actions */}
           <div className="flex items-center space-x-2 lg:space-x-4">
+            {/* Bildirimler - Sadece giriş yapılmışsa göster */}
+            {session && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="relative p-2 rounded-lg hover:bg-gray-100 transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    aria-label="Bildirimler"
+                  >
+                    <Bell className="h-5 w-5 text-gray-700" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+                  <DropdownMenuLabel className="flex items-center justify-between">
+                    <span>Bildirimler</span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Tümünü okundu işaretle
+                      </button>
+                    )}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {loadingNotifications ? (
+                    <div className="p-4 text-center text-gray-500">Yükleniyor...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">Bildiriminiz yok</div>
+                  ) : (
+                    notifications.slice(0, 10).map((notification) => (
+                      <DropdownMenuItem
+                        key={notification.id}
+                        className={`cursor-pointer ${!notification.isRead ? 'bg-blue-50' : ''}`}
+                        onClick={() => {
+                          if (!notification.isRead) {
+                            markNotificationAsRead(notification.id);
+                          }
+                          // Admin bildirimlerinde ilanlar sayfasına yönlendir
+                          if (notification.type === 'system' && notification.message.includes('ilan')) {
+                            window.location.href = '/admin/ilanlar?status=pending';
+                          }
+                        }}
+                      >
+                        <div className="flex-1">
+                          <div className={`font-medium ${!notification.isRead ? 'text-blue-900' : 'text-gray-900'}`}>
+                            {notification.title}
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">{notification.message}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {new Date(notification.createdAt).toLocaleString('tr-TR')}
+                          </div>
+                        </div>
+                        {!notification.isRead && (
+                          <div className="w-2 h-2 bg-blue-500 rounded-full ml-2"></div>
+                        )}
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                  {notifications.length > 10 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/notifications" className="cursor-pointer text-center">
+                          Tüm bildirimleri gör
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
             {/* Favorilerim Butonu - Sadece giriş yapılmışsa göster */}
             {session && (
               <Link href="/favorilerim" aria-label="Favorilerim">
@@ -150,15 +338,25 @@ export default function Header() {
                       Mesajlarım
                     </Link>
                   </DropdownMenuItem>
-                  {(session.user as any)?.role === 'admin' && (
+                  {((session.user as any)?.role === 'admin' || (session.user as any)?.role === 'moderator') && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin" className="cursor-pointer">
-                          <Settings className="h-4 w-4 mr-2" />
-                          Admin Panel
-                        </Link>
-                      </DropdownMenuItem>
+                      {(session.user as any)?.role === 'moderator' && (
+                        <DropdownMenuItem asChild>
+                          <Link href="/moderator" className="cursor-pointer">
+                            <Shield className="h-4 w-4 mr-2" />
+                            Moderatör Paneli
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      {(session.user as any)?.role === 'admin' && (
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin" className="cursor-pointer">
+                            <Settings className="h-4 w-4 mr-2" />
+                            Admin Panel
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
                     </>
                   )}
                   <DropdownMenuSeparator />
@@ -228,15 +426,29 @@ export default function Header() {
                     <User className="h-5 w-5 mr-3 text-gray-500" />
                     <span className="font-medium">Profil</span>
                   </Link>
-                  {(session.user as any)?.role === 'admin' && (
-                    <Link
-                      href="/admin"
-                      className="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Settings className="h-5 w-5 mr-3 text-purple-500" />
-                      <span className="font-medium">Admin Panel</span>
-                    </Link>
+                  {((session.user as any)?.role === 'admin' || (session.user as any)?.role === 'moderator') && (
+                    <>
+                      {(session.user as any)?.role === 'moderator' && (
+                        <Link
+                          href="/moderator"
+                          className="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <Shield className="h-5 w-5 mr-3 text-purple-500" />
+                          <span className="font-medium">Moderatör Paneli</span>
+                        </Link>
+                      )}
+                      {(session.user as any)?.role === 'admin' && (
+                        <Link
+                          href="/admin"
+                          className="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <Settings className="h-5 w-5 mr-3 text-purple-500" />
+                          <span className="font-medium">Admin Panel</span>
+                        </Link>
+                      )}
+                    </>
                   )}
                   <button
                     onClick={() => {

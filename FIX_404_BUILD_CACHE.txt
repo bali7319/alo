@@ -1,0 +1,5 @@
+# 404 Hatası Düzeltme - Build Cache Temizleme
+
+# Next.js build cache'ini temizle ve yeniden build yap:
+ssh root@alo17.tr "cd /var/www/alo17 && rm -rf .next && npm run build && pm2 restart alo17 && pm2 save"
+

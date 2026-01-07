@@ -1,10 +1,26 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache, createCacheKey } from '@/lib/cache';
 
 // Ana sayfa için optimize edilmiş API route
 // Premium ve latest listings'i birlikte döndürür
 export async function GET() {
   try {
+    // Cache key
+    const cacheKey = createCacheKey('homepage-listings');
+    
+    // Cache kontrolü (60 saniye TTL)
+    const cached = getCache<{ featuredListings: unknown[]; latestListings: unknown[] }>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+          'X-Cache': 'HIT',
+        },
+      });
+    }
+
     // Premium ve latest listings'i paralel olarak çek
     const [premiumListings, latestListings] = await Promise.all([
       // Premium ilanları çek
@@ -94,18 +110,21 @@ export async function GET() {
     const featuredListings = premiumListings.map(formatListing);
     const latest = latestListings.map(formatListing);
 
-    return NextResponse.json(
-      {
-        featuredListings,
-        latestListings: latest,
+    const response = {
+      featuredListings,
+      latestListings: latest,
+    };
+
+    // Cache'e kaydet (60 saniye TTL)
+    setCache(cacheKey, response, 60000);
+
+    return NextResponse.json(response, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        'X-Cache': 'MISS',
       },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-        },
-      }
-    );
+    });
   } catch (error) {
     console.error('Homepage listings fetch error:', error);
     return NextResponse.json(

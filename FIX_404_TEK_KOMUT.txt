@@ -1,0 +1,5 @@
+# 404 Hataları Düzeltme - Tek Komut
+# PowerShell'de çalıştırın:
+
+ssh root@alo17.tr 'cd /var/www/alo17 && rm -rf .next && npm install && npx prisma generate && npm run build && pm2 restart alo17 && pm2 save'
+

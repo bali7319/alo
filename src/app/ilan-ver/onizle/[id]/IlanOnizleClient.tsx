@@ -132,9 +132,26 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
       if (storedData) {
         try {
           const data = JSON.parse(storedData);
-          setPaymentData(data);
+          
+          // Sadece premium plan veya premium özellik varsa paymentData'yı set et
+          if (data.planType !== 'none' || (data.premiumFeaturesPrice && data.premiumFeaturesPrice > 0)) {
+            // Listing ID kontrolü - eğer bu ilan için değilse temizle
+            if (data.listingId && data.listingId !== id && data.listingId !== listing?.id) {
+              // Farklı bir ilan için paymentData, temizle
+              localStorage.removeItem('paymentData');
+              setPaymentData(null);
+            } else {
+              setPaymentData(data);
+            }
+          } else {
+            // Ücretsiz plan seçilmiş, paymentData'yı temizle
+            localStorage.removeItem('paymentData');
+            setPaymentData(null);
+          }
         } catch (error) {
           console.error('Ödeme verisi parse edilemedi:', error);
+          localStorage.removeItem('paymentData');
+          setPaymentData(null);
         }
       }
     }
@@ -153,6 +170,12 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
   const handleSubmitForApproval = async () => {
     const listingIdToUse = listing?.id || id;
     if (!listingIdToUse) return;
+
+    // Premium plan seçilmişse ve ödeme yapılmamışsa onaya gönderme
+    if (hasPayment) {
+      alert('Premium plan seçilmiş. Lütfen önce ödemeyi tamamlayın.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -287,7 +310,11 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
   const features = listing.features ? parseImages(listing.features) : [];
   const premiumFeatures = listing.premiumFeatures ? safeParseJson(listing.premiumFeatures) : null;
 
-  const hasPayment = paymentData && (paymentData.planType !== 'none' || paymentData.premiumFeaturesPrice > 0);
+  // Ödeme gerekip gerekmediğini kontrol et
+  // Premium plan seçilmişse veya premium özellik fiyatı varsa ödeme gerekli
+  const hasPayment = paymentData && 
+    paymentData.totalAmount > 0 && 
+    (paymentData.planType !== 'none' || (paymentData.premiumFeaturesPrice && paymentData.premiumFeaturesPrice > 0));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -437,14 +464,19 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
               </Link>
 
               {hasPayment ? (
-                <button
-                  onClick={handleProceedToPayment}
-                  disabled={isSubmitting}
-                  className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <CreditCard className="w-5 h-5 mr-2" />
-                  {isSubmitting ? 'Yönlendiriliyor...' : 'Ödemeye Geç'}
-                </button>
+                <>
+                  <button
+                    onClick={handleProceedToPayment}
+                    disabled={isSubmitting}
+                    className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <CreditCard className="w-5 h-5 mr-2" />
+                    {isSubmitting ? 'Yönlendiriliyor...' : 'Ödemeye Geç'}
+                  </button>
+                  <div className="w-full text-center text-sm text-yellow-600 mt-2">
+                    ⚠️ Premium plan seçilmiş. Ödeme yapmadan ilan onaya gönderilemez.
+                  </div>
+                </>
               ) : (
                 <button
                   onClick={handleSubmitForApproval}

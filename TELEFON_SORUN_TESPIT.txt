@@ -1,0 +1,15 @@
+# Telefon Numarası Sorun Tespiti - Tek Komutlar
+
+# 1. Veritabanında telefon numaralarını kontrol et
+ssh root@alo17.tr "cd /var/www/alo17 && npx prisma db execute --stdin" <<< "SELECT id, name, email, CASE WHEN phone IS NULL THEN 'NULL' WHEN phone = '' THEN 'EMPTY' WHEN phone LIKE '%:%' THEN 'ENCRYPTED' ELSE 'PLAIN' END as phone_type, LENGTH(phone) as phone_length, SUBSTR(phone, 1, 30) as phone_preview FROM User WHERE phone IS NOT NULL AND phone != '' LIMIT 10;"
+
+# 2. PM2 loglarında telefon ile ilgili mesajları kontrol et
+ssh root@alo17.tr "pm2 logs alo17 --lines 100 --nostream | grep -i 'telefon\|phone\|decrypt'"
+
+# 3. API'yi test et (admin session gerekli)
+# Tarayıcıda: https://alo17.tr/api/admin/users?page=1&limit=5
+# Veya curl ile (session cookie gerekli)
+
+# 4. ENCRYPTION_KEY kontrolü
+ssh root@alo17.tr "cd /var/www/alo17 && grep ENCRYPTION_KEY .env | head -1"
+

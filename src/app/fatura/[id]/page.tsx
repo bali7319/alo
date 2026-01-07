@@ -232,40 +232,62 @@ export default function FaturaPage() {
           {/* İlan Onay Durumu */}
           {invoice.listingId && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800 mb-3">
-                Faturanız başarıyla oluşturuldu.
-                {listing?.approvalStatus === 'pending' ? (
-                  ' İlanınız moderatör onayına gönderildi.'
-                ) : (
-                  ' İlanınızı onaya göndermek için aşağıdaki butona tıklayın.'
-                )}
-              </p>
-              <div className="flex gap-3">
-                {listing?.approvalStatus !== 'pending' ? (
-                  <button
-                    onClick={handleSubmitForApproval}
-                    disabled={isSubmitting}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Gönderiliyor...
-                      </>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    Ödeme Başarılı!
+                  </h3>
+                  <p className="text-sm text-blue-800 mb-3">
+                    Faturanız başarıyla oluşturuldu.
+                    {listing?.approvalStatus === 'pending' ? (
+                      <span className="block mt-2 font-medium">
+                        ✅ İlanınız moderatör onayına gönderildi. Onaylandıktan sonra yayınlanacaktır.
+                      </span>
+                    ) : listing?.approvalStatus === 'approved' ? (
+                      <span className="block mt-2 font-medium text-green-700">
+                        ✅ İlanınız onaylandı ve yayında!
+                      </span>
                     ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        İlanı Onaya Gönder
-                      </>
+                      <span className="block mt-2">
+                        İlanınızı onaya göndermek için aşağıdaki butona tıklayın.
+                      </span>
                     )}
-                  </button>
-                ) : null}
-                <button
-                  onClick={() => router.push('/ilanlarim')}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-                >
-                  İlan Onay Durumunu Görüntüle
-                </button>
+                  </p>
+                  <div className="flex gap-3 flex-wrap">
+                    {listing?.approvalStatus !== 'pending' && listing?.approvalStatus !== 'approved' ? (
+                      <button
+                        onClick={handleSubmitForApproval}
+                        disabled={isSubmitting}
+                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Gönderiliyor...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            İlanı Onaya Gönder
+                          </>
+                        )}
+                      </button>
+                    ) : null}
+                    <button
+                      onClick={() => router.push('/ilanlarim')}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                    >
+                      İlan Onay Durumunu Görüntüle
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

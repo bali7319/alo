@@ -93,34 +93,66 @@ export default function AdminAyarlarPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lastSaveTime, setLastSaveTime] = useState<number | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchSettings = async (skipIfRecentSave = false) => {
-    // Eğer yakın zamanda kaydetme yapıldıysa (60 saniye içinde), fetchSettings'i atla
+    // Eğer yakın zamanda kaydetme yapıldıysa (120 saniye içinde), fetchSettings'i atla
     if (skipIfRecentSave && lastSaveTime) {
       const timeSinceSave = Date.now() - lastSaveTime;
-      if (timeSinceSave < 60000) { // 60 saniye
+      if (timeSinceSave < 120000) { // 120 saniye (2 dakika)
         console.log('Yakın zamanda kaydetme yapıldı, fetchSettings atlanıyor');
         return;
       }
     }
     
+    // İlk yükleme değilse ve interval'den geliyorsa, sadece kontrol amaçlı çalış
+    // Form state'ini değiştirme
+    const isIntervalCheck = !isInitialLoad && skipIfRecentSave;
+    
+    if (isInitialLoad) {
     setLoading(true);
+    }
+    
     try {
       const response = await fetch('/api/admin/settings', {
         cache: 'no-store' // Her zaman güncel ayarları çek
       });
       const data = await response.json();
       
-      if (response.ok) {
-        // API'den gelen tüm ayarları direkt kullan
+      // Response başarılı olsa da olmasa da, data içinde ayarlar varsa kullan
+      if (data && typeof data === 'object' && !data.error) {
+        // Sadece ilk yüklemede form state'ini güncelle
+        if (isInitialLoad) {
         setSettings(data);
+          setIsInitialLoad(false);
+          setLoading(false);
+        }
+        // Interval check ise sadece log (form state'ini değiştirme)
+        else if (isIntervalCheck) {
+          console.log('Ayarlar kontrol edildi (interval), form state korunuyor');
+        }
+      } else if (response.ok && data && typeof data === 'object') {
+        // Response başarılı ama error field'ı var, yine de ayarları kullan
+        if (isInitialLoad) {
+          // Error field'ını çıkar ve ayarları kullan
+          const { error, ...settingsData } = data;
+          if (Object.keys(settingsData).length > 0) {
+            setSettings(settingsData);
+          }
+          setIsInitialLoad(false);
+          setLoading(false);
+        }
       } else {
-        console.error('Hata:', data.error);
+        console.error('Hata:', data.error || 'Bilinmeyen hata');
+        if (isInitialLoad) {
+          setLoading(false);
+        }
       }
     } catch (error) {
       console.error('API hatası:', error);
-    } finally {
+      if (isInitialLoad) {
       setLoading(false);
+      }
     }
   };
 
@@ -138,12 +170,15 @@ export default function AdminAyarlarPage() {
       const data = await response.json();
       
       if (response.ok) {
-        // Kaydetme başarılı, state'teki değerler zaten doğru ve kaydedildi
-        // State'i güncellemeye gerek yok, kullanıcının girdiği değerler korunmalı
-        setLastSaveTime(Date.now()); // Kaydetme zamanını kaydet
+        // Kaydetme başarılı, kaydetme zamanını güncelle
+        setLastSaveTime(Date.now());
+        
+        // State'i güncellemeye gerek yok - kullanıcının girdiği değerler zaten state'te
+        // API'den gelen ayarlar sadece doğrulama için, form state'i korunmalı
+        
         alert('Ayarlar başarıyla güncellendi! Tüm sayfalardaki (İlan Ver, Premium, vb.) fiyatlar ve limitler otomatik olarak güncellenecek.');
       } else {
-        alert('Hata: ' + data.error);
+        alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
       }
     } catch (error) {
       console.error('Kaydetme hatası:', error);
@@ -165,16 +200,20 @@ export default function AdminAyarlarPage() {
       return;
     }
 
+    // Sadece ilk yüklemede fetchSettings çağır
+    if (isInitialLoad) {
     fetchSettings();
+    }
     
-    // Her 30 saniyede bir admin ayarlarını kontrol et (başka sekmede değişiklik yapıldıysa)
+    // Her 60 saniyede bir admin ayarlarını kontrol et (başka sekmede değişiklik yapıldıysa)
     // Ancak yakın zamanda kaydetme yapıldıysa fetchSettings'i atla
     const interval = setInterval(() => {
       fetchSettings(true); // skipIfRecentSave = true
-    }, 30000);
+    }, 60000); // 60 saniye
     
     return () => clearInterval(interval);
-  }, [session, status, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.email, status, isInitialLoad]); // isInitialLoad değiştiğinde de kontrol et
 
   if (status === 'loading') {
     return (

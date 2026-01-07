@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { createSlug } from '@/lib/slug';
+import { isAdmin } from '@/lib/admin-client';
 
 interface Report {
   id: string;
@@ -28,14 +29,7 @@ export default function SikayetlerPage() {
       return;
     }
     // Admin kontrolü
-    const email = session.user.email;
-    const isAdmin = email === "admin@alo17.tr" ||
-      email === "admin@alo17.com" ||
-      email === "destek@alo17.tr" ||
-      email === "destek@alo17.com" ||
-      email.endsWith("@alo17.com") ||
-      email.endsWith("@alo17.tr");
-    if (!isAdmin) {
+    if (!isAdmin(session)) {
       router.push("/");
       return;
     }

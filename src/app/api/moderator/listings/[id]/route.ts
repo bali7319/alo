@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Moderator için ilan onaylama/reddetme
 export async function PATCH(
@@ -19,7 +20,7 @@ export async function PATCH(
     }
 
     // Admin veya moderator kontrolü
-    const user = await (prisma.user.findUnique as any)({
+    const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
         id: true,
@@ -28,7 +29,7 @@ export async function PATCH(
       },
     });
 
-    if (!user || ((user as any).role !== 'admin' && (user as any).role !== 'moderator')) {
+    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin ve moderatörler bu işlemi yapabilir.' },
         { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -50,8 +51,10 @@ export async function PATCH(
       );
     }
 
-    let updateData: any = {
-      moderatorId: user.id,
+    let updateData: Prisma.ListingUpdateInput = {
+      moderator: {
+        connect: { id: user.id },
+      },
       moderatedAt: new Date(),
       moderatorNotes: notes || null,
     };
@@ -145,7 +148,7 @@ export async function PUT(
     }
 
     // Admin veya moderator kontrolü
-    const user = await (prisma.user.findUnique as any)({
+    const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
         id: true,
@@ -154,7 +157,7 @@ export async function PUT(
       },
     });
 
-    if (!user || ((user as any).role !== 'admin' && (user as any).role !== 'moderator')) {
+    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin ve moderatörler bu işlemi yapabilir.' },
         { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -176,8 +179,10 @@ export async function PUT(
     }
 
     // İlan bilgilerini güncelle
-    const updateData: any = {
-      moderatorId: user.id,
+    const updateData: Prisma.ListingUpdateInput = {
+      moderator: {
+        connect: { id: user.id },
+      },
       moderatedAt: new Date(),
     };
 

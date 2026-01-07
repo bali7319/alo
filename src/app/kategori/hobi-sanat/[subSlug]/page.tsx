@@ -79,7 +79,7 @@ export default async function HobiSanatSubPage({ params }: { params: Promise<{ s
             {
               OR: [
                 { subCategory: subSlug },
-                { subCategory: subcategory.name },
+                ...(subcategory?.name ? [{ subCategory: subcategory.name }] : []),
               ],
             },
             {

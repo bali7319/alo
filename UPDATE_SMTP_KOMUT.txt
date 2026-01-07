@@ -1,0 +1,18 @@
+SMTP AYARLARI GUNCELLEME KOMUTU
+================================
+
+Mevcut komutu iptal edin (Ctrl+C) ve asagidaki komutu TEK SATIRDA calistirin:
+
+ssh root@alo17.tr 'cd /var/www/alo17 && sed -i "/^SMTP_HOST=/d; /^SMTP_PORT=/d; /^SMTP_USER=/d; /^SMTP_PASS=/d; /^SMTP_FROM=/d" .env && echo "" >> .env && echo "# SMTP Email (mail.kurumsaleposta.com)" >> .env && echo "SMTP_HOST=mail.kurumsaleposta.com" >> .env && echo "SMTP_PORT=465" >> .env && echo "SMTP_USER=destek@alo17.tr" >> .env && echo "SMTP_PASS=L19--AzF_jG1ij-3" >> .env && echo "SMTP_FROM=destek@alo17.tr" >> .env && grep "^SMTP_" .env && pm2 restart alo17 --update-env'
+
+VEYA adim adim:
+
+1. Eski ayarlari sil:
+ssh root@alo17.tr 'cd /var/www/alo17 && sed -i "/^SMTP_HOST=/d; /^SMTP_PORT=/d; /^SMTP_USER=/d; /^SMTP_PASS=/d; /^SMTP_FROM=/d" .env'
+
+2. Yeni ayarlari ekle:
+ssh root@alo17.tr 'cd /var/www/alo17 && echo "" >> .env && echo "# SMTP Email (mail.kurumsaleposta.com)" >> .env && echo "SMTP_HOST=mail.kurumsaleposta.com" >> .env && echo "SMTP_PORT=465" >> .env && echo "SMTP_USER=destek@alo17.tr" >> .env && echo "SMTP_PASS=L19--AzF_jG1ij-3" >> .env && echo "SMTP_FROM=destek@alo17.tr" >> .env'
+
+3. Kontrol et ve restart:
+ssh root@alo17.tr 'cd /var/www/alo17 && grep "^SMTP_" .env && pm2 restart alo17 --update-env'
+

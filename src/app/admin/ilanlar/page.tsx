@@ -5,9 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-
-// Client-side'da process.env kullanılamaz, bu yüzden hardcoded değer kullanıyoruz
-const ADMIN_EMAIL = 'admin@alo17.tr';
+import { isAdmin } from '@/lib/admin-client';
 
 interface Listing {
   id: string;
@@ -46,21 +44,24 @@ export default function AdminIlanlarPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
+    // Session yüklenene kadar bekle
     if (sessionStatus === 'loading') {
       return;
     }
 
     // Admin kontrolü
-    if (!session || session.user?.email !== ADMIN_EMAIL) {
+    if (!isAdmin(session)) {
       router.push(`/giris?callbackUrl=${encodeURIComponent('/admin/ilanlar')}`);
       return;
     }
 
+    // Session hazır olduğunda hemen veri çek
     fetchListings();
-  }, [session, sessionStatus, router, status, page]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionStatus, status, page]); // session ve router'ı dependency'den çıkardık
 
   const fetchListings = async () => {
-    if (!session || session.user?.email !== ADMIN_EMAIL) {
+    if (!isAdmin(session)) {
       return;
     }
 
@@ -171,15 +172,76 @@ export default function AdminIlanlarPage() {
     );
   }
 
-  if (!session || session.user?.email !== ADMIN_EMAIL) {
+  if (!isAdmin(session)) {
     return null; // Router zaten yönlendirecek
   }
 
   if (loading) {
     return (
-      <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p>İlanlar yükleniyor...</p>
+      <div>
+        <h1 className="text-2xl font-bold mb-4">İlan Yönetimi</h1>
+        
+        {/* Skeleton Screen - Hızlı görünüm için */}
+        <div className="mb-4 flex gap-2">
+          <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        <div className="bg-white rounded shadow overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="p-3 border-b">Başlık</th>
+                <th className="p-3 border-b">Fiyat</th>
+                <th className="p-3 border-b">Kullanıcı</th>
+                <th className="p-3 border-b">Durum</th>
+                <th className="p-3 border-b">İşlem Yapan</th>
+                <th className="p-3 border-b">Premium</th>
+                <th className="p-3 border-b">Tarih</th>
+                <th className="p-3 border-b">Aksiyonlar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(5)].map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td className="p-3 border-b">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                  </td>
+                  <td className="p-3 border-b">
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  </td>
+                  <td className="p-3 border-b">
+                    <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                    <div className="h-3 bg-gray-100 rounded w-32 mb-1"></div>
+                    <div className="h-3 bg-gray-100 rounded w-24"></div>
+                  </td>
+                  <td className="p-3 border-b">
+                    <div className="h-6 bg-gray-200 rounded w-16 mb-2"></div>
+                    <div className="h-3 bg-gray-100 rounded w-12"></div>
+                  </td>
+                  <td className="p-3 border-b">
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  </td>
+                  <td className="p-3 border-b">
+                    <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  </td>
+                  <td className="p-3 border-b">
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  </td>
+                  <td className="p-3 border-b">
+                    <div className="flex gap-2">
+                      <div className="h-8 bg-gray-200 rounded w-16"></div>
+                      <div className="h-8 bg-gray-200 rounded w-16"></div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
@@ -298,8 +360,15 @@ export default function AdminIlanlarPage() {
                 <td className="p-3 border-b">
                   <div>{new Date(listing.createdAt).toLocaleDateString('tr-TR')}</div>
                   {listing.expiresAt && (
-                    <div className="text-xs text-gray-500">
+                    <div className={`text-xs ${
+                      new Date(listing.expiresAt) < new Date() 
+                        ? 'text-red-600 font-semibold' 
+                        : new Date(listing.expiresAt) <= new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
+                        ? 'text-orange-600 font-medium'
+                        : 'text-gray-500'
+                    }`}>
                       {`Son: ${new Date(listing.expiresAt).toLocaleDateString('tr-TR')}`}
+                      {new Date(listing.expiresAt) < new Date() && ' (Süresi Dolmuş)'}
                     </div>
                   )}
                 </td>
@@ -331,13 +400,56 @@ export default function AdminIlanlarPage() {
                         </Button>
                       </>
                     )}
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleAction(listing.id, listing.isPremium ? 'unpremium' : 'premium', 30)}
-                    >
-                      {listing.isPremium ? 'Premium Kaldır' : 'Premium (30g)'}
-                    </Button>
+                    {/* Süre uzatma butonu - süresi dolmuş veya dolmak üzere olan ilanlar için */}
+                    {listing.expiresAt && new Date(listing.expiresAt) <= new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000) && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                        onClick={() => handleAction(listing.id, 'extend', 30)}
+                      >
+                        Süre Uzat (30g)
+                      </Button>
+                    )}
+                    {/* Premium seçenekleri */}
+                    <div className="flex gap-1">
+                      {listing.isPremium ? (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleAction(listing.id, 'unpremium')}
+                        >
+                          Premium Kaldır
+                        </Button>
+                      ) : (
+                        <>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-300"
+                            onClick={() => handleAction(listing.id, 'premium', 30)}
+                          >
+                            Premium (30g)
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-300"
+                            onClick={() => handleAction(listing.id, 'premium', 90)}
+                          >
+                            Premium (3ay)
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300"
+                            onClick={() => handleAction(listing.id, 'premium', 365)}
+                          >
+                            Premium (1yıl)
+                          </Button>
+                        </>
+                      )}
+                    </div>
                     <Button 
                       size="sm" 
                       variant="outline"

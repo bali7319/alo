@@ -1,0 +1,10 @@
+# Telefon Numarası Özellikleri Deploy - TEK KOMUT
+
+# Deploy edilecek dosyalar:
+# 1. src/app/api/admin/users/[id]/route.ts - Telefon numarası güncelleme API
+# 2. src/app/api/listings/[id]/route.ts - İlan API'sinde telefon decrypt
+# 3. src/app/admin/uyeler/page.tsx - Admin panelinde telefon düzenleme UI
+
+# PowerShell'de çalıştırın:
+scp src/app/api/admin/users/[id]/route.ts root@alo17.tr:/var/www/alo17/src/app/api/admin/users/[id]/route.ts; scp src/app/api/listings/[id]/route.ts root@alo17.tr:/var/www/alo17/src/app/api/listings/[id]/route.ts; scp src/app/admin/uyeler/page.tsx root@alo17.tr:/var/www/alo17/src/app/admin/uyeler/page.tsx; ssh root@alo17.tr "cd /var/www/alo17 && npm run build && pm2 restart alo17 && pm2 save"
+

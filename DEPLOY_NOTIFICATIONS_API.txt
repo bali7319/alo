@@ -1,0 +1,4 @@
+# Notifications API Deploy - TEK KOMUT
+
+# Dosyayı sunucuya gönder ve build yap:
+scp src/app/api/notifications/route.ts root@alo17.tr:/var/www/alo17/src/app/api/notifications/route.ts; ssh root@alo17.tr "cd /var/www/alo17 && npm run build && pm2 restart alo17 && pm2 save"

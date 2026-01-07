@@ -173,10 +173,7 @@ export default function IlanVerPage() {
   const predefinedFeatures = [
     'Marka', 'Model', 'Renk', 'Boyut', 'Ağırlık', 'Malzeme', 'Garanti', 'Kullanım Süresi',
     'Durum', 'Paket İçeriği', 'Teknik Özellikler', 'Enerji Sınıfı', 'Güç', 'Kapasite',
-    'Ölçüler', 'Stok Durumu', 'Teslimat', 'Ödeme Seçenekleri', 'İade Koşulları',
-    'Yıl', 'Kilometre', 'Yakıt Tipi', 'Vites', 'Motor Hacmi', 'Çekim', 'Kasa Tipi',
-    'Renk', 'Donanım', 'Servis Geçmişi', 'Sigorta', 'Muayene', 'Ruhsat', 'Fatura',
-    'Kullanım Durumu', 'Ekspertiz', 'Takas', 'Kredi', 'Nakit', 'Pazarlık Payı'
+    'Ölçüler', 'Stok Durumu', 'Teslimat', 'Ödeme Seçenekleri', 'İade Koşulları'
   ];
 
   const [imageError, setImageError] = useState<string>('');
@@ -186,6 +183,7 @@ export default function IlanVerPage() {
     activeListingCount: number;
     totalImages: number;
     limits: { maxListings: number; maxTotalImages: number };
+    isAdmin?: boolean;
   } | null>(null);
 
   // Kullanıcı limitlerini yükle (tüm planlar için)
@@ -210,19 +208,23 @@ export default function IlanVerPage() {
 
   // Plan seçimine göre maksimum resim sayısı
   const MAX_IMAGES = useMemo(() => {
-    switch (selectedPlan) {
-      case 'none':
-        return adminSettings.noneMaxImages;
-      case 'monthly':
-        return adminSettings.monthlyMaxImages;
-      case 'quarterly':
-        return adminSettings.quarterlyMaxImages;
-      case 'yearly':
-        // Yıllık plan: ilan başına resim sayısı (admin ayarlarından)
-        return adminSettings.yearlyMaxImagesPerListing;
-      default:
-        return adminSettings.noneMaxImages;
-    }
+    const maxImages = (() => {
+      switch (selectedPlan) {
+        case 'none':
+          return adminSettings.noneMaxImages;
+        case 'monthly':
+          return adminSettings.monthlyMaxImages;
+        case 'quarterly':
+          return adminSettings.quarterlyMaxImages;
+        case 'yearly':
+          // Yıllık plan: ilan başına resim sayısı (admin ayarlarından)
+          return adminSettings.yearlyMaxImagesPerListing;
+        default:
+          return adminSettings.noneMaxImages;
+      }
+    })();
+    console.log('MAX_IMAGES hesaplandı:', { selectedPlan, maxImages, noneMaxImages: adminSettings.noneMaxImages });
+    return maxImages;
   }, [selectedPlan, userLimits, adminSettings]);
 
   // Giriş kontrolü ve kullanıcı bilgilerini yükle
@@ -556,8 +558,24 @@ export default function IlanVerPage() {
         return;
       }
 
-      // Tüm planlar için limit kontrolleri
-      if (userLimits) {
+      // Tüm planlar için limit kontrolleri (Admin kullanıcıları muaf)
+      // API'den gelen isAdmin bilgisi daha güvenilir, yoksa session'dan veya email'den kontrol et
+      let isAdmin = false;
+      if (userLimits?.isAdmin === true) {
+        isAdmin = true;
+      } else if (session?.user?.role === 'admin') {
+        isAdmin = true;
+      } else if (session?.user?.email) {
+        // Email'den admin kontrolü yap
+        try {
+          const { isAdminEmail } = await import('@/lib/admin');
+          isAdmin = isAdminEmail(session.user.email);
+        } catch (error) {
+          console.error('Admin kontrolü hatası:', error);
+        }
+      }
+      
+      if (userLimits && !isAdmin) {
         // Seçilen plana göre limitleri belirle
         let maxListings = 0;
         
@@ -673,13 +691,14 @@ export default function IlanVerPage() {
           return total;
         }, 0);
 
-      // KDV dahil toplam (KDV oranı %20)
-      const taxRate = 20;
-      const amountWithoutTax = selectedPlanData.price + premiumFeaturesPrice;
-      const totalPrice = amountWithoutTax * (1 + taxRate / 100);
-
-      // Ödeme bilgilerini localStorage'a kaydet (premium seçiliyse)
+      // Ücretsiz plan seçilmişse ve premium özellik yoksa paymentData kaydetme
+      // Premium plan seçilmişse veya premium özellik varsa paymentData kaydet
       if (selectedPlan !== 'none' || premiumFeaturesPrice > 0) {
+        // KDV dahil toplam (KDV oranı %20)
+        const taxRate = 20;
+        const amountWithoutTax = selectedPlanData.price + premiumFeaturesPrice;
+        const totalPrice = amountWithoutTax * (1 + taxRate / 100);
+
         const paymentData = {
           listingId: listingId,
           planType: selectedPlan,
@@ -697,6 +716,11 @@ export default function IlanVerPage() {
 
         if (typeof window !== 'undefined') {
           localStorage.setItem('paymentData', JSON.stringify(paymentData));
+        }
+      } else {
+        // Ücretsiz plan seçilmişse ve premium özellik yoksa paymentData'yı temizle
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('paymentData');
         }
       }
 
@@ -741,30 +765,36 @@ export default function IlanVerPage() {
       }
       
       const settings = await response.json();
+      console.log('Admin ayarları yüklendi:', {
+        noneMaxImages: settings.noneMaxImages,
+        monthlyMaxImages: settings.monthlyMaxImages,
+        quarterlyMaxImages: settings.quarterlyMaxImages,
+        yearlyMaxImagesPerListing: settings.yearlyMaxImagesPerListing
+      });
       setAdminSettings({
-        featuredPrice: settings.featuredPrice || 50,
-        urgentPrice: settings.urgentPrice || 30,
-        highlightPrice: settings.highlightPrice || 25,
-        topPrice: settings.topPrice || 75,
+        featuredPrice: settings.featuredPrice ?? 50,
+        urgentPrice: settings.urgentPrice ?? 30,
+        highlightPrice: settings.highlightPrice ?? 25,
+        topPrice: settings.topPrice ?? 75,
         // Plan bazlı resim limitleri
-        noneMaxImages: settings.noneMaxImages || 3,
-        monthlyMaxImages: settings.monthlyMaxImages || 5,
-        quarterlyMaxImages: settings.quarterlyMaxImages || 10,
-        yearlyMaxImagesPerListing: settings.yearlyMaxImagesPerListing || 10,
+        noneMaxImages: settings.noneMaxImages ?? 3,
+        monthlyMaxImages: settings.monthlyMaxImages ?? 5,
+        quarterlyMaxImages: settings.quarterlyMaxImages ?? 10,
+        yearlyMaxImagesPerListing: settings.yearlyMaxImagesPerListing ?? 10,
         // Plan bazlı ilan limitleri
-        noneMaxListings: settings.noneMaxListings || 0,
-        monthlyMaxListings: settings.monthlyMaxListings || 0,
-        quarterlyMaxListings: settings.quarterlyMaxListings || 0,
-        yearlyMaxListings: settings.yearlyMaxListings || 20,
+        noneMaxListings: settings.noneMaxListings ?? 0,
+        monthlyMaxListings: settings.monthlyMaxListings ?? 0,
+        quarterlyMaxListings: settings.quarterlyMaxListings ?? 0,
+        yearlyMaxListings: settings.yearlyMaxListings ?? 20,
         // Plan bazlı toplam resim limitleri
-        noneMaxTotalImages: settings.noneMaxTotalImages || 0,
-        monthlyMaxTotalImages: settings.monthlyMaxTotalImages || 0,
-        quarterlyMaxTotalImages: settings.quarterlyMaxTotalImages || 0,
-        yearlyMaxTotalImages: settings.yearlyMaxTotalImages || 200,
+        noneMaxTotalImages: settings.noneMaxTotalImages ?? 0,
+        monthlyMaxTotalImages: settings.monthlyMaxTotalImages ?? 0,
+        quarterlyMaxTotalImages: settings.quarterlyMaxTotalImages ?? 0,
+        yearlyMaxTotalImages: settings.yearlyMaxTotalImages ?? 200,
         // Premium paket fiyatları
-        monthlyPremiumPrice: settings.monthlyPremiumPrice || 199,
-        quarterlyPremiumPrice: settings.quarterlyPremiumPrice || 494,
-        yearlyPremiumPrice: settings.yearlyPremiumPrice || 2179
+        monthlyPremiumPrice: settings.monthlyPremiumPrice ?? 199,
+        quarterlyPremiumPrice: settings.quarterlyPremiumPrice ?? 494,
+        yearlyPremiumPrice: settings.yearlyPremiumPrice ?? 2179
       });
     } catch (error) {
       console.error('Admin ayarları yüklenirken hata:', error);
@@ -827,22 +857,22 @@ export default function IlanVerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-6 md:py-8">
+      <div className="container mx-auto px-3 sm:px-4">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">İlan Ver</h1>
-            <p className="text-gray-600">Ürününüzü veya hizmetinizi satışa çıkarın</p>
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">İlan Ver</h1>
+            <p className="text-sm sm:text-base text-gray-600">Ürününüzü veya hizmetinizi satışa çıkarın</p>
           </div>
 
           {/* Premium Plans */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Crown className="w-5 h-5 text-yellow-500 mr-2" />
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center">
+              <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 mr-2" />
               Premium Plan Seçin
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {Object.entries(premiumPlans).map(([key, plan]) => (
                 <div 
                   key={key} 

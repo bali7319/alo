@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Shield, ShieldOff, AlertCircle, Trash2, UserX, UserCheck, Crown, Users } from 'lucide-react';
+import { Shield, ShieldOff, AlertCircle, Trash2, UserX, UserCheck, Crown, Users, Edit2, Check, X } from 'lucide-react';
 
 interface User {
   id: string;
@@ -30,6 +30,8 @@ export default function AdminUyelerPage() {
   const [fetchError, setFetchError] = useState<string>('');
   const [showArmy, setShowArmy] = useState(false);
   const [armyUsers, setArmyUsers] = useState<User[]>([]);
+  const [editingPhoneUserId, setEditingPhoneUserId] = useState<string | null>(null);
+  const [editingPhoneValue, setEditingPhoneValue] = useState<string>('');
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -179,6 +181,50 @@ export default function AdminUyelerPage() {
     }
   };
 
+  const handleEditPhone = (user: User) => {
+    setEditingPhoneUserId(user.id);
+    setEditingPhoneValue(user.phone || '');
+  };
+
+  const handleCancelEditPhone = () => {
+    setEditingPhoneUserId(null);
+    setEditingPhoneValue('');
+  };
+
+  const handleSavePhone = async (userId: string) => {
+    setUpdatingUserId(userId);
+    setError('');
+    
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone: editingPhoneValue }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Telefon numarası güncellenirken bir hata oluştu');
+      }
+
+      // Kullanıcı listesini güncelle
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, phone: editingPhoneValue } : user
+      ));
+      
+      setEditingPhoneUserId(null);
+      setEditingPhoneValue('');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Bir hata oluştu');
+      console.error('Telefon numarası güncelleme hatası:', error);
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
   const fetchArmyUsers = async () => {
     try {
       const response = await fetch('/api/admin/users?role=moderator,admin&limit=100');
@@ -317,7 +363,52 @@ export default function AdminUyelerPage() {
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="p-3 border-b font-medium">{user.name}</td>
                 <td className="p-3 border-b">{user.email}</td>
-                <td className="p-3 border-b">{user.phone || '-'}</td>
+                <td className="p-3 border-b">
+                  {editingPhoneUserId === user.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="tel"
+                        value={editingPhoneValue}
+                        onChange={(e) => setEditingPhoneValue(e.target.value)}
+                        className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Telefon numarası"
+                        disabled={updatingUserId === user.id}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSavePhone(user.id)}
+                        disabled={updatingUserId === user.id}
+                        className="text-xs px-2 py-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        <Check className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelEditPhone}
+                        disabled={updatingUserId === user.id}
+                        className="text-xs px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span>{user.phone || '-'}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEditPhone(user)}
+                        disabled={updatingUserId === user.id || user.email === 'admin@alo17.tr'}
+                        className="text-xs px-1 py-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="Düzenle"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </td>
                 <td className="p-3 border-b">{user.location || '-'}</td>
                 <td className="p-3 border-b">
                   {getRoleBadge(user.role || 'user')}
@@ -341,8 +432,9 @@ export default function AdminUyelerPage() {
                     <select
                       value={user.role || 'user'}
                       onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                      disabled={updatingUserId === user.id}
+                      disabled={updatingUserId === user.id || user.email === 'admin@alo17.tr'}
                       className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      title={user.email === 'admin@alo17.tr' ? 'Bu kullanıcı sistem kullanıcısıdır ve korumalıdır' : ''}
                     >
                       <option value="user">Kullanıcı</option>
                       <option value="moderator">Moderatör</option>
@@ -355,9 +447,9 @@ export default function AdminUyelerPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleToggleActive(user.id, user.isActive !== false)}
-                        disabled={updatingUserId === user.id}
+                        disabled={updatingUserId === user.id || user.email === 'admin@alo17.tr'}
                         className="text-xs px-2 py-1"
-                        title={user.isActive !== false ? 'Pasife Al' : 'Aktif Et'}
+                        title={user.email === 'admin@alo17.tr' ? 'Bu kullanıcı sistem kullanıcısıdır ve korumalıdır' : (user.isActive !== false ? 'Pasife Al' : 'Aktif Et')}
                       >
                         {user.isActive !== false ? (
                           <UserX className="w-3 h-3" />
@@ -369,9 +461,9 @@ export default function AdminUyelerPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleDeleteUser(user.id)}
-                        disabled={updatingUserId === user.id || user.role === 'admin'}
+                        disabled={updatingUserId === user.id || user.role === 'admin' || user.email === 'admin@alo17.tr'}
                         className="text-xs px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        title="Sil"
+                        title={user.email === 'admin@alo17.tr' ? 'Bu kullanıcı sistem kullanıcısıdır ve korumalıdır' : 'Sil'}
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>

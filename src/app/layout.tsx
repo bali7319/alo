@@ -1,4 +1,4 @@
-import { Metadata } from 'next'
+import { Metadata, Viewport } from 'next'
 // import localFont from 'next/font/local'
 import './globals.css'
 import Providers from '@/components/Providers'
@@ -110,6 +110,18 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/apple-icon.svg',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1a1a' },
+  ],
 }
 
 export default function RootLayout({

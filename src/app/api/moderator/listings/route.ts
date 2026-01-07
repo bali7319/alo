@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Moderator için bekleyen ilanları getir
 export async function GET(request: NextRequest) {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Admin veya moderator kontrolü
-    const user = await (prisma.user.findUnique as any)({
+    const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
         id: true,
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (!user || ((user as any).role !== 'admin' && (user as any).role !== 'moderator')) {
+    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin ve moderatörler bu sayfaya erişebilir.' },
         { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Filtre oluştur
-    const where: any = {};
+    const where: Prisma.ListingWhereInput = {};
     if (status && status !== 'all') {
       where.approvalStatus = status;
     } else {

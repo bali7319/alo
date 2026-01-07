@@ -29,7 +29,7 @@ export async function POST(
     }
 
     const { id } = await params;
-    const invoice = await (prisma as any).invoice.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: {
         user: {
@@ -53,7 +53,7 @@ export async function POST(
     // TODO: Gerçek email servisi entegrasyonu (Nodemailer, SendGrid, vb.)
 
     // Email gönderildi olarak işaretle
-    await (prisma as any).invoice.update({
+    await prisma.invoice.update({
       where: { id },
       data: {
         emailSent: true,

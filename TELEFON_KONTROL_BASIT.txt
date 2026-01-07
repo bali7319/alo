@@ -1,0 +1,14 @@
+# Telefon Numarası Kontrolü - Basit Komutlar
+
+# 1. Veritabanında telefon numaralarını kontrol et
+ssh root@alo17.tr "cd /var/www/alo17 && echo 'SELECT COUNT(*) as total_users, COUNT(phone) as users_with_phone FROM User;' | npx prisma db execute --stdin"
+
+# 2. Şifrelenmiş telefon sayısı
+ssh root@alo17.tr "cd /var/www/alo17 && echo \"SELECT COUNT(*) as encrypted_count FROM User WHERE phone LIKE '%:%';\" | npx prisma db execute --stdin"
+
+# 3. Örnek telefon numaraları (ilk 5)
+ssh root@alo17.tr "cd /var/www/alo17 && echo 'SELECT id, name, email, phone FROM User WHERE phone IS NOT NULL AND phone != \"\" LIMIT 5;' | npx prisma db execute --stdin"
+
+# 4. PM2 loglarında telefon ile ilgili mesajlar
+ssh root@alo17.tr "pm2 logs alo17 --lines 50 --nostream | grep -i 'telefon\|phone\|decrypt'"
+

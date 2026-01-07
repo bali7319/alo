@@ -91,7 +91,30 @@ function PaytrPageContent() {
         throw new Error(result.error || 'PayTR başlatılamadı');
       }
 
-      setPaytrData(result);
+      // PayTR verilerini URL parametreleri olarak yeni sayfaya yönlendir
+      const params = new URLSearchParams({
+        merchant_id: result.merchant_id,
+        user_ip: result.user_ip,
+        merchant_oid: result.merchant_oid,
+        email: result.email,
+        payment_amount: result.payment_amount.toString(),
+        paytr_token: result.paytr_token,
+        user_basket: result.user_basket,
+        debug_on: result.debug_on.toString(),
+        no_installment: result.no_installment.toString(),
+        max_installment: result.max_installment.toString(),
+        user_name: result.user_name,
+        user_address: result.user_address,
+        user_phone: result.user_phone,
+        merchant_ok_url: result.merchant_ok_url,
+        merchant_fail_url: result.merchant_fail_url,
+        timeout_limit: result.timeout_limit.toString(),
+        currency: result.currency,
+        test_mode: result.test_mode.toString(),
+      });
+
+      // Yeni yönlendirme sayfasına git
+      router.push(`/odeme/paytr-yonlendir?${params.toString()}`);
     } catch (error: any) {
       console.error('PayTR başlatma hatası:', error);
       setError(error.message || 'Ödeme başlatılırken bir hata oluştu');
@@ -264,9 +287,6 @@ function PaytrPageContent() {
                     src="https://www.paytr.com/img/odeme-logo.png"
                     alt="PayTR"
                     className="h-8 opacity-70"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}

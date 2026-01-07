@@ -6,9 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"  // Localhost için SQLite, Production'da "postgresql" olarak değiştirin
+  provider = "sqlite"  // Local development için SQLite
   url      = env("DATABASE_URL")
-  // Development için: DATABASE_URL="file:./prisma/dev.db"
+  // Development için: DATABASE_URL="file:./prisma/dev.db" ve provider="sqlite"
   // Production için: DATABASE_URL="postgresql://user:password@localhost:5432/dbname" ve provider="postgresql"
 }
 
@@ -279,4 +279,12 @@ model Contract {
   notes       String?  // Admin notları
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model EmailSubscription {
+  id        String   @id @default(cuid())
+  email     String   @unique // Email adresi
+  isActive  Boolean  @default(true) // Abonelik aktif mi?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 } 

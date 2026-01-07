@@ -1,0 +1,16 @@
+# ENCRYPTION_KEY'i sunucuya eklemek için TEK KOMUT:
+
+# Önce key'i okuyun:
+$key = Get-Content ENCRYPTION_KEY.txt -Raw
+
+# Sonra sunucuya ekleyin (2 ayrı komut):
+ssh root@alo17.tr "cd /var/www/alo17 && echo 'ENCRYPTION_KEY=$key' >> .env"
+ssh root@alo17.tr "cd /var/www/alo17 && pm2 restart alo17 && pm2 save"
+
+# VEYA manuel olarak:
+# 1. ENCRYPTION_KEY.txt dosyasını açın ve key'i kopyalayın
+# 2. Şu komutu çalıştırın (KEY'i yapıştırın):
+# ssh root@alo17.tr "cd /var/www/alo17 && echo 'ENCRYPTION_KEY=284b1dd8b4fdbf1ccc4436e2e77163aeaaf8de7c6606fb0f5e4a3f72dd4c5f75' >> .env"
+# 3. PM2'yi restart edin:
+# ssh root@alo17.tr "cd /var/www/alo17 && pm2 restart alo17 && pm2 save"
+

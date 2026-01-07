@@ -1,0 +1,19 @@
+# Eski ENCRYPTION_KEY araması - Devam
+
+# Git history'de bulunamadı. Diğer yöntemleri deneyelim:
+
+# 1. Backup dosyalarını kontrol et:
+ssh root@alo17.tr "cd /var/www/alo17 && find . -maxdepth 3 -name '.env*' -o -name '*backup*' -o -name '*old*' 2>/dev/null | head -20"
+
+# 2. Sunucuda tüm .env dosyalarını listele:
+ssh root@alo17.tr "cd /var/www/alo17 && ls -la .env* 2>/dev/null"
+
+# 3. Veritabanında şifrelenmiş telefon örnekleri (formatı görmek için):
+ssh root@alo17.tr "cd /var/www/alo17 && sqlite3 prisma/dev.db \"SELECT id, name, substr(phone, 1, 80) as phone_preview FROM User WHERE phone IS NOT NULL AND phone != '' AND phone LIKE '%:%' LIMIT 3;\" 2>/dev/null"
+
+# 4. PM2 loglarında encryption ile ilgili mesajlar:
+ssh root@alo17.tr "pm2 logs alo17 --lines 1000 --nostream 2>&1 | grep -i 'encryption\|decrypt\|key\|sifre' | tail -30"
+
+# 5. Sunucuda .env dosyasının içeriğini kontrol et (KEY hariç):
+ssh root@alo17.tr "cd /var/www/alo17 && cat .env | grep -v 'PASSWORD\|SECRET\|KEY' | head -20"
+

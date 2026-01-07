@@ -437,8 +437,8 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
     <div className="min-h-screen bg-gray-50">
       {/* Breadcrumb */}
       <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-2 py-4 text-sm text-gray-600">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
+          <div className="flex items-center space-x-1 sm:space-x-2 py-3 sm:py-4 text-xs sm:text-sm text-gray-600">
             <Link href="/" className="hover:text-alo-orange">Ana Sayfa</Link>
             <ChevronRight className="h-4 w-4" />
             <Link href="/ilanlar" className="hover:text-alo-orange">İlanlar</Link>
@@ -452,8 +452,8 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {/* Sol Kolon - İlan Detayları */}
           <div className="lg:col-span-2 space-y-6">
             {/* İlan Başlığı ve Fiyat */}

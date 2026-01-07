@@ -1,5 +1,14 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+  title: '404 - Sayfa Bulunamadı | Alo17',
+}
 
 export default function NotFound() {
   return (

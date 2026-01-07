@@ -1,0 +1,21 @@
+# Eski ENCRYPTION_KEY'i bulmak için komutlar (sırayla çalıştırın)
+
+# 1. Git history'de ENCRYPTION_KEY ara:
+ssh root@alo17.tr "cd /var/www/alo17 && git log --all --full-history -p -- .env 2>/dev/null | grep -A 3 'ENCRYPTION_KEY' | head -30"
+
+# 2. .env backup dosyalarını kontrol et:
+ssh root@alo17.tr "cd /var/www/alo17 && find . -maxdepth 3 -name '.env*' -o -name '*backup*' -o -name '*old*' 2>/dev/null | head -20"
+
+# 3. Sunucuda tüm .env dosyalarını listele:
+ssh root@alo17.tr "cd /var/www/alo17 && ls -la .env* 2>/dev/null"
+
+# 4. PM2 loglarında encryption ile ilgili mesajlar:
+ssh root@alo17.tr "pm2 logs alo17 --lines 500 --nostream 2>&1 | grep -i 'encryption\|decrypt\|key' | tail -20"
+
+# 5. Veritabanında şifrelenmiş telefon örnekleri (formatı görmek için):
+ssh root@alo17.tr "cd /var/www/alo17 && sqlite3 prisma/dev.db \"SELECT id, name, substr(phone, 1, 60) as phone_preview FROM User WHERE phone IS NOT NULL AND phone != '' AND phone LIKE '%:%' LIMIT 3;\" 2>/dev/null"
+
+# Eğer eski key bulunamazsa, alternatif çözüm:
+# - Kullanıcılar telefon numaralarını yeniden girebilir (profil güncelleme)
+# - Veya telefon numaralarını düz metin olarak tutabiliriz (güvenlik riski)
+

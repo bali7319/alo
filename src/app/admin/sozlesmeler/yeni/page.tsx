@@ -119,6 +119,31 @@ export default function YeniSozlesmePage() {
               <option value="premium">Premium Üyelik</option>
               <option value="privacy">Gizlilik Politikası</option>
               <option value="terms">Kullanım Şartları</option>
+              <option value="commercial">İşyeri Kiralama</option>
+              <option value="vehicle">Araç Kiralama</option>
+              <option value="warehouse">Depo Kiralama</option>
+              <option value="sale">Satış Sözleşmesi</option>
+              <option value="service">Hizmet Sözleşmesi</option>
+              <option value="partnership">Ortaklık Sözleşmesi</option>
+              <optgroup label="Konut ve Gayrimenkul">
+                <option value="housing-transfer">Konut Devir Protokolü</option>
+                <option value="sublease-approval">Alt Kira Onay Mektubu</option>
+                <option value="furnished-housing">Eşyalı Konut Kira Sözleşmesi</option>
+                <option value="eviction-petition">Tahliye Dava Dilekçesi</option>
+                <option value="rent-determination">Kira Tespit Dava Dilekçesi</option>
+                <option value="construction-agreement">Kat Karşılığı Bina Yapım</option>
+                <option value="rent-increase-objection">Kira Artış İtiraz Mektubu</option>
+                <option value="rent-renewal">Kira Yenileme Sözleşmesi</option>
+                <option value="eviction-notice">Tahliye İhtarname</option>
+                <option value="sublease">Alt Kira Anlaşması</option>
+                <option value="rent-increase-notice">Kira Artış İhtarname</option>
+                <option value="rent-termination">Kira Fesih Protokolü</option>
+                <option value="deposit-refund">Depozito İade Talebi</option>
+                <option value="rent-receipt">Kira Ödeme Belgesi</option>
+                <option value="tenant-termination">Kiracı Fesih Bildirimi</option>
+                <option value="rent-delay-notice">Kira Gecikme İhtarname</option>
+                <option value="renovation-request">Tadilat Talebi</option>
+              </optgroup>
             </select>
           </div>
           <div>

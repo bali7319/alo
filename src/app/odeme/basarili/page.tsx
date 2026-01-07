@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
 interface PaymentData {
@@ -19,15 +19,38 @@ interface PaymentData {
   billingTaxId?: string;
 }
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const createInvoiceAndRedirect = async () => {
+    const findOrCreateInvoice = async () => {
       try {
-        // localStorage'dan paymentData'yı al
+        // URL'den merchant_oid al
+        const merchant_oid = searchParams.get('merchant_oid');
+        
+        // Önce webhook'ta oluşturulmuş faturayı kontrol et
+        if (merchant_oid) {
+          try {
+            const invoiceResponse = await fetch(`/api/payment/find-invoice?merchant_oid=${encodeURIComponent(merchant_oid)}`);
+            if (invoiceResponse.ok) {
+              const invoiceData = await invoiceResponse.json();
+              if (invoiceData.invoiceId) {
+                // Fatura zaten webhook'ta oluşturulmuş, direkt fatura sayfasına yönlendir
+                console.log('Fatura webhook\'ta oluşturulmuş, yönlendiriliyor:', invoiceData.invoiceId);
+                router.push(`/fatura/${invoiceData.invoiceId}`);
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('Fatura arama hatası (devam ediliyor):', error);
+            // Hata olsa bile devam et, localStorage'dan fatura oluşturmayı dene
+          }
+        }
+
+        // Webhook'ta fatura bulunamadıysa, localStorage'dan paymentData'yı al ve fatura oluştur
         const storedData = typeof window !== 'undefined' ? localStorage.getItem('paymentData') : null;
         
         if (!storedData) {
@@ -71,8 +94,8 @@ export default function PaymentSuccessPage() {
       }
     };
 
-    createInvoiceAndRedirect();
-  }, [router]);
+    findOrCreateInvoice();
+  }, [router, searchParams]);
 
   if (isCreatingInvoice) {
     return (
@@ -124,4 +147,16 @@ export default function PaymentSuccessPage() {
   }
 
   return null;
-} 
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
+  );
+}

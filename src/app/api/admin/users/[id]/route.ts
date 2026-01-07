@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Kullanıcı rolünü güncelle (moderator atama/kaldırma)
 export async function PATCH(
@@ -19,7 +20,7 @@ export async function PATCH(
     }
 
     // Sadece admin rol değiştirebilir
-    const adminUser = await (prisma.user.findUnique as any)({
+    const adminUser = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
         id: true,
@@ -28,7 +29,7 @@ export async function PATCH(
       },
     });
 
-    if (!adminUser || (adminUser as any).role !== 'admin') {
+    if (!adminUser || adminUser.role !== 'admin') {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin kullanıcı rolleri değiştirebilir.' },
         { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -37,7 +38,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { role, isActive } = body; // "user", "moderator", "admin" veya isActive boolean
+    const { role, phone } = body; // "user", "moderator", "admin", phone
 
     // Kullanıcıyı bul
     const user = await prisma.user.findUnique({
@@ -51,8 +52,27 @@ export async function PATCH(
       );
     }
 
+    // admin@alo17.tr kullanıcısı korumalı - rolü değiştirilemez
+    if (user.email === 'admin@alo17.tr' && role !== undefined && role !== user.role) {
+      return NextResponse.json(
+        { error: 'Bu kullanıcı sistem kullanıcısıdır ve korumalıdır. Rolü değiştirilemez.' },
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Güncellenecek verileri hazırla
-    const updateData: any = {};
+    const updateData: Prisma.UserUpdateInput = {};
+    
+    // Telefon numarası güncelleme
+    if (phone !== undefined) {
+      const { encryptPhone } = await import('@/lib/encryption');
+      if (phone && phone.trim() !== '') {
+        const phoneData = encryptPhone(phone.trim());
+        updateData.phone = phoneData.encrypted;
+      } else {
+        updateData.phone = null;
+      }
+    }
     
     if (role !== undefined) {
       // Geçerli roller
@@ -64,23 +84,28 @@ export async function PATCH(
         );
       }
 
-      // Admin kendisinin rolünü değiştiremez
-      if (id === adminUser.id && role !== 'admin') {
-        return NextResponse.json(
-          { error: 'Kendi rolünüzü değiştiremezsiniz' },
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
+      // Eğer bir admin kullanıcısının rolü admin'den başka bir şeye değiştiriliyorsa,
+      // sistemde en az bir admin kalmalı kontrolü yap
+      if (user.role === 'admin' && role !== 'admin') {
+        // Toplam admin sayısını kontrol et
+        const adminCount = await prisma.user.count({
+          where: { role: 'admin' }
+        });
+        
+        // Eğer sadece bir admin varsa ve bu admin'in rolü değiştirilmeye çalışılıyorsa
+        if (adminCount <= 1) {
+          return NextResponse.json(
+            { error: 'Sistemde en az bir admin kullanıcı bulunmalıdır. Bu kullanıcının rolü değiştirilemez.' },
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
       }
       
       updateData.role = role;
     }
-    
-    if (isActive !== undefined) {
-      updateData.isActive = isActive;
-    }
 
     // Kullanıcıyı güncelle
-    const updatedUser = await (prisma.user.update as any)({
+    const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,
       select: {
@@ -143,7 +168,7 @@ export async function DELETE(
     }
 
     // Sadece admin kullanıcı silebilir
-    const adminUser = await (prisma.user.findUnique as any)({
+    const adminUser = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
         id: true,
@@ -152,7 +177,7 @@ export async function DELETE(
       },
     });
 
-    if (!adminUser || (adminUser as any).role !== 'admin') {
+    if (!adminUser || adminUser.role !== 'admin') {
       return NextResponse.json(
         { error: 'Yetkiniz yok. Sadece admin kullanıcı silebilir.' },
         { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -178,6 +203,14 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Kullanıcı bulunamadı' },
         { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // admin@alo17.tr kullanıcısı korumalı - silinemez
+    if (user.email === 'admin@alo17.tr') {
+      return NextResponse.json(
+        { error: 'Bu kullanıcı sistem kullanıcısıdır ve korumalıdır. Silinemez.' },
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }
 

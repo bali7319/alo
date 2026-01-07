@@ -1,0 +1,5 @@
+# Sunucu Temizlik - Tek Komut
+# PowerShell'de çalıştırın:
+
+ssh root@alo17.tr 'cd /var/www/alo17 && echo "=== SUNUCU TEMIZLIK ===" && echo "" && echo "1. Eski PM2 loglari temizleniyor (7 gunden eski)..." && find ~/.pm2/logs -name "*.log" -type f -mtime +7 -delete 2>/dev/null && echo "   Eski PM2 loglari silindi" && echo "" && echo "2. Eski application loglari temizleniyor (7 gunden eski)..." && find logs -name "*.log" -type f -mtime +7 -delete 2>/dev/null && echo "   Eski loglar silindi" && echo "" && echo "3. Eski backup dosyalari temizleniyor (30 gunden eski)..." && find . -maxdepth 1 -name "*.tar.gz" -type f -mtime +30 -delete 2>/dev/null && echo "   Eski backup dosyalari silindi" && echo "" && echo "4. Gecici dosyalar temizleniyor..." && find . -name "*.tmp" -o -name "*.temp" -o -name ".DS_Store" -delete 2>/dev/null && echo "   Gecici dosyalar silindi" && echo "" && echo "5. Next.js cache temizleniyor..." && rm -rf .next/cache 2>/dev/null && echo "   Next.js cache temizlendi" && echo "" && echo "6. Disk kullanimi:" && df -h / | tail -1 && echo "" && echo "=== TEMIZLIK TAMAMLANDI ==="'
+

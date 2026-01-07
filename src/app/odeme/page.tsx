@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Image from 'next/image';
-import { CreditCard, CheckCircle, XCircle, Loader2, FileText, Mail, Lock, Shield } from 'lucide-react';
+import { Loader2, FileText, Lock, Shield } from 'lucide-react';
 
 interface PaymentData {
   listingId?: string;
@@ -21,38 +20,13 @@ interface PaymentData {
   billingTaxId?: string;
 }
 
-interface PayTRResponse {
-  merchant_id: string;
-  user_ip: string;
-  merchant_oid: string;
-  email: string;
-  payment_amount: number;
-  paytr_token: string;
-  user_basket: string;
-  debug_on: number;
-  no_installment: number;
-  max_installment: number;
-  user_name: string;
-  user_address: string;
-  user_phone: string;
-  merchant_ok_url: string;
-  merchant_fail_url: string;
-  timeout_limit: number;
-  currency: string;
-  test_mode: number;
-}
-
 function OdemePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed'>('pending');
-  const [paytrData, setPaytrData] = useState<PayTRResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const paytrFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     // URL'den veya localStorage'dan ödeme bilgilerini al
@@ -62,25 +36,37 @@ function OdemePageContent() {
     if (storedData) {
       try {
         const data = JSON.parse(storedData);
+        
+        // Ücretsiz plan veya ödeme gerektirmeyen durum kontrolü
+        if (data.planType === 'none' && (!data.premiumFeaturesPrice || data.premiumFeaturesPrice === 0)) {
+          // Ücretsiz plan seçilmiş, ödeme sayfasına gerek yok
+          console.log('Ücretsiz plan seçilmiş, ödeme sayfasına gerek yok');
+          router.push(`/ilan-ver/onizle/${listingId || data.listingId}`);
+          return;
+        }
+        
+        // Toplam tutar kontrolü - 0 veya negatif ise ödeme sayfasına gerek yok
+        if (!data.totalAmount || data.totalAmount <= 0) {
+          console.log('Ödeme tutarı 0 veya negatif, ödeme sayfasına gerek yok');
+          router.push(`/ilan-ver/onizle/${listingId || data.listingId}`);
+          return;
+        }
+        
         setPaymentData({ ...data, listingId: listingId || data.listingId });
       } catch (error) {
         console.error('Ödeme verisi parse edilemedi:', error);
         router.push('/ilan-ver');
       }
     } else {
-      router.push('/ilan-ver');
+      // PaymentData yoksa, ücretsiz plan seçilmiş olabilir - önizleme sayfasına yönlendir
+      if (listingId) {
+        router.push(`/ilan-ver/onizle/${listingId}`);
+      } else {
+        router.push('/ilan-ver');
+      }
     }
   }, [searchParams, router]);
 
-  // PayTR formunu otomatik submit et
-  useEffect(() => {
-    if (paytrData && paytrFormRef.current) {
-      // Kısa bir gecikme ile formu submit et (iframe'in yüklenmesi için)
-      setTimeout(() => {
-        paytrFormRef.current?.submit();
-      }, 500);
-    }
-  }, [paytrData]);
 
   const initializePayTR = async () => {
     if (!paymentData || !session?.user || !paymentData.listingId) {
@@ -116,13 +102,34 @@ function OdemePageContent() {
         throw new Error(result.error || 'PayTR başlatılamadı');
       }
 
-      // PayTR verilerini kaydet
-      setPaytrData(result);
+      // PayTR verilerini URL parametreleri olarak yeni sayfaya yönlendir
+      const params = new URLSearchParams({
+        merchant_id: result.merchant_id,
+        user_ip: result.user_ip,
+        merchant_oid: result.merchant_oid,
+        email: result.email,
+        payment_amount: result.payment_amount.toString(),
+        paytr_token: result.paytr_token,
+        user_basket: result.user_basket,
+        debug_on: result.debug_on.toString(),
+        no_installment: result.no_installment.toString(),
+        max_installment: result.max_installment.toString(),
+        user_name: result.user_name,
+        user_address: result.user_address,
+        user_phone: result.user_phone,
+        merchant_ok_url: result.merchant_ok_url,
+        merchant_fail_url: result.merchant_fail_url,
+        timeout_limit: result.timeout_limit.toString(),
+        currency: result.currency,
+        test_mode: result.test_mode.toString(),
+      });
+
+      // Yeni yönlendirme sayfasına git
+      router.push(`/odeme/paytr-yonlendir?${params.toString()}`);
       
     } catch (error: any) {
       console.error('PayTR başlatma hatası:', error);
       setError(error.message || 'Ödeme başlatılırken bir hata oluştu.');
-    } finally {
       setIsInitializing(false);
     }
   };
@@ -140,61 +147,6 @@ function OdemePageContent() {
   const amountWithoutTax = paymentData.totalAmount / (1 + taxRate / 100);
   const taxAmount = paymentData.totalAmount - amountWithoutTax;
 
-  // PayTR iframe gösteriliyorsa
-  if (paytrData) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="flex items-center justify-center mb-6">
-              <Shield className="w-8 h-8 text-green-600 mr-2" />
-              <h1 className="text-2xl font-bold text-gray-900">Güvenli Ödeme - PayTR</h1>
-            </div>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-blue-800 flex items-center">
-                <Lock className="w-4 h-4 mr-2" />
-                Ödeme işleminiz SSL ile şifrelenmiş güvenli bir ortamda gerçekleştirilmektedir.
-              </p>
-            </div>
-
-            {/* PayTR Form */}
-            <form
-              ref={paytrFormRef}
-              method="POST"
-              action="https://www.paytr.com/odeme/guvenli"
-              id="paytr-form"
-            >
-              <input type="hidden" name="merchant_id" value={paytrData.merchant_id} />
-              <input type="hidden" name="user_ip" value={paytrData.user_ip} />
-              <input type="hidden" name="merchant_oid" value={paytrData.merchant_oid} />
-              <input type="hidden" name="email" value={paytrData.email} />
-              <input type="hidden" name="payment_amount" value={paytrData.payment_amount} />
-              <input type="hidden" name="paytr_token" value={paytrData.paytr_token} />
-              <input type="hidden" name="user_basket" value={paytrData.user_basket} />
-              <input type="hidden" name="debug_on" value={paytrData.debug_on} />
-              <input type="hidden" name="no_installment" value={paytrData.no_installment} />
-              <input type="hidden" name="max_installment" value={paytrData.max_installment} />
-              <input type="hidden" name="user_name" value={paytrData.user_name} />
-              <input type="hidden" name="user_address" value={paytrData.user_address} />
-              <input type="hidden" name="user_phone" value={paytrData.user_phone} />
-              <input type="hidden" name="merchant_ok_url" value={paytrData.merchant_ok_url} />
-              <input type="hidden" name="merchant_fail_url" value={paytrData.merchant_fail_url} />
-              <input type="hidden" name="timeout_limit" value={paytrData.timeout_limit} />
-              <input type="hidden" name="currency" value={paytrData.currency} />
-              <input type="hidden" name="test_mode" value={paytrData.test_mode} />
-            </form>
-
-            {/* Loading indicator */}
-            <div className="text-center py-8">
-              <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-600">PayTR ödeme sayfasına yönlendiriliyorsunuz...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">

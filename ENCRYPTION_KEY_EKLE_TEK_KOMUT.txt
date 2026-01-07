@@ -1,0 +1,10 @@
+# ENCRYPTION_KEY'i sunucuya eklemek için TEK KOMUT:
+
+ssh root@alo17.tr "cd /var/www/alo17 && echo 'ENCRYPTION_KEY=284b1dd8b4fdbf1ccc4436e2e77163aeaaf8de7c6606fb0f5e4a3f72dd4c5f75' >> .env"
+
+# Sonra kontrol edin:
+ssh root@alo17.tr "cd /var/www/alo17 && grep ENCRYPTION_KEY .env"
+
+# Sonra PM2'yi restart edin:
+ssh root@alo17.tr "cd /var/www/alo17 && pm2 restart alo17 && pm2 save"
+

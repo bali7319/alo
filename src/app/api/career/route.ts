@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createCareerApplicationSchema } from '@/lib/validations/career';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Zod validation
+    const validationResult = createCareerApplicationSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Validasyon hatası',
+          details: validationResult.error.issues.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
     const {
       fullName,
       email,
@@ -13,24 +30,7 @@ export async function POST(request: NextRequest) {
       education,
       coverLetter,
       resume,
-    } = body;
-
-    // Validasyon
-    if (!fullName || !email || !phone || !position || !coverLetter) {
-      return NextResponse.json(
-        { error: 'Lütfen tüm zorunlu alanları doldurun' },
-        { status: 400 }
-      );
-    }
-
-    // Email validasyonu
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Geçerli bir email adresi giriniz' },
-        { status: 400 }
-      );
-    }
+    } = validationResult.data;
 
     // Kariyer başvurusu oluştur
     const application = await prisma.careerApplication.create({

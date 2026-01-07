@@ -1,0 +1,15 @@
+# 404 Hatası Kontrol ve Düzeltme
+
+# 1. Sunucuda dosya kontrolü:
+ssh root@alo17.tr "ls -la /var/www/alo17/src/app/api/admin/users/[id]/route.ts"
+
+# 2. Next.js build cache temizleme:
+ssh root@alo17.tr "cd /var/www/alo17 && rm -rf .next && npm run build && pm2 restart alo17 && pm2 save"
+
+# 3. PM2 loglarında hata kontrolü:
+ssh root@alo17.tr "pm2 logs alo17 --lines 50 --nostream | grep -i '404\|error\|not found'"
+
+# 4. API endpoint test:
+# Tarayıcı console'unda:
+# fetch('/api/admin/users/cmjxxx123').then(r => r.json()).then(console.log)
+

@@ -12,7 +12,7 @@ function generateInvoiceNumber(): string {
 }
 
 // XML formatında fatura oluştur
-function generateInvoiceXML(invoice: any, user: any): string {
+function generateInvoiceXML(invoice: { invoiceNumber: string; createdAt: Date; billingName: string; billingEmail: string; billingPhone?: string | null; billingAddress?: string | null; billingTaxId?: string | null; planName?: string | null; amount: number; taxRate: number; taxAmount: number; totalAmount: number; status: string; paymentDate?: Date | null; paymentMethod?: string | null }, user: { name?: string | null; email: string }): string {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice>
   <InvoiceNumber>${invoice.invoiceNumber}</InvoiceNumber>
@@ -48,7 +48,7 @@ function generateInvoiceXML(invoice: any, user: any): string {
 }
 
 // Excel formatında fatura oluştur (CSV formatında)
-function generateInvoiceExcel(invoice: any, user: any): string {
+function generateInvoiceExcel(invoice: { invoiceNumber: string; createdAt: Date; billingName: string; billingEmail: string; billingPhone?: string | null; billingAddress?: string | null; billingTaxId?: string | null; planName?: string | null; amount: number; taxRate: number; taxAmount: number; totalAmount: number; status: string; paymentDate?: Date | null; paymentMethod?: string | null }, user: { name?: string | null; email: string }): string {
   const csv = `Fatura No,${invoice.invoiceNumber}
 Fatura Tarihi,${invoice.createdAt.toISOString().split('T')[0]}
 Müşteri Adı,${invoice.billingName}
@@ -117,18 +117,18 @@ export async function POST(request: NextRequest) {
     // Fatura numarası oluştur
     let invoiceNumber = generateInvoiceNumber();
     // Benzersizlik kontrolü
-    let existingInvoice = await (prisma as any).invoice.findUnique({
+    let existingInvoice = await prisma.invoice.findUnique({
       where: { invoiceNumber },
     });
     while (existingInvoice) {
       invoiceNumber = generateInvoiceNumber();
-      existingInvoice = await (prisma as any).invoice.findUnique({
+      existingInvoice = await prisma.invoice.findUnique({
         where: { invoiceNumber },
       });
     }
 
     // Fatura oluştur
-    const invoice = await (prisma as any).invoice.create({
+    const invoice = await prisma.invoice.create({
       data: {
         invoiceNumber,
         userId: user.id,
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     const excelData = generateInvoiceExcel(invoice, user);
 
     // Faturayı güncelle (XML ve Excel verilerini ekle)
-    const updatedInvoice = await (prisma as any).invoice.update({
+    const updatedInvoice = await prisma.invoice.update({
       where: { id: invoice.id },
       data: {
         xmlData,

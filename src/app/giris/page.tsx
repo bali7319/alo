@@ -9,7 +9,9 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams?.get('callbackUrl') || '/';
+  const rawCallbackUrl = searchParams?.get('callbackUrl') || '/';
+  // URL decode işlemi
+  const callbackUrl = rawCallbackUrl ? decodeURIComponent(rawCallbackUrl) : '/';
   const errorParam = searchParams?.get('error');
   
   const [showPassword, setShowPassword] = useState(false);
@@ -31,12 +33,12 @@ function LoginForm() {
         'Configuration': 'Sunucu yapılandırma hatası. Lütfen yöneticiye başvurun.',
         'AccessDenied': 'Giriş reddedildi. Lütfen tekrar deneyin.',
         'Verification': 'Doğrulama hatası. Lütfen tekrar deneyin.',
-        'OAuthSignin': 'OAuth giriş hatası. Lütfen tekrar deneyin.',
-        'OAuthCallback': 'OAuth callback hatası. Lütfen tekrar deneyin.',
+        'OAuthSignin': 'Google giriş hatası. Lütfen tekrar deneyin veya email/şifre ile giriş yapın.',
+        'OAuthCallback': 'Google giriş callback hatası. Lütfen tekrar deneyin.',
         'OAuthCreateAccount': 'Hesap oluşturma hatası. Lütfen tekrar deneyin.',
         'EmailCreateAccount': 'Email ile hesap oluşturma hatası.',
         'Callback': 'Callback hatası. Lütfen tekrar deneyin.',
-        'OAuthAccountNotLinked': 'Bu email adresi başka bir hesap ile bağlantılı.',
+        'OAuthAccountNotLinked': 'Bu email adresi başka bir hesap ile bağlantılı. Email/şifre ile giriş yapmayı deneyin.',
         'EmailSignin': 'Email gönderme hatası. Lütfen tekrar deneyin.',
         'CredentialsSignin': 'Geçersiz email veya şifre.',
         'SessionRequired': 'Oturum açmanız gerekiyor.',
@@ -84,14 +86,10 @@ function LoginForm() {
         }
         
         // Giriş başarılı, session'ın yüklenmesi için kısa bir bekleme
+        // Eğer callbackUrl varsa (korunan sayfadan geldiyse) oraya, yoksa ana sayfaya yönlendir
         setTimeout(() => {
-          // Admin ise admin paneline yönlendir
-          if (formData.email === 'admin@alo17.tr') {
-            router.push('/admin');
-          } else {
-            // callbackUrl varsa oraya, yoksa ana sayfaya yönlendir
-            router.push(callbackUrl || '/');
-          }
+          const targetUrl = callbackUrl && callbackUrl !== '/giris' ? callbackUrl : '/';
+          router.push(targetUrl);
         }, 100);
       }
     } catch (error) {
@@ -275,7 +273,14 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Yükleniyor...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-alo-light flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-alo-orange mx-auto"></div>
+          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    }>
       <LoginForm />
     </Suspense>
   );

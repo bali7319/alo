@@ -9,7 +9,7 @@ interface CacheEntry<T> {
 }
 
 // In-memory cache store
-const cacheStore = new Map<string, CacheEntry<any>>();
+const cacheStore = new Map<string, CacheEntry<unknown>>();
 
 /**
  * Cache'den veri alır

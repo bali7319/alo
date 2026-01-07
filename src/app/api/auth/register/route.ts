@@ -1,41 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hash } from 'bcryptjs';
+import { registerSchema } from '@/lib/validations/user';
+import { encryptPhone } from '@/lib/encryption';
+import { sanitizeEmail, sanitizeInput } from '@/lib/sanitize';
+import { safeLog, safeError } from '@/lib/logger';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting kontrolü
+    const ip = getClientIP(request);
+    const rateLimit = checkRateLimit(`register:${ip}`, 5, 60000); // 5 istek/dakika
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          message: 'Çok fazla kayıt denemesi. Lütfen daha sonra tekrar deneyin.',
+          error: 'RATE_LIMIT_EXCEEDED'
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
-    const { name, email, phone, password } = body;
 
-    // Validasyon
-    if (!name || !email || !password) {
+    // Zod validation
+    const validationResult = registerSchema.safeParse(body);
+    if (!validationResult.success) {
       return NextResponse.json(
         { 
-          message: 'Ad, email ve şifre zorunludur',
-          error: 'VALIDATION_ERROR'
+          message: 'Validasyon hatası',
+          error: 'VALIDATION_ERROR',
+          details: validationResult.error.issues.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
         },
         { status: 400 }
       );
     }
 
-    // Email format kontrolü
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    let { name, email, phone, password } = validationResult.data;
+    
+    // Input sanitization
+    name = sanitizeInput(name);
+    email = sanitizeEmail(email);
+    if (phone) {
+      phone = sanitizeInput(phone);
+    }
+    
+    if (!email) {
       return NextResponse.json(
         { 
-          message: 'Geçerli bir email adresi giriniz',
+          message: 'Geçersiz email adresi',
           error: 'INVALID_EMAIL'
-        },
-        { status: 400 }
-      );
-    }
-
-    // Şifre uzunluk kontrolü
-    if (password.length < 6) {
-      return NextResponse.json(
-        { 
-          message: 'Şifre en az 6 karakter olmalıdır',
-          error: 'WEAK_PASSWORD'
         },
         { status: 400 }
       );
@@ -59,12 +78,19 @@ export async function POST(request: NextRequest) {
     // Şifreyi hashle
     const hashedPassword = await hash(password, 12);
 
+    // Telefon numarasını şifrele (varsa)
+    let encryptedPhone = null;
+    if (phone) {
+      const phoneData = encryptPhone(phone);
+      encryptedPhone = phoneData.encrypted;
+    }
+
     // Kullanıcıyı oluştur
     const user = await prisma.user.create({
       data: {
         name,
         email,
-        phone: phone || null,
+        phone: encryptedPhone, // Şifrelenmiş telefon numarası
         password: hashedPassword,
         location: null,
       },
@@ -86,7 +112,7 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('Kayıt hatası:', error);
+    safeError('Kayıt hatası:', error);
     
     // Error object'i güvenli şekilde serialize et
     const errorMessage = error instanceof Error ? error.message : 'Kayıt işlemi sırasında bir hata oluştu';

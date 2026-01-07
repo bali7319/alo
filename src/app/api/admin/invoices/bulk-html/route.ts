@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Faturaları getir
-    const invoices = await (prisma as any).invoice.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         id: { in: invoiceIds },
       },

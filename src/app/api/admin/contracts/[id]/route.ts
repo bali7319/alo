@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+import { updateContractSchema } from '@/lib/validations/contract';
 
 // GET - Tek sözleşme getir
 export async function GET(
@@ -11,15 +13,13 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
 
-    const userRole = (session?.user as any)?.role;
+    const userRole = session?.user?.role;
     if (!session || userRole !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
-    // TODO: Contract tablosu oluşturulduktan sonra aktif edilecek
-    // Geçici olarak type assertion kullanıyoruz
-    const contract = await (prisma as any).contract?.findUnique({
+    const contract = await prisma.contract.findUnique({
       where: { id },
     });
 
@@ -28,10 +28,11 @@ export async function GET(
     }
 
     return NextResponse.json(contract);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sözleşme getirme hatası:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
     return NextResponse.json(
-      { error: 'Sözleşme yüklenemedi', details: error.message },
+      { error: 'Sözleşme yüklenemedi', details: errorMessage },
       { status: 500 }
     );
   }
@@ -45,13 +46,29 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
 
-    const userRole = (session?.user as any)?.role;
+    const userRole = session?.user?.role;
     if (!session || userRole !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
     const body = await request.json();
+
+    // Zod validation (partial - sadece gönderilen alanlar validate edilir)
+    const validationResult = updateContractSchema.partial().safeParse({ ...body, id });
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Validasyon hatası',
+          details: validationResult.error.issues.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
     const {
       title,
       type,
@@ -61,17 +78,9 @@ export async function PUT(
       isRequired,
       language,
       expiresAt,
-    } = body;
+    } = validationResult.data;
 
-    // Validasyon
-    if (!title || !type || !content || !version || !language) {
-      return NextResponse.json(
-        { error: 'Tüm zorunlu alanlar doldurulmalı' },
-        { status: 400 }
-      );
-    }
-
-    const existingContract = await (prisma as any).contract.findUnique({
+    const existingContract = await prisma.contract.findUnique({
       where: { id },
     });
 
@@ -84,7 +93,7 @@ export async function PUT(
       ? new Date()
       : existingContract.publishedAt;
 
-    const contract = await (prisma as any).contract.update({
+    const contract = await prisma.contract.update({
       where: { id },
       data: {
         title,
@@ -100,10 +109,11 @@ export async function PUT(
     });
 
     return NextResponse.json(contract);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sözleşme güncelleme hatası:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
     return NextResponse.json(
-      { error: 'Sözleşme güncellenemedi', details: error.message },
+      { error: 'Sözleşme güncellenemedi', details: errorMessage },
       { status: 500 }
     );
   }
@@ -117,7 +127,7 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
 
-    const userRole = (session?.user as any)?.role;
+    const userRole = session?.user?.role;
     if (!session || userRole !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -126,7 +136,7 @@ export async function PATCH(
     const body = await request.json();
     const { isActive } = body;
 
-    const existingContract = await (prisma as any).contract.findUnique({
+    const existingContract = await prisma.contract.findUnique({
       where: { id },
     });
 
@@ -138,7 +148,7 @@ export async function PATCH(
       ? new Date()
       : existingContract.publishedAt;
 
-    const contract = await (prisma as any).contract.update({
+    const contract = await prisma.contract.update({
       where: { id },
       data: {
         isActive,
@@ -147,10 +157,11 @@ export async function PATCH(
     });
 
     return NextResponse.json(contract);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sözleşme durum güncelleme hatası:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
     return NextResponse.json(
-      { error: 'Sözleşme durumu güncellenemedi', details: error.message },
+      { error: 'Sözleşme durumu güncellenemedi', details: errorMessage },
       { status: 500 }
     );
   }
@@ -164,13 +175,13 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
 
-    const userRole = (session?.user as any)?.role;
+    const userRole = session?.user?.role;
     if (!session || userRole !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
-    const contract = await (prisma as any).contract.findUnique({
+    const contract = await prisma.contract.findUnique({
       where: { id },
     });
 
@@ -178,15 +189,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'Sözleşme bulunamadı' }, { status: 404 });
     }
 
-    await (prisma as any).contract.delete({
+    await prisma.contract.delete({
       where: { id },
     });
 
     return NextResponse.json({ message: 'Sözleşme silindi' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sözleşme silme hatası:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
     return NextResponse.json(
-      { error: 'Sözleşme silinemedi', details: error.message },
+      { error: 'Sözleşme silinemedi', details: errorMessage },
       { status: 500 }
     );
   }

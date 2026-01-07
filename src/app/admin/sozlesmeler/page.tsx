@@ -45,21 +45,21 @@ export default function AdminSozlesmelerPage() {
       const response = await fetch('/api/admin/contracts');
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.details || 'Sözleşmeler yüklenemedi');
+        throw new Error(errorData.error || errorData.details || 'Hukuki belgeler yüklenemedi');
       }
       const data = await response.json();
       setContracts(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      const errorMessage = err.message || 'Sözleşmeler yüklenirken hata oluştu';
+      const errorMessage = err.message || 'Hukuki belgeler yüklenirken hata oluştu';
       setError(errorMessage);
-      console.error('Sözleşmeler yükleme hatası:', err);
+      console.error('Hukuki belgeler yükleme hatası:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Bu sözleşmeyi silmek istediğinize emin misiniz?')) {
+    if (!confirm('Bu hukuki belgeyi silmek istediğinize emin misiniz?')) {
       return;
     }
 
@@ -69,13 +69,13 @@ export default function AdminSozlesmelerPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Sözleşme silinemedi');
+        throw new Error('Hukuki belge silinemedi');
       }
 
       setContracts(contracts.filter(c => c.id !== id));
     } catch (err) {
-      alert('Sözleşme silinirken hata oluştu');
-      console.error('Sözleşme silme hatası:', err);
+      alert('Hukuki belge silinirken hata oluştu');
+      console.error('Hukuki belge silme hatası:', err);
     }
   };
 
@@ -90,15 +90,15 @@ export default function AdminSozlesmelerPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Sözleşme durumu güncellenemedi');
+        throw new Error('Hukuki belge durumu güncellenemedi');
       }
 
       setContracts(contracts.map(c => 
         c.id === id ? { ...c, isActive: !currentStatus } : c
       ));
     } catch (err) {
-      alert('Sözleşme durumu güncellenirken hata oluştu');
-      console.error('Sözleşme güncelleme hatası:', err);
+      alert('Hukuki belge durumu güncellenirken hata oluştu');
+      console.error('Hukuki belge güncelleme hatası:', err);
     }
   };
 
@@ -116,6 +116,94 @@ export default function AdminSozlesmelerPage() {
       'general': 'Genel Şartlar',
       'privacy': 'Gizlilik Politikası',
       'terms': 'Kullanım Şartları',
+      'commercial': 'İşyeri Kiralama',
+      'vehicle': 'Araç Kiralama',
+      'warehouse': 'Depo Kiralama',
+      'sale': 'Satış Sözleşmesi',
+      'service': 'Hizmet Sözleşmesi',
+      'partnership': 'Ortaklık Sözleşmesi',
+      'housing-transfer': 'Konut Devir Protokolü',
+      'sublease-approval': 'Alt Kira Onay',
+      'furnished-housing': 'Eşyalı Konut',
+      'eviction-petition': 'Tahliye Dava Dilekçesi',
+      'rent-determination': 'Kira Tespit Dava Dilekçesi',
+      'construction-agreement': 'Kat Karşılığı İnşaat',
+      'rent-increase-objection': 'Kira Artış İtiraz',
+      'rent-renewal': 'Kira Yenileme',
+      'eviction-notice': 'Tahliye İhtarname',
+      'sublease': 'Alt Kira',
+      'rent-increase-notice': 'Kira Artış İhtarname',
+      'rent-termination': 'Kira Fesih Protokolü',
+      'deposit-refund': 'Depozito İade',
+      'rent-receipt': 'Kira Ödeme Belgesi',
+      'tenant-termination': 'Kiracı Fesih Bildirimi',
+      'rent-delay-notice': 'Kira Gecikme İhtarname',
+      'renovation-request': 'Tadilat Talebi',
+      // Yeni eklenen sözleşmeler
+      'parent-consent': 'Veli İzin Belgesi',
+      'student-permission': 'Öğrenci İzin Dilekçesi',
+      'divorce-agreement': 'Anlaşmalı Boşanma Sözleşmesi',
+      'criminal-record-statement': 'Sabıka Kaydı Beyanı',
+      'movable-property-loan': 'Taşınır Eşya Ödüncü Sözleşmesi',
+      'movable-rental': 'Taşınır Kiralama Sözleşmesi',
+      'neighbor-complaint-letter': 'Rahatsızlıkla İlgili Komşuya Mektup',
+      'security-deposit-refund': 'Güvence Bedeli İade Talebi',
+      'visa-invitation-letter': 'Vize Başvurusu Davet Mektubu',
+      'address-change-notification': 'Adres Değişikliği Bildirimi',
+      'long-term-vehicle-rental': 'Uzun Dönem Araç Kiralama Sözleşmesi',
+      'storage-agreement': 'Saklama Sözleşmesi',
+      'household-service-agreement': 'Ev İşleri İçin Hizmet Sözleşmesi',
+      'bank-account-closure': 'Banka Hesabını Kapatma Dilekçesi',
+      'pool-maintenance-agreement': 'Havuz Bakımına İlişkin Sözleşme',
+      'vehicle-sale-promise': 'Araç Satış Vaadi Sözleşmesi',
+      'diploma-request': 'Diploma Talebi Dilekçesi',
+      'grade-objection-primary-secondary': 'İlköğretim ve Ortaöğretim Not İtiraz Dilekçesi',
+      'credit-card-closure': 'Kredi Kartı Kapatma Dilekçesi',
+      'name-change-request': 'İsim Değişikliği Talep Dilekçesi',
+      'university-grade-objection': 'Üniversite Not İtiraz Dilekçesi',
+      'green-passport-cadre-request': 'Yeşil Pasaport İçin Kadro Derecesi Gösterir Belge Talebi',
+      'surname-change-notification': 'Soyadı Değişikliği Bildirimi',
+      'high-school-grade-objection': 'Lise Not İtiraz Dilekçesi',
+      'guardianship-appointment': 'Vasi Atanması Dilekçesi',
+      'excuse-exam-petition': 'Mazeret Sınav Dilekçesi',
+      'widow-orphan-pension-request': 'Dul/Yetim Aylığı Bağlanması İçin Talep Dilekçesi',
+      'judicial-control-objection': 'Adli Kontrol Kararına İtiraz Dilekçesi',
+      'detention-objection': 'Tutukluluğa İtiraz Dilekçesi',
+      'foreclosure-objection': 'Haciz Takibine İtiraz Dilekçesi',
+      'enforcement-objection': 'İlamlı İcra Takibine İtiraz Dilekçesi',
+      'alimony-reduction-lawsuit': 'Nafakanın Azaltılması veya Kaldırılması İçin Dava Dilekçesi',
+      'alimony-increase-lawsuit': 'Nafakanın Artırılması Dava Dilekçesi',
+      'alimony-nonpayment-complaint': 'Boşanma Sonrasında Nafakanın Ödenmemesine İlişkin Şikayet Dilekçesi',
+      'insolvency-certificate-request': 'Aciz Belgesi Verilmesi Talebi',
+      'disable-auto-billing': 'Otomatik Faturalandırmayı Devre Dışı Bırakma Mektubu',
+      'line-cancellation': 'Hat İptal Dilekçesi',
+      'invoice-objection': 'Fatura İtiraz Dilekçesi',
+      'subscription-cancellation': 'Abonelik İptal Dilekçesi',
+      'monthly-goods-notice': 'Aylık Malın Değişimi/Onarımı/İadesi İçin İhtarname',
+      'association-organ-change': 'Dernek Organlarındaki Değişiklik Bildirimi',
+      'association-address-change': 'Dernek Yerleşim Yeri Değişikliği Bildirimi',
+      'association-general-assembly-call': 'Dernek Genel Kurulunu Toplantıya Çağrı',
+      'association-bylaws': 'Dernek Tüzüğü',
+      // İş ve istihdam
+      'defense-letter': 'Savunma Yazısı',
+      'flexible-work-request': 'İşçinin Esnek Çalışma Talebi Dilekçesi',
+      'caregiver-service-contract': 'Bakıcı ve Yardımcı Hizmetli İş Sözleşmesi',
+      'retirement-request': 'Emeklilik Talebi Dilekçesi',
+      'dismissal-reason-request': 'İşten Çıkarılma Nedenini Öğrenme Talebi Mektubu',
+      'job-offer-response': 'İş Teklifi Kabul veya Ret Mektubu',
+      'salary-increase-request': 'Maaş Artırımı Talebi',
+      'unjust-termination-compensation-lawsuit': 'İş Sözleşmesinin Haksız Feshi Halinde Tazminat Talebi Dava Dilekçesi',
+      'justified-termination-receivables-lawsuit': 'İş Sözleşmesinin İşçi Tarafından Haklı Nedenle Feshi Halinde Alacak Davası Dilekçesi',
+      'resignation-letter': 'İstifa Mektubu',
+      // İzin talebi
+      'post-birth-partial-work-request': 'Doğum Sonrası Kısmi Çalışma Talebi Mektubu',
+      'adoption-unpaid-leave-request': 'Evlat Edinme Sonrası Ücretsiz İzin Talebi Dilekçesi',
+      'employee-unpaid-leave-request': 'Çalışanın İşverenden Ücretsiz İzin Talebi Dilekçesi',
+      'paternity-leave-request': 'Babalık İzni Dilekçesi',
+      'maternity-leave-request': 'Analık (Doğum) İzni Dilekçesi',
+      'annual-paid-leave-request': 'Senelik Ücretli İzin Dilekçesi',
+      'post-birth-six-month-unpaid-leave': 'Doğum Sonrası Altı Aylık Ücretsiz İzin Talebi Dilekçesi',
+      'post-birth-half-day-unpaid-leave': 'Doğum Sonrası Yarım Gün Ücretsiz İzin Talebi Mektubu',
     };
     return types[type] || type;
   };
@@ -153,29 +241,144 @@ export default function AdminSozlesmelerPage() {
     );
   }
 
+  // Template'i olan sözleşme tipleri
+  const templateTypes = [
+    { type: 'housing-transfer', label: 'Konut Devir Protokolü', route: 'olustur' },
+    { type: 'sublease-approval', label: 'Alt Kira Onay', route: 'olustur' },
+    { type: 'eviction-petition', label: 'Tahliye Dava Dilekçesi', route: 'olustur' },
+    { type: 'rent-determination', label: 'Kira Tespit Dava Dilekçesi', route: 'olustur' },
+    { type: 'eviction-notice', label: 'Tahliye İhtarname', route: 'olustur' },
+    { type: 'rent-increase-notice', label: 'Kira Artış İhtarname', route: 'olustur' },
+    { type: 'rent-receipt', label: 'Kira Ödeme Belgesi', route: 'olustur' },
+    { type: 'rent-delay-notice', label: 'Kira Gecikme İhtarname', route: 'olustur' },
+    { type: 'deposit-refund', label: 'Depozito İade', route: 'olustur' },
+    { type: 'tenant-termination', label: 'Kiracı Fesih Bildirimi', route: 'olustur' },
+    { type: 'rent-termination', label: 'Kira Fesih Protokolü', route: 'olustur' },
+    { type: 'rent-renewal', label: 'Kira Yenileme', route: 'olustur' },
+    { type: 'sublease', label: 'Alt Kira', route: 'olustur' },
+    { type: 'rent-increase-objection', label: 'Kira Artış İtiraz', route: 'olustur' },
+    { type: 'renovation-request', label: 'Tadilat Talebi', route: 'olustur' },
+    { type: 'furnished-housing', label: 'Eşyalı Konut', route: 'olustur' },
+    { type: 'construction-agreement', label: 'Kat Karşılığı İnşaat', route: 'olustur' },
+    { type: 'commercial', label: 'İşyeri Kiralama', route: 'olustur' },
+    { type: 'vehicle', label: 'Araç Kiralama', route: 'olustur' },
+    { type: 'warehouse', label: 'Depo Kiralama', route: 'olustur' },
+    { type: 'sale', label: 'Satış Sözleşmesi', route: 'olustur' },
+    { type: 'service', label: 'Hizmet Sözleşmesi', route: 'olustur' },
+    { type: 'partnership', label: 'Ortaklık Sözleşmesi', route: 'olustur' },
+    // Yeni eklenen sözleşmeler
+    { type: 'parent-consent', label: 'Veli İzin Belgesi', route: 'olustur' },
+    { type: 'student-permission', label: 'Öğrenci İzin Dilekçesi', route: 'olustur' },
+    { type: 'divorce-agreement', label: 'Anlaşmalı Boşanma Sözleşmesi', route: 'olustur' },
+    { type: 'criminal-record-statement', label: 'Sabıka Kaydı Beyanı', route: 'olustur' },
+    { type: 'movable-property-loan', label: 'Taşınır Eşya Ödüncü Sözleşmesi', route: 'olustur' },
+    { type: 'movable-rental', label: 'Taşınır Kiralama Sözleşmesi', route: 'olustur' },
+    { type: 'neighbor-complaint-letter', label: 'Rahatsızlıkla İlgili Komşuya Mektup', route: 'olustur' },
+    { type: 'security-deposit-refund', label: 'Güvence Bedeli İade Talebi', route: 'olustur' },
+    { type: 'visa-invitation-letter', label: 'Vize Başvurusu Davet Mektubu', route: 'olustur' },
+    { type: 'address-change-notification', label: 'Adres Değişikliği Bildirimi', route: 'olustur' },
+    { type: 'long-term-vehicle-rental', label: 'Uzun Dönem Araç Kiralama Sözleşmesi', route: 'olustur' },
+    { type: 'storage-agreement', label: 'Saklama Sözleşmesi', route: 'olustur' },
+    { type: 'household-service-agreement', label: 'Ev İşleri İçin Hizmet Sözleşmesi', route: 'olustur' },
+    { type: 'bank-account-closure', label: 'Banka Hesabını Kapatma Dilekçesi', route: 'olustur' },
+    { type: 'pool-maintenance-agreement', label: 'Havuz Bakımına İlişkin Sözleşme', route: 'olustur' },
+    { type: 'vehicle-sale-promise', label: 'Araç Satış Vaadi Sözleşmesi', route: 'olustur' },
+    { type: 'diploma-request', label: 'Diploma Talebi Dilekçesi', route: 'olustur' },
+    { type: 'grade-objection-primary-secondary', label: 'İlköğretim ve Ortaöğretim Not İtiraz Dilekçesi', route: 'olustur' },
+    { type: 'credit-card-closure', label: 'Kredi Kartı Kapatma Dilekçesi', route: 'olustur' },
+    { type: 'name-change-request', label: 'İsim Değişikliği Talep Dilekçesi', route: 'olustur' },
+    { type: 'university-grade-objection', label: 'Üniversite Not İtiraz Dilekçesi', route: 'olustur' },
+    { type: 'green-passport-cadre-request', label: 'Yeşil Pasaport İçin Kadro Derecesi Gösterir Belge Talebi', route: 'olustur' },
+    { type: 'surname-change-notification', label: 'Soyadı Değişikliği Bildirimi', route: 'olustur' },
+    { type: 'high-school-grade-objection', label: 'Lise Not İtiraz Dilekçesi', route: 'olustur' },
+    { type: 'guardianship-appointment', label: 'Vasi Atanması Dilekçesi', route: 'olustur' },
+    { type: 'excuse-exam-petition', label: 'Mazeret Sınav Dilekçesi', route: 'olustur' },
+    { type: 'widow-orphan-pension-request', label: 'Dul/Yetim Aylığı Bağlanması İçin Talep Dilekçesi', route: 'olustur' },
+    { type: 'judicial-control-objection', label: 'Adli Kontrol Kararına İtiraz Dilekçesi', route: 'olustur' },
+    { type: 'detention-objection', label: 'Tutukluluğa İtiraz Dilekçesi', route: 'olustur' },
+    { type: 'foreclosure-objection', label: 'Haciz Takibine İtiraz Dilekçesi', route: 'olustur' },
+    { type: 'enforcement-objection', label: 'İlamlı İcra Takibine İtiraz Dilekçesi', route: 'olustur' },
+    { type: 'alimony-reduction-lawsuit', label: 'Nafakanın Azaltılması veya Kaldırılması İçin Dava Dilekçesi', route: 'olustur' },
+    { type: 'alimony-increase-lawsuit', label: 'Nafakanın Artırılması Dava Dilekçesi', route: 'olustur' },
+    { type: 'alimony-nonpayment-complaint', label: 'Boşanma Sonrasında Nafakanın Ödenmemesine İlişkin Şikayet Dilekçesi', route: 'olustur' },
+    { type: 'insolvency-certificate-request', label: 'Aciz Belgesi Verilmesi Talebi', route: 'olustur' },
+    { type: 'disable-auto-billing', label: 'Otomatik Faturalandırmayı Devre Dışı Bırakma Mektubu', route: 'olustur' },
+    { type: 'line-cancellation', label: 'Hat İptal Dilekçesi', route: 'olustur' },
+    { type: 'invoice-objection', label: 'Fatura İtiraz Dilekçesi', route: 'olustur' },
+    { type: 'subscription-cancellation', label: 'Abonelik İptal Dilekçesi', route: 'olustur' },
+    { type: 'monthly-goods-notice', label: 'Aylık Malın Değişimi/Onarımı/İadesi İçin İhtarname', route: 'olustur' },
+    { type: 'association-organ-change', label: 'Dernek Organlarındaki Değişiklik Bildirimi', route: 'olustur' },
+    { type: 'association-address-change', label: 'Dernek Yerleşim Yeri Değişikliği Bildirimi', route: 'olustur' },
+     { type: 'association-general-assembly-call', label: 'Dernek Genel Kurulunu Toplantıya Çağrı', route: 'olustur' },
+     { type: 'association-bylaws', label: 'Dernek Tüzüğü', route: 'olustur' },
+     // İş ve istihdam
+     { type: 'defense-letter', label: 'Savunma Yazısı', route: 'olustur' },
+     { type: 'flexible-work-request', label: 'İşçinin Esnek Çalışma Talebi Dilekçesi', route: 'olustur' },
+     { type: 'caregiver-service-contract', label: 'Bakıcı ve Yardımcı Hizmetli İş Sözleşmesi', route: 'olustur' },
+     { type: 'retirement-request', label: 'Emeklilik Talebi Dilekçesi', route: 'olustur' },
+     { type: 'dismissal-reason-request', label: 'İşten Çıkarılma Nedenini Öğrenme Talebi Mektubu', route: 'olustur' },
+     { type: 'job-offer-response', label: 'İş Teklifi Kabul veya Ret Mektubu', route: 'olustur' },
+     { type: 'salary-increase-request', label: 'Maaş Artırımı Talebi', route: 'olustur' },
+     { type: 'unjust-termination-compensation-lawsuit', label: 'İş Sözleşmesinin Haksız Feshi Halinde Tazminat Talebi Dava Dilekçesi', route: 'olustur' },
+     { type: 'justified-termination-receivables-lawsuit', label: 'İş Sözleşmesinin İşçi Tarafından Haklı Nedenle Feshi Halinde Alacak Davası Dilekçesi', route: 'olustur' },
+     { type: 'resignation-letter', label: 'İstifa Mektubu', route: 'olustur' },
+     // İzin talebi
+     { type: 'post-birth-partial-work-request', label: 'Doğum Sonrası Kısmi Çalışma Talebi Mektubu', route: 'olustur' },
+     { type: 'adoption-unpaid-leave-request', label: 'Evlat Edinme Sonrası Ücretsiz İzin Talebi Dilekçesi', route: 'olustur' },
+     { type: 'employee-unpaid-leave-request', label: 'Çalışanın İşverenden Ücretsiz İzin Talebi Dilekçesi', route: 'olustur' },
+     { type: 'paternity-leave-request', label: 'Babalık İzni Dilekçesi', route: 'olustur' },
+     { type: 'maternity-leave-request', label: 'Analık (Doğum) İzni Dilekçesi', route: 'olustur' },
+     { type: 'annual-paid-leave-request', label: 'Senelik Ücretli İzin Dilekçesi', route: 'olustur' },
+     { type: 'post-birth-six-month-unpaid-leave', label: 'Doğum Sonrası Altı Aylık Ücretsiz İzin Talebi Dilekçesi', route: 'olustur' },
+     { type: 'post-birth-half-day-unpaid-leave', label: 'Doğum Sonrası Yarım Gün Ücretsiz İzin Talebi Mektubu', route: 'olustur' },
+   ];
+
+  // Template'i olan sözleşmeleri bul
+  const contractsWithTemplates = contracts.filter(c => 
+    templateTypes.some(t => t.type === c.type)
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Sözleşmeler</h1>
-          <p className="mt-2 text-gray-600">Sözleşmeleri yönetin ve düzenleyin</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Link
-            href="/admin/sozlesmeler/ev-kiralama"
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <FileText className="h-5 w-5 mr-2" />
-            Ev Kiralama Sözleşmesi
-          </Link>
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Hukuki Belgeler</h1>
+            <p className="mt-2 text-gray-600">Hukuki belgeleri yönetin ve düzenleyin</p>
+          </div>
           <Link
             href="/admin/sozlesmeler/yeni"
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-5 w-5 mr-2" />
-            Yeni Sözleşme
+            Yeni Hukuki Belge
           </Link>
+        </div>
+        
+        {/* Hukuki Belge Butonları */}
+        <div className="flex flex-col gap-2 mt-4">
+          <Link
+            href="/admin/sozlesmeler/ev-kiralama"
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm w-full"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Ev Kiralama Sözleşmesi
+          </Link>
+          {contractsWithTemplates.map((contract) => {
+            const templateInfo = templateTypes.find(t => t.type === contract.type);
+            if (!templateInfo) return null;
+            return (
+              <Link
+                key={contract.id}
+                href={`/admin/sozlesmeler/${contract.id}/${templateInfo.route}`}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm w-full"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                {templateInfo.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -185,7 +388,7 @@ export default function AdminSozlesmelerPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <input
             type="text"
-            placeholder="Sözleşme ara..."
+            placeholder="Hukuki belge ara..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -193,7 +396,7 @@ export default function AdminSozlesmelerPage() {
         </div>
       </div>
 
-      {/* Sözleşmeler Listesi */}
+      {/* Hukuki Belgeler Listesi */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -226,7 +429,7 @@ export default function AdminSozlesmelerPage() {
               {filteredContracts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                    {searchTerm ? 'Arama sonucu bulunamadı' : 'Henüz sözleşme yok'}
+                    {searchTerm ? 'Arama sonucu bulunamadı' : 'Henüz hukuki belge yok'}
                   </td>
                 </tr>
               ) : (
@@ -287,6 +490,13 @@ export default function AdminSozlesmelerPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
+                        <Link
+                          href={`/admin/sozlesmeler/${contract.id}/olustur`}
+                          className="text-green-600 hover:text-green-900"
+                          title="Oluştur"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Link>
                         <Link
                           href={`/admin/sozlesmeler/${contract.id}`}
                           className="text-blue-600 hover:text-blue-900"

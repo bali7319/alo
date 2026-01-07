@@ -1,15 +1,16 @@
 import Link from "next/link"
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, Shield, AlertTriangle } from "lucide-react"
+import { FooterSubscription } from "./footer-subscription"
 
 export default function Footer() {
   return (
     <>
       {/* Güvenlik Uyarısı */}
-      <div className="bg-yellow-50 border-t border-yellow-200">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-6 w-6 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-yellow-800">
+      <div className="bg-yellow-50 border-t border-yellow-200 print:hidden">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="text-xs sm:text-sm text-yellow-800">
               <p className="font-medium mb-2">⚠️ Güvenlik Uyarısı</p>
               <p className="mb-2">
                 Siz de kendi güvenliğiniz ve diğer kullanıcıların daha sağlıklı alışveriş yapabilmeleri için, 
@@ -30,9 +31,9 @@ export default function Footer() {
         </div>
       </div>
 
-      <footer className="bg-gray-900 text-white">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <footer className="bg-gray-900 text-white print:hidden">
+        <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {/* Hakkımızda */}
             <div>
               <h3 className="text-lg font-semibold mb-4">Hakkımızda</h3>
@@ -112,6 +113,11 @@ export default function Footer() {
                   </Link>
                 </li>
               </ul>
+            </div>
+
+            {/* Haberdar Ol */}
+            <div>
+              <FooterSubscription />
             </div>
 
             {/* Sosyal Medya */}

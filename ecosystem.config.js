@@ -16,7 +16,10 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       autorestart: true,
-      max_memory_restart: '1G',
+      max_memory_restart: '3G', // 2G'den 3G'ye çıkarıldı - bellek limiti aşımını önlemek için
+      min_uptime: '10s', // En az 10 saniye çalışmalı, yoksa crash sayılır
+      max_restarts: 10, // Maksimum 10 restart, sonra durdur
+      restart_delay: 4000, // Restart arası 4 saniye bekle
       watch: false,
       ignore_watch: ['node_modules', 'logs', '.git', 'prisma/dev.db']
     },

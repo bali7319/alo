@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { isAdminEmail } from '@/lib/admin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Admin kontrolü
-    if (session.user.email !== 'admin@alo17.tr') {
+    if (!isAdminEmail(session.user.email)) {
       return NextResponse.json(
         { error: 'Yetkiniz yok' },
         { status: 403 }

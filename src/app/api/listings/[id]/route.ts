@@ -3,6 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { createSlug, extractIdFromSlug } from '@/lib/slug';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
+import { updateListingSchema } from '@/lib/validations/listing';
+import { getCache, setCache, deleteCache, clearCachePattern, createCacheKey } from '@/lib/cache';
+import { decryptPhone } from '@/lib/encryption';
 
 // Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -93,13 +97,12 @@ export async function GET(
         // En önemli kelimeleri al (ilk 3 kelime genelde en önemli)
         const importantKeywords = keywords.slice(0, 3);
         
-        const whereClause: any = {
+        const whereClause: Prisma.ListingWhereInput = {
           OR: [
             // En az bir önemli kelimeyi içeren ilanlar
             ...importantKeywords.map(keyword => ({
               title: {
                 contains: keyword,
-                mode: 'insensitive',
               },
             })),
           ],
@@ -119,7 +122,7 @@ export async function GET(
           ],
         };
         
-        let candidates = [];
+        let candidates: Array<{ id: string; title: string }> = [];
         try {
           candidates = await withTimeout(
             prisma.listing.findMany({
@@ -153,7 +156,7 @@ export async function GET(
       // Eğer hala bulunamadıysa, son 500 ilanı çek ve slug ile eşleştir (fallback)
       // Admin ilanlarını da dahil et
       if (!listing) {
-        const whereClause: any = {
+        const whereClause: Prisma.ListingWhereInput = {
           OR: [
             {
               isActive: true,
@@ -166,7 +169,7 @@ export async function GET(
           ],
         };
         
-        let recentListings = [];
+        let recentListings: Array<{ id: string; title: string }> = [];
         try {
           recentListings = await withTimeout(
             prisma.listing.findMany({
@@ -257,6 +260,45 @@ export async function GET(
       );
     }
 
+    // Cache key (listing ID veya slug ile)
+    const listingId = listing.id;
+    const cacheKey = createCacheKey('listing-detail', listingId);
+    
+    // Cache kontrolü (30 saniye TTL - listing detayları daha dinamik)
+    const cached = getCache<{ listing: unknown }>(cacheKey);
+    const isCacheHit = !!cached;
+    
+    // Views artırma (sadece cache miss olduğunda ve ilan sahibi değilse)
+    if (!isCacheHit && listing.isActive && listing.approvalStatus === 'approved') {
+      // Session kontrolü - ilan sahibi kendi ilanını görüntülediğinde views artırma
+      const session = await getServerSession(authOptions);
+      const isOwner = session?.user?.email && listing.user.email === session.user.email;
+      
+      if (!isOwner) {
+        // Views'i artır (async olarak, response'u bekletmeden)
+        prisma.listing.update({
+          where: { id: listingId },
+          data: { views: { increment: 1 } }
+        }).catch(error => {
+          console.error('Views artırma hatası:', error);
+          // Hata olsa bile devam et
+        });
+        
+        // Listing objesini güncelle (response için)
+        listing.views = (listing.views || 0) + 1;
+      }
+    }
+    
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+          'X-Cache': 'HIT',
+        },
+      });
+    }
+
     const parseArray = (val: string | null) => {
       if (!val) return [];
       
@@ -314,6 +356,26 @@ export async function GET(
 
     const premiumFeatures = parseJson(listing.premiumFeatures);
 
+    // Telefon numarasını çöz (şifrelenmişse)
+    let decryptedUserPhone = listing.user.phone || null;
+    if (decryptedUserPhone && decryptedUserPhone.trim() !== '') {
+      try {
+        // Şifrelenmiş telefon numaraları ":" içerir (format: IV:Tag:Encrypted)
+        if (decryptedUserPhone.includes(':') && decryptedUserPhone.split(':').length === 3) {
+          const decrypted = decryptPhone(decryptedUserPhone);
+          if (decrypted) {
+            decryptedUserPhone = decrypted;
+          } else {
+            decryptedUserPhone = null;
+          }
+        }
+        // ":" içermiyorsa zaten düz metin, olduğu gibi kullan
+      } catch (error) {
+        console.error('Telefon çözme hatası:', error);
+        decryptedUserPhone = null;
+      }
+    }
+
     const formattedListing = {
       id: listing.id,
       title: listing.title,
@@ -338,18 +400,24 @@ export async function GET(
       approvalStatus: listing.approvalStatus,
       createdAt: listing.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: listing.updatedAt?.toISOString() || new Date().toISOString(),
-      user: listing.user,
+      user: {
+        ...listing.user,
+        phone: decryptedUserPhone,
+      },
     };
 
-    return NextResponse.json(
-      { listing: formattedListing },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-        },
-      }
-    );
+    const response = { listing: formattedListing };
+
+    // Cache'e kaydet (30 saniye TTL)
+    setCache(cacheKey, response, 30000);
+
+    return NextResponse.json(response, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        'X-Cache': 'MISS',
+      },
+    });
   } catch (error) {
     console.error('İlan getirme hatası:', error);
     console.error('Hata detayı:', error instanceof Error ? error.stack : String(error));
@@ -463,7 +531,6 @@ export async function PUT(
               OR: importantKeywords.map(keyword => ({
                 title: {
                   contains: keyword,
-                  mode: 'insensitive',
                 },
               })),
             },
@@ -547,7 +614,7 @@ export async function PUT(
 
     // İlan sahibi kontrolü
     const isOwner = listing.userId === user.id;
-    const userRole = (user as any)?.role;
+    const userRole = user.role;
     const isAdmin = userRole === 'admin';
 
     if (!isOwner && !isAdmin) {
@@ -570,7 +637,7 @@ export async function PUT(
     }
 
     // Güncelleme verilerini hazırla
-    const updateData: any = {
+    const updateData: Prisma.ListingUpdateInput = {
       title: body.title,
       description: body.description,
       price: parseFloat(body.price),
@@ -584,6 +651,13 @@ export async function PUT(
       images: typeof body.images === 'string' ? body.images : JSON.stringify(imagesArray),
       features: typeof body.features === 'string' ? body.features : JSON.stringify(body.features || []),
       showPhone: body.showPhone !== false,
+      isPremium: body.isPremium || false,
+      premiumFeatures: body.premiumFeatures 
+        ? (typeof body.premiumFeatures === 'string' 
+            ? body.premiumFeatures 
+            : JSON.stringify(body.premiumFeatures))
+        : null,
+      premiumUntil: body.premiumUntil ? new Date(body.premiumUntil) : null,
     };
 
     // İlanı güncelle
@@ -634,6 +708,19 @@ export async function PUT(
       return typeof val === 'string' ? [val] : [];
     };
 
+    const parseJson = (val: string | null) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    };
+
     const formattedListing = {
       id: updatedListing.id,
       title: updatedListing.title,
@@ -650,6 +737,7 @@ export async function PUT(
       condition: updatedListing.condition,
       brand: updatedListing.brand,
       isPremium: updatedListing.isPremium,
+      premiumFeatures: parseJson(updatedListing.premiumFeatures),
       premiumUntil: updatedListing.premiumUntil?.toISOString(),
       expiresAt: updatedListing.expiresAt?.toISOString() || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Varsayılan 30 gün
       views: updatedListing.views,
@@ -659,6 +747,11 @@ export async function PUT(
       updatedAt: updatedListing.updatedAt?.toISOString() || new Date().toISOString(),
       user: updatedListing.user,
     };
+
+    // Cache invalidation - listing detay, homepage ve category cache'lerini temizle
+    deleteCache(createCacheKey('listing-detail', updatedListing.id));
+    clearCachePattern('homepage-listings');
+    clearCachePattern('category-listings');
 
     return NextResponse.json({ 
       message: 'İlan başarıyla güncellendi',
@@ -721,7 +814,6 @@ export async function PATCH(
               OR: keywords.map(keyword => ({
                 title: {
                   contains: keyword,
-                  mode: 'insensitive',
                 },
               })),
             },
@@ -780,7 +872,7 @@ export async function PATCH(
 
     // İlan sahibi kontrolü
     const isOwner = listing.userId === user.id;
-    const userRole = (user as any)?.role;
+    const userRole = user.role;
     const isAdmin = userRole === 'admin';
 
     if (!isOwner && !isAdmin) {
@@ -791,7 +883,7 @@ export async function PATCH(
     }
 
     // Güncelleme verilerini hazırla (sadece approvalStatus güncellenebilir)
-    const updateData: any = {};
+    const updateData: Prisma.ListingUpdateInput = {};
     
     if (body.approvalStatus) {
       updateData.approvalStatus = body.approvalStatus;
@@ -890,7 +982,6 @@ export async function DELETE(
               OR: importantKeywords.map(keyword => ({
                 title: {
                   contains: keyword,
-                  mode: 'insensitive',
                 },
               })),
             },
@@ -1001,19 +1092,25 @@ export async function DELETE(
     }
 
     // İlanı sil
+    const listingId = listing.id;
     try {
       await prisma.listing.delete({
-        where: { id: listing.id },
+        where: { id: listingId },
       });
-    } catch (deleteError: any) {
+    } catch (deleteError: unknown) {
       // Eğer ilan zaten silinmişse, başarılı say
-      if (deleteError?.code === 'P2025') {
+      if (deleteError && typeof deleteError === 'object' && 'code' in deleteError && deleteError.code === 'P2025') {
         return NextResponse.json({
           message: 'İlan zaten silinmiş',
         });
       }
       throw deleteError;
     }
+
+    // Cache invalidation - listing detay, homepage ve category cache'lerini temizle
+    deleteCache(createCacheKey('listing-detail', listingId));
+    clearCachePattern('homepage-listings');
+    clearCachePattern('category-listings');
 
     return NextResponse.json({
       message: 'İlan başarıyla silindi',

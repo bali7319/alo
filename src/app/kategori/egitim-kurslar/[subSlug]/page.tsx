@@ -84,7 +84,7 @@ export default async function EgitimKurslarSubPage({ params }: { params: Promise
             {
               OR: [
                 { subCategory: subSlug },
-                { subCategory: subcategory.name },
+                ...(subcategory?.name ? [{ subCategory: subcategory.name }] : []),
               ],
             },
             {

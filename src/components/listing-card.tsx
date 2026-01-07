@@ -51,7 +51,7 @@ export function ListingCard({ listing }: ListingCardProps) {
                 src={imageUrl}
                 alt={listing.title || 'İlan resmi'}
                 fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="absolute inset-0 w-full h-full object-cover"
               isBase64={isBase64}
                 onError={(e) => {

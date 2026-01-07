@@ -63,7 +63,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
               OR: importantKeywords.map(keyword => ({
                 title: {
                   contains: keyword,
-                  mode: 'insensitive',
                 },
               })),
             },

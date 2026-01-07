@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { isAdminEmail } from '@/lib/admin';
+import { createReportSchema } from '@/lib/validations/report';
 
 // Şikayet oluştur
 export async function POST(request: NextRequest) {
@@ -16,15 +18,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { listingId, reason, description } = body;
 
-    // Validasyon
-    if (!listingId || !reason) {
+    // Zod validation
+    const validationResult = createReportSchema.safeParse(body);
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'İlan ID ve şikayet nedeni gereklidir' },
+        { 
+          error: 'Validasyon hatası',
+          details: validationResult.error.issues.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+        },
         { status: 400 }
       );
     }
+
+    const { listingId, reason, description } = validationResult.data;
 
     // Kullanıcıyı bul
     const user = await prisma.user.findUnique({
@@ -111,7 +121,7 @@ export async function GET(request: NextRequest) {
     });
 
     const isAdmin = user?.role === 'admin' || 
-                    user?.email === 'admin@alo17.tr' ||
+                    (user?.email && isAdminEmail(user.email)) ||
                     user?.email?.endsWith('@alo17.tr');
 
     if (!isAdmin) {

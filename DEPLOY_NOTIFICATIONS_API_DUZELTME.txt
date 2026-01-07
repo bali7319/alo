@@ -1,0 +1,11 @@
+# Notifications API Deploy - Düzeltilmiş Komutlar
+
+# 1. Dizini oluştur:
+ssh root@alo17.tr "mkdir -p /var/www/alo17/src/app/api/notifications"
+
+# 2. Dosyayı gönder:
+scp src/app/api/notifications/route.ts root@alo17.tr:/var/www/alo17/src/app/api/notifications/route.ts
+
+# 3. Build ve restart:
+ssh root@alo17.tr "cd /var/www/alo17 && npm run build && pm2 restart alo17 && pm2 save"
+

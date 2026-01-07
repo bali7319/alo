@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Camera, X } from 'lucide-react';
+import { Camera, X, Crown, Star, Check, Zap, TrendingUp, Sparkles } from 'lucide-react';
 import { categories, Category } from '@/lib/categories';
 
 interface ListingData {
@@ -21,6 +21,8 @@ interface ListingData {
   images: string[];
   features: string[];
   isPremium: boolean;
+  premiumFeatures?: string | null;
+  premiumUntil?: string | null;
   showPhone: boolean;
 }
 
@@ -38,6 +40,22 @@ export default function IlanDuzenlePage() {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState('none');
+  const [premiumSettings, setPremiumSettings] = useState({
+    featured: false,
+    urgent: false,
+    highlight: false,
+    topPosition: false
+  });
+  const [adminSettings, setAdminSettings] = useState({
+    featuredPrice: 50,
+    urgentPrice: 30,
+    highlightPrice: 25,
+    topPrice: 75,
+    monthlyPremiumPrice: 199,
+    quarterlyPremiumPrice: 494,
+    yearlyPremiumPrice: 2179
+  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -53,6 +71,90 @@ export default function IlanDuzenlePage() {
     showPhone: true,
     features: [] as string[],
   });
+
+  // Premium planlar
+  const premiumPlans = useMemo(() => ({
+    none: {
+      name: 'Ücretsiz',
+      price: 0,
+      duration: '30 gün',
+      features: ['Temel ilan özellikleri', '3 adet resim yükleme', 'Standart görünüm']
+    },
+    monthly: {
+      name: 'Aylık Premium',
+      price: adminSettings.monthlyPremiumPrice || 199,
+      duration: '30 gün',
+      features: ['İlan öne çıkarma', 'Premium rozeti', '5 adet resim yükleme', 'Reklamsız deneyim']
+    },
+    quarterly: {
+      name: '3 Aylık Premium',
+      price: adminSettings.quarterlyPremiumPrice || 494,
+      duration: '90 gün',
+      features: ['İlan öne çıkarma', 'Premium rozeti', '10 adet resim yükleme', 'Reklamsız deneyim', '1 ay bedava']
+    },
+    yearly: {
+      name: 'Yıllık Premium',
+      price: adminSettings.yearlyPremiumPrice || 2179,
+      duration: '365 gün',
+      features: ['İlan öne çıkarma', 'Premium rozeti', '10 adet resim yükleme', 'Reklamsız deneyim', '3 ay bedava', 'Özel destek hattı']
+    }
+  }), [adminSettings]);
+
+  // Premium özellik seçenekleri
+  const premiumFeatures = [
+    {
+      id: 'featured',
+      name: 'Öne Çıkan İlan',
+      description: 'İlanınız ana sayfada öne çıkarılır',
+      price: adminSettings.featuredPrice,
+      icon: Star
+    },
+    {
+      id: 'urgent',
+      name: 'Acil Satılık',
+      description: 'Acil satılık rozeti ile dikkat çekin',
+      price: adminSettings.urgentPrice,
+      icon: Zap
+    },
+    {
+      id: 'highlight',
+      name: 'Renkli Vurgu',
+      description: 'İlanınız renkli çerçeve ile vurgulanır',
+      price: adminSettings.highlightPrice,
+      icon: Sparkles
+    },
+    {
+      id: 'topPosition',
+      name: 'Üst Sıralama',
+      description: 'Kategori sayfalarında üst sıralarda yer alın',
+      price: adminSettings.topPrice,
+      icon: TrendingUp
+    }
+  ];
+
+  // Admin ayarlarını yükle
+  useEffect(() => {
+    const fetchAdminSettings = async () => {
+      try {
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          setAdminSettings({
+            featuredPrice: settings.featuredPrice || 50,
+            urgentPrice: settings.urgentPrice || 30,
+            highlightPrice: settings.highlightPrice || 25,
+            topPrice: settings.topPrice || 75,
+            monthlyPremiumPrice: settings.monthlyPremiumPrice || 199,
+            quarterlyPremiumPrice: settings.quarterlyPremiumPrice || 494,
+            yearlyPremiumPrice: settings.yearlyPremiumPrice || 2179
+          });
+        }
+      } catch (error) {
+        console.error('Admin ayarları yüklenirken hata:', error);
+      }
+    };
+    fetchAdminSettings();
+  }, []);
 
   // Giriş kontrolü
   useEffect(() => {
@@ -109,12 +211,33 @@ export default function IlanDuzenlePage() {
         const featuresArray = parseArray(listingData.features);
 
         setExistingImages(imagesArray);
+
+        // Kategori adını slug'a çevir (API'den ad olarak geliyor)
+        const findCategoryByName = (name: string): Category | undefined => {
+          return categories.find(c => c.name === name);
+        };
+
+        const findSubCategoryByName = (category: Category, name: string): Category | undefined => {
+          return category.subcategories?.find(s => s.name === name);
+        };
+
+        const categoryObj = findCategoryByName(listingData.category) || 
+                           categories.find(c => c.slug === listingData.category);
+        const categorySlug = categoryObj?.slug || listingData.category;
+
+        let subCategorySlug = listingData.subCategory || '';
+        if (categoryObj && listingData.subCategory) {
+          const subCategoryObj = findSubCategoryByName(categoryObj, listingData.subCategory) ||
+                                categoryObj.subcategories?.find(s => s.slug === listingData.subCategory);
+          subCategorySlug = subCategoryObj?.slug || listingData.subCategory;
+        }
+
         setFormData({
           title: listingData.title || '',
           description: listingData.description || '',
           price: listingData.price?.toString() || '',
-          category: listingData.category || '',
-          subCategory: listingData.subCategory || '',
+          category: categorySlug,
+          subCategory: subCategorySlug,
           subSubCategory: listingData.subSubCategory || '',
           location: listingData.location || '',
           phone: listingData.phone || listingData.user?.phone || '',
@@ -125,12 +248,61 @@ export default function IlanDuzenlePage() {
         });
 
         // Kategori seçimini ayarla
-        const category = categories.find(c => c.slug === listingData.category);
-        if (category) {
-          setSelectedCategory(category);
-          const subCategory = category.subcategories?.find(s => s.slug === listingData.subCategory);
-          if (subCategory) {
-            setSelectedSubCategory(subCategory);
+        if (categoryObj) {
+          setSelectedCategory(categoryObj);
+          if (subCategorySlug) {
+            const subCategory = categoryObj.subcategories?.find(s => s.slug === subCategorySlug);
+            if (subCategory) {
+              setSelectedSubCategory(subCategory);
+            }
+          }
+        }
+
+        // Premium durumunu yükle
+        if (listingData.isPremium) {
+          // Premium plan belirleme (premiumUntil'a göre)
+          if (listingData.premiumUntil) {
+            const premiumUntil = new Date(listingData.premiumUntil);
+            const now = new Date();
+            const diffTime = premiumUntil.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays > 300) {
+              setSelectedPlan('yearly');
+            } else if (diffDays > 60) {
+              setSelectedPlan('quarterly');
+            } else {
+              setSelectedPlan('monthly');
+            }
+          } else {
+            setSelectedPlan('monthly');
+          }
+
+          // Premium özellikleri yükle
+          if (listingData.premiumFeatures) {
+            try {
+              const features = typeof listingData.premiumFeatures === 'string' 
+                ? JSON.parse(listingData.premiumFeatures) 
+                : listingData.premiumFeatures;
+              
+              if (Array.isArray(features)) {
+                setPremiumSettings({
+                  featured: features.includes('featured'),
+                  urgent: features.includes('urgent'),
+                  highlight: features.includes('highlight'),
+                  topPosition: features.includes('topPosition')
+                });
+              } else if (typeof features === 'object') {
+                setPremiumSettings({
+                  featured: features.featured || false,
+                  urgent: features.urgent || false,
+                  highlight: features.highlight || false,
+                  topPosition: features.topPosition || false
+                });
+              }
+            } catch (e) {
+              console.error('Premium features parse error:', e);
+            }
           }
         }
 
@@ -165,6 +337,27 @@ export default function IlanDuzenlePage() {
       setSelectedSubCategory(subCategory || null);
       setFormData(prev => ({ ...prev, subSubCategory: '' }));
     }
+  };
+
+  const handlePremiumSettingChange = (settingId: string) => {
+    setPremiumSettings(prev => ({
+      ...prev,
+      [settingId]: !prev[settingId as keyof typeof prev]
+    }));
+  };
+
+  const calculateTotalPrice = () => {
+    const planPrice = premiumPlans[selectedPlan as keyof typeof premiumPlans].price;
+    const premiumFeaturesPrice = Object.entries(premiumSettings)
+      .filter(([_, enabled]) => enabled)
+      .reduce((total, [settingId]) => {
+        const feature = premiumFeatures.find(f => f.id === settingId);
+        return total + (feature?.price || 0);
+      }, 0);
+    const taxRate = 20;
+    const amountWithoutTax = planPrice + premiumFeaturesPrice;
+    const totalWithTax = amountWithoutTax * (1 + taxRate / 100);
+    return totalWithTax;
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,12 +425,28 @@ export default function IlanDuzenlePage() {
         return;
       }
 
+      // Kategori adını bul
+      const categoryObj = categories.find(cat => cat.slug === formData.category);
+      const categoryName = categoryObj?.name || formData.category;
+      
+      // Alt kategori adını bul
+      const subCategoryObj = categoryObj?.subcategories?.find(sub => sub.slug === formData.subCategory);
+      const subCategoryName = subCategoryObj?.name || formData.subCategory || null;
+
+      // Seçilen plan bilgisi
+      const selectedPlanData = premiumPlans[selectedPlan as keyof typeof premiumPlans];
+      
+      // Premium özellikleri hazırla
+      const enabledPremiumFeatures = Object.entries(premiumSettings)
+        .filter(([_, enabled]) => enabled)
+        .map(([key]) => key);
+
       const updateData = {
         title: formData.title,
         description: formData.description,
         price: parseFloat(formData.price),
-        category: formData.category,
-        subCategory: formData.subCategory || null,
+        category: categoryName,
+        subCategory: subCategoryName,
         subSubCategory: formData.subSubCategory || null,
         location: formData.location,
         phone: formData.phone,
@@ -246,6 +455,11 @@ export default function IlanDuzenlePage() {
         images: JSON.stringify(allImages),
         features: JSON.stringify(formData.features),
         showPhone: formData.showPhone,
+        isPremium: selectedPlan !== 'none',
+        premiumFeatures: enabledPremiumFeatures.length > 0 ? enabledPremiumFeatures : null,
+        premiumUntil: selectedPlan !== 'none' 
+          ? new Date(Date.now() + (selectedPlanData.duration.includes('30') ? 30 : selectedPlanData.duration.includes('90') ? 90 : 365) * 24 * 60 * 60 * 1000).toISOString()
+          : null,
       };
 
       const response = await fetch(`/api/listings/${listingId}`, {
@@ -348,6 +562,99 @@ export default function IlanDuzenlePage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-alo-orange"
               />
             </div>
+
+            {/* Premium Plans */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Crown className="w-5 h-5 text-yellow-500 mr-2" />
+                Premium Plan Seçin
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {Object.entries(premiumPlans).map(([key, plan]) => (
+                  <div 
+                    key={key} 
+                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                      selectedPlan === key 
+                        ? 'border-blue-500 bg-blue-50 shadow-md' 
+                        : 'hover:shadow-md hover:border-gray-300'
+                    }`}
+                    onClick={() => setSelectedPlan(key)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-lg">{plan.name}</h3>
+                      {selectedPlan === key && (
+                        <Check className="w-5 h-5 text-blue-600" />
+                      )}
+                    </div>
+                    <div className="text-2xl font-bold text-blue-600 mb-2">
+                      {plan.price === 0 ? 'Ücretsiz' : `₺${plan.price}`}
+                    </div>
+                    <div className="text-sm text-gray-500 mb-3">{plan.duration}</div>
+                    <ul className="space-y-1 text-sm">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-center">
+                          <Check className="w-4 h-4 text-green-500 mr-2" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Premium İlan Ayarları */}
+            {selectedPlan !== 'none' && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-4 flex items-center">
+                  <Sparkles className="w-5 h-5 text-purple-500 mr-2" />
+                  Premium İlan Ayarları
+                </h2>
+                <p className="text-gray-600 mb-4">
+                  İlanınızı daha etkili hale getirmek için ek özellikler seçebilirsiniz.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {premiumFeatures.map((feature) => {
+                    const IconComponent = feature.icon;
+                    return (
+                      <div 
+                        key={feature.id}
+                        className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                          premiumSettings[feature.id as keyof typeof premiumSettings]
+                            ? 'border-purple-500 bg-purple-50 shadow-md' 
+                            : 'hover:shadow-md hover:border-gray-300'
+                        }`}
+                        onClick={() => handlePremiumSettingChange(feature.id)}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center">
+                            <IconComponent className="w-5 h-5 text-purple-500 mr-2" />
+                            <h3 className="font-semibold text-sm">{feature.name}</h3>
+                          </div>
+                          {premiumSettings[feature.id as keyof typeof premiumSettings] && (
+                            <Check className="w-4 h-4 text-purple-600" />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 mb-2">{feature.description}</p>
+                        <div className="text-sm font-bold text-purple-600">₺{feature.price}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Toplam Fiyat */}
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-semibold">Toplam Premium Ücret (KDV Dahil):</span>
+                    <span className="text-2xl font-bold text-purple-600">₺{calculateTotalPrice().toFixed(2)}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Plan ücreti + seçilen özellikler (KDV %20 dahil)
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Kategori ve Alt Kategori */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

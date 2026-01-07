@@ -29,7 +29,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const invoice = await (prisma as any).invoice.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: {
         user: {

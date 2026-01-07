@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAdminEmail } from '@/lib/admin';
+import { Prisma } from '@prisma/client';
+import { createListingSchema } from '@/lib/validations/listing';
+import { clearCachePattern } from '@/lib/cache';
 
 // Tüm ilanları getir (sayfalama ile)
 export async function GET(request: NextRequest) {
@@ -23,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     // Sadece aktif ve onaylanmış ilanları getir
     // Admin kullanıcısının ilanlarını hariç tut
-    const where: any = {
+    const where: Prisma.ListingWhereInput = {
       isActive: true,
       approvalStatus: 'approved',
       expiresAt: {
@@ -133,6 +136,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Zod validation
+    const validationResult = createListingSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Validasyon hatası',
+          details: validationResult.error.issues.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    const validatedData = validationResult.data;
     const {
       title,
       description,
@@ -143,7 +163,6 @@ export async function POST(request: NextRequest) {
       location,
       phone,
       showPhone,
-      contactOptions,
       images,
       features,
       condition,
@@ -152,23 +171,7 @@ export async function POST(request: NextRequest) {
       premiumFeatures,
       premiumUntil,
       expiresAt,
-    } = body;
-
-    // Validasyon
-    if (!title || !description || !price || !category || !location) {
-      return NextResponse.json(
-        { error: 'Lütfen tüm zorunlu alanları doldurun' },
-        { status: 400 }
-      );
-    }
-
-    // Resim zorunlu kontrolü
-    if (!images || !Array.isArray(images) || images.length === 0) {
-      return NextResponse.json(
-        { error: 'En az bir resim yüklemelisiniz' },
-        { status: 400 }
-      );
-    }
+    } = validatedData;
 
     // Kullanıcıyı bul veya oluştur
     let user = await prisma.user.findUnique({
@@ -196,12 +199,122 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // İlanı oluştur - approvalStatus: 'pending' olarak ayarla
+    // Admin kontrolü - Admin kullanıcıları ilan limitinden muaf
+    // Hem role hem de email kontrolü yap (daha güvenli)
+    const { isAdminEmail } = await import('@/lib/admin');
+    const isAdmin = user.role === 'admin' || isAdminEmail(user.email);
+    
+    // İlan limit kontrolü (sadece admin olmayan kullanıcılar için)
+    if (!isAdmin) {
+      // Kullanıcının aktif ilan sayısını kontrol et
+      const activeListings = await prisma.listing.findMany({
+        where: {
+          userId: user.id,
+          isActive: true,
+          expiresAt: {
+            gt: new Date()
+          },
+          approvalStatus: 'approved'
+        },
+        select: {
+          id: true
+        }
+      });
+
+      const activeListingCount = activeListings.length;
+
+      // Kullanıcının aktif aboneliğini kontrol et
+      const activeSubscription = await prisma.subscription.findFirst({
+        where: {
+          userId: user.id,
+          isActive: true,
+          endDate: {
+            gt: new Date()
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      // Admin ayarlarından limitleri al
+      let adminSettings = {
+        noneMaxListings: 0,
+        monthlyMaxListings: 0,
+        quarterlyMaxListings: 0,
+        yearlyMaxListings: 20
+      };
+
+      try {
+        const settingsRecord = await prisma.settings.findUnique({
+          where: { key: 'admin_settings' }
+        });
+        if (settingsRecord) {
+          const parsed = JSON.parse(settingsRecord.value);
+          adminSettings = {
+            noneMaxListings: parsed.noneMaxListings ?? 0,
+            monthlyMaxListings: parsed.monthlyMaxListings ?? 0,
+            quarterlyMaxListings: parsed.quarterlyMaxListings ?? 0,
+            yearlyMaxListings: parsed.yearlyMaxListings ?? 20
+          };
+        }
+      } catch (error) {
+        console.error('Admin ayarları okuma hatası:', error);
+        // Hata durumunda varsayılan değerler kullanılacak
+      }
+
+      let maxListings = 0;
+      if (activeSubscription) {
+        switch (activeSubscription.planType) {
+          case 'monthly':
+            maxListings = adminSettings.monthlyMaxListings;
+            break;
+          case 'quarterly':
+            maxListings = adminSettings.quarterlyMaxListings;
+            break;
+          case 'yearly':
+            maxListings = adminSettings.yearlyMaxListings;
+            break;
+          default:
+            maxListings = adminSettings.noneMaxListings;
+        }
+      } else {
+        // Abonelik yoksa ücretsiz plan limiti
+        maxListings = adminSettings.noneMaxListings;
+      }
+
+      // Limit kontrolü (0 değeri limit yok demektir)
+      if (maxListings > 0 && activeListingCount >= maxListings) {
+        return NextResponse.json(
+          { error: `Maksimum ${maxListings} aktif ilanınız olabilir. Lütfen mevcut ilanlarınızdan birini kapatın veya süresi dolmasını bekleyin.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Premium plan seçilmişse, ödeme yapılmadan premium yapılmamalı
+    // Ödeme başarılı olduğunda webhook'ta isPremium: true yapılacak
+    const shouldBePremium = isPremium || false;
+    const hasPremiumFeatures = premiumFeatures && (
+      typeof premiumFeatures === 'string' 
+        ? JSON.parse(premiumFeatures) 
+        : premiumFeatures
+    ) && Object.keys(typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures).length > 0;
+    
+    // Premium plan veya premium özellik seçilmişse, ödeme bekliyor demektir
+    // Bu durumda isPremium: false olmalı (ödeme yapılmadan premium olmamalı)
+    // approvalStatus: 'pending' olmalı ama ödeme yapılmadan onaya gönderilmemeli
+    const finalIsPremium = false; // Ödeme yapılmadan premium olmamalı
+    const finalApprovalStatus = (shouldBePremium || hasPremiumFeatures) 
+      ? 'pending' // Premium seçilmişse pending (ama ödeme bekliyor)
+      : 'pending'; // Ücretsiz plan seçilmişse direkt pending
+
+    // İlanı oluştur
     const listing = await prisma.listing.create({
       data: {
         title,
         description,
-        price: parseFloat(price),
+        price: price, // Validation schema zaten number döndürüyor
         category,
         subCategory: subCategory || null,
         subSubCategory: subSubCategory || null,
@@ -212,19 +325,61 @@ export async function POST(request: NextRequest) {
         features: JSON.stringify(features || []),
         condition: condition || null,
         brand: brand || null,
-        isPremium: isPremium || false,
+        isPremium: finalIsPremium, // Ödeme yapılmadan premium olmamalı
         premiumFeatures: premiumFeatures ? JSON.stringify({
           ...(typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures),
-          contactOptions: contactOptions || { showPhone: true, showWhatsApp: true, showMessage: true }
-        }) : contactOptions ? JSON.stringify({ contactOptions }) : null,
-        premiumUntil: premiumUntil ? new Date(premiumUntil) : null,
+          contactOptions: (typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures)?.contactOptions || { showPhone: true, showWhatsApp: true, showMessage: true }
+        }) : null,
+        premiumUntil: null, // Ödeme yapılmadan premiumUntil null olmalı
         expiresAt: expiresAt ? new Date(expiresAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 gün sonra
         views: 0,
         isActive: true,
-        approvalStatus: 'pending', // Moderatör/Admin onayına düşer
+        approvalStatus: finalApprovalStatus,
         userId: user.id,
       },
     });
+
+    // Cache invalidation - homepage ve category cache'lerini temizle
+    clearCachePattern('homepage-listings');
+    clearCachePattern('category-listings');
+
+    // Admin'e bildirim gönder (sadece onay bekleyen ilanlar için)
+    if (finalApprovalStatus === 'pending') {
+      try {
+        // Email bildirimi (async, hata olsa bile devam et)
+        const { notifyAdminNewListing } = await import('@/lib/email');
+        notifyAdminNewListing({
+          id: listing.id,
+          title: listing.title,
+          user: {
+            name: user.name || 'Kullanıcı',
+            email: user.email,
+          },
+          category: category,
+          price: price,
+        }).catch((error) => {
+          console.error('Email bildirimi gönderme hatası:', error);
+        });
+
+        // Database notification (async, hata olsa bile devam et)
+        const { createAdminNotificationForNewListing } = await import('@/lib/notifications');
+        createAdminNotificationForNewListing({
+          id: listing.id,
+          title: listing.title,
+          user: {
+            name: user.name || 'Kullanıcı',
+            email: user.email,
+          },
+          category: category,
+          price: price,
+        }).catch((error) => {
+          console.error('Database notification oluşturma hatası:', error);
+        });
+      } catch (error) {
+        // Bildirim hatası kritik değil, devam et
+        console.error('Bildirim gönderme hatası:', error);
+      }
+    }
 
     return NextResponse.json(
       {

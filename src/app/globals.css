@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@media print {
+  footer,
+  .print\\:hidden {
+    display: none !important;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -72,8 +79,42 @@
   }
   html {
     @apply h-full;
+    /* Mobil performans optimizasyonları */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Touch action optimizasyonu */
+    touch-action: manipulation;
   }
   body {
     @apply h-full bg-background text-foreground;
+    /* Mobil scroll optimizasyonu */
+    -webkit-overflow-scrolling: touch;
+    /* Text size adjust - iOS için */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* Mobil için input zoom'u engelle */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px; /* iOS'ta zoom'u engellemek için minimum 16px */
+  }
+  /* Mobil için button touch target boyutu */
+  button,
+  a {
+    min-height: 44px; /* Apple HIG önerisi */
+    min-width: 44px;
+  }
+  /* Mobil için smooth scroll */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 } 

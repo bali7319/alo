@@ -92,6 +92,11 @@ export async function GET() {
       );
     }
 
+    // Admin kontrolü - Admin kullanıcıları ilan limitinden muaf
+    // Hem role hem de email kontrolü yap (daha güvenli)
+    const { isAdminEmail } = await import('@/lib/admin');
+    const isAdmin = user.role === 'admin' || isAdminEmail(user.email);
+
     // Aktif ilanları getir (süresi dolmamış ve aktif olanlar)
     const activeListings = await prisma.listing.findMany({
       where: {
@@ -109,6 +114,18 @@ export async function GET() {
 
     // Aktif ilan sayısı
     const activeListingCount = activeListings.length;
+
+    // Admin kullanıcıları için sınırsız limit döndür
+    if (isAdmin) {
+      return NextResponse.json({
+        activeListingCount,
+        planType: 'admin',
+        limits: {
+          maxListings: 0 // 0 = limit yok (sınırsız)
+        },
+        isAdmin: true
+      });
+    }
 
     // Kullanıcının aktif aboneliğini kontrol et
     const activeSubscription = await prisma.subscription.findFirst({
@@ -154,7 +171,8 @@ export async function GET() {
       planType: activeSubscription?.planType || 'none',
       limits: {
         maxListings
-      }
+      },
+      isAdmin: false
     });
   } catch (error) {
     console.error('Limit kontrolü hatası:', error);
