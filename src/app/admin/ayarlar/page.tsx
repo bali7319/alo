@@ -114,8 +114,18 @@ export default function AdminAyarlarPage() {
     }
     
     try {
-      const response = await fetch('/api/admin/settings', {
-        cache: 'no-store' // Her zaman güncel ayarları çek
+      // Cache'i tamamen devre dışı bırak - URL'ye timestamp ekleyerek cache'i bypass et
+      const timestamp = Date.now();
+      const response = await fetch(`/api/settings?t=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+        credentials: 'include', // Cookie'leri gönder - NextAuth için gerekli
+        cache: 'no-store', // Next.js cache'ini devre dışı bırak
+        next: { revalidate: 0 } // Revalidation'ı devre dışı bırak
       });
       const data = await response.json();
       

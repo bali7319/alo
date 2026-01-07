@@ -104,6 +104,7 @@ export async function middleware(request: NextRequest) {
       const isAuthenticated = !!token;
       
       // Admin ayarları endpoint'i için daha yüksek limit (sıkça çağrılıyor)
+      // GET isteği için herkes erişebilir, PUT için admin kontrolü route handler'da yapılıyor
       if (pathname.startsWith('/api/admin/settings')) {
         const limit = isAuthenticated ? 200 : 50; // Authenticated: 200, Anonymous: 50
         if (!checkRateLimit(ip, limit, 60000)) {
@@ -112,6 +113,8 @@ export async function middleware(request: NextRequest) {
             { status: 429 }
           );
         }
+        // GET isteği için middleware'de 403 döndürme - route handler'a bırak
+        // Middleware sadece rate limiting yapar
       }
       // Diğer API endpoint'leri için normal limit
       else {

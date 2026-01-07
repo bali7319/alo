@@ -71,6 +71,7 @@ export default function IlanVerPage() {
 
   // Premium planlar - admin ayarlarından dinamik olarak güncellenecek
   const premiumPlans = useMemo(() => {
+    console.log('premiumPlans useMemo çalışıyor, adminSettings.noneMaxImages:', adminSettings.noneMaxImages);
     const noneFeatures = [
       'Temel ilan özellikleri',
       `${adminSettings.noneMaxImages} adet resim yükleme`,
@@ -183,6 +184,7 @@ export default function IlanVerPage() {
     activeListingCount: number;
     totalImages: number;
     limits: { maxListings: number; maxTotalImages: number };
+    planType?: string;
     isAdmin?: boolean;
   } | null>(null);
 
@@ -207,9 +209,15 @@ export default function IlanVerPage() {
   }, [session]);
 
   // Plan seçimine göre maksimum resim sayısı
+  // Önce kullanıcının gerçek premium planını kontrol et, yoksa form'da seçilen planı kullan
   const MAX_IMAGES = useMemo(() => {
+    // Kullanıcının gerçek premium planı varsa onu kullan, yoksa form'da seçilen planı kullan
+    const effectivePlan = userLimits?.planType && userLimits.planType !== 'none' && userLimits.planType !== 'admin' 
+      ? userLimits.planType 
+      : selectedPlan;
+    
     const maxImages = (() => {
-      switch (selectedPlan) {
+      switch (effectivePlan) {
         case 'none':
           return adminSettings.noneMaxImages;
         case 'monthly':
@@ -223,7 +231,13 @@ export default function IlanVerPage() {
           return adminSettings.noneMaxImages;
       }
     })();
-    console.log('MAX_IMAGES hesaplandı:', { selectedPlan, maxImages, noneMaxImages: adminSettings.noneMaxImages });
+    console.log('MAX_IMAGES hesaplandı:', { 
+      selectedPlan, 
+      userPlanType: userLimits?.planType, 
+      effectivePlan, 
+      maxImages, 
+      noneMaxImages: adminSettings.noneMaxImages 
+    });
     return maxImages;
   }, [selectedPlan, userLimits, adminSettings]);
 
@@ -744,11 +758,18 @@ export default function IlanVerPage() {
   // Admin ayarlarını yükle
   const fetchAdminSettings = async () => {
     try {
-      const response = await fetch('/api/admin/settings', {
+      // Cache'i tamamen devre dışı bırak - URL'ye timestamp ekleyerek cache'i bypass et
+      const timestamp = Date.now();
+      const response = await fetch(`/api/settings?t=${timestamp}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
         },
+        credentials: 'include', // Cookie'leri gönder - NextAuth için gerekli
+        cache: 'no-store', // Next.js cache'ini devre dışı bırak
+        next: { revalidate: 0 } // Revalidation'ı devre dışı bırak
       });
       
       if (!response.ok) {
@@ -765,19 +786,32 @@ export default function IlanVerPage() {
       }
       
       const settings = await response.json();
-      console.log('Admin ayarları yüklendi:', {
+      console.log('Admin ayarları yüklendi (RAW):', {
         noneMaxImages: settings.noneMaxImages,
+        noneMaxImagesType: typeof settings.noneMaxImages,
+        noneMaxImagesIsUndefined: settings.noneMaxImages === undefined,
+        noneMaxImagesIsNull: settings.noneMaxImages === null,
         monthlyMaxImages: settings.monthlyMaxImages,
         quarterlyMaxImages: settings.quarterlyMaxImages,
-        yearlyMaxImagesPerListing: settings.yearlyMaxImagesPerListing
+        yearlyMaxImagesPerListing: settings.yearlyMaxImagesPerListing,
+        fullSettings: settings // Tüm ayarları görmek için
       });
+      console.log('API Response Status:', response.status);
+      console.log('API Response OK:', response.ok);
+      
+      // noneMaxImages değerini kontrol et - eğer undefined/null ise varsayılan 3, yoksa gelen değeri kullan
+      const noneMaxImagesValue = (settings.noneMaxImages !== undefined && settings.noneMaxImages !== null) 
+        ? settings.noneMaxImages 
+        : 3;
+      console.log('noneMaxImages hesaplanan değer:', noneMaxImagesValue);
+      
       setAdminSettings({
         featuredPrice: settings.featuredPrice ?? 50,
         urgentPrice: settings.urgentPrice ?? 30,
         highlightPrice: settings.highlightPrice ?? 25,
         topPrice: settings.topPrice ?? 75,
         // Plan bazlı resim limitleri
-        noneMaxImages: settings.noneMaxImages ?? 3,
+        noneMaxImages: noneMaxImagesValue,
         monthlyMaxImages: settings.monthlyMaxImages ?? 5,
         quarterlyMaxImages: settings.quarterlyMaxImages ?? 10,
         yearlyMaxImagesPerListing: settings.yearlyMaxImagesPerListing ?? 10,
@@ -795,6 +829,13 @@ export default function IlanVerPage() {
         monthlyPremiumPrice: settings.monthlyPremiumPrice ?? 199,
         quarterlyPremiumPrice: settings.quarterlyPremiumPrice ?? 494,
         yearlyPremiumPrice: settings.yearlyPremiumPrice ?? 2179
+      });
+      console.log('adminSettings state güncellendi, noneMaxImages:', noneMaxImagesValue);
+      console.log('adminSettings state tam değerler:', {
+        noneMaxImages: noneMaxImagesValue,
+        monthlyMaxImages: settings.monthlyMaxImages ?? 5,
+        quarterlyMaxImages: settings.quarterlyMaxImages ?? 10,
+        yearlyMaxImagesPerListing: settings.yearlyMaxImagesPerListing ?? 10
       });
     } catch (error) {
       console.error('Admin ayarları yüklenirken hata:', error);
@@ -831,10 +872,14 @@ export default function IlanVerPage() {
   };
 
   useEffect(() => {
+    // Sayfa yüklendiğinde hemen ayarları çek
     fetchAdminSettings();
     
-    // Her 30 saniyede bir admin ayarlarını kontrol et
-    const interval = setInterval(fetchAdminSettings, 30000);
+    // Her 10 saniyede bir admin ayarlarını kontrol et (daha sık güncelleme)
+    const interval = setInterval(() => {
+      console.log('Admin ayarları periyodik kontrol ediliyor...');
+      fetchAdminSettings();
+    }, 10000);
     
     return () => clearInterval(interval);
   }, []);
