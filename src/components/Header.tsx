@@ -36,7 +36,53 @@ export default function Header() {
   const isInitialLoadRef = useRef(true);
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/' });
+    try {
+      // Önce NextAuth signout endpoint'ini çağır (cookie'yi silmek için)
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      // Cookie'leri manuel olarak sil (güvenlik için)
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        // NextAuth cookie'lerini sil
+        if (name.includes('next-auth') || name.includes('session')) {
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
+        }
+      }
+      
+      // NextAuth signOut'u çağır (session'ı temizlemek için)
+      await signOut({ 
+        callbackUrl: '/',
+        redirect: false 
+      });
+      
+      // Kısa bir bekleme ekle (cookie silme işleminin tamamlanması için)
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Ana sayfaya yönlendir
+      window.location.href = '/';
+    } catch (error) {
+      console.error('SignOut hatası:', error);
+      // Hata durumunda bile cookie'leri sil ve yönlendir
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        if (name.includes('next-auth') || name.includes('session')) {
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
+        }
+      }
+      // Ana sayfaya yönlendir
+      window.location.href = '/';
+    }
   };
 
   // Giriş gerektiren butonlar için callback URL oluştur
@@ -75,7 +121,15 @@ export default function Header() {
     
     setLoadingNotifications(true);
     try {
-      const response = await fetch('/api/notifications');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniye timeout
+      
+      const response = await fetch('/api/notifications', {
+        credentials: 'include',
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
       if (response.ok) {
         const data = await response.json();
         const newUnreadCount = data.unreadCount || 0;
@@ -96,7 +150,11 @@ export default function Header() {
         previousUnreadCountRef.current = newUnreadCount;
       }
     } catch (error) {
-      console.error('Bildirim yükleme hatası:', error);
+      // Sessizce hata yok say (bildirim yükleme hatası kritik değil)
+      // Sadece development'ta logla
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Bildirim yükleme hatası:', error);
+      }
     } finally {
       setLoadingNotifications(false);
     }

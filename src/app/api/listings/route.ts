@@ -14,9 +14,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
+    const search = searchParams.get('search') || '';
     const skip = (page - 1) * limit;
 
-    console.log(`[GET /api/listings] Fetching page ${page}, limit ${limit}`);
+    console.log(`[GET /api/listings] Fetching page ${page}, limit ${limit}, search: ${search}`);
 
     // Admin kullanıcısını bul (ilanlarını hariç tutmak için)
     const adminUser = await prisma.user.findUnique({
@@ -25,8 +26,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Sadece aktif ve onaylanmış ilanları getir
-    // Admin kullanıcısının ilanlarını hariç tut
-    const where: Prisma.ListingWhereInput = {
+    const baseWhere: Prisma.ListingWhereInput = {
       isActive: true,
       approvalStatus: 'approved',
       expiresAt: {
@@ -34,9 +34,92 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // Admin kullanıcısının ilanlarını hariç tut
-    if (adminUser) {
-      where.userId = { not: adminUser.id };
+    // Arama terimi varsa, admin filtresini kaldır (arama sonuçlarında admin ilanları da görünsün)
+    // Arama yoksa, admin kullanıcısının ilanlarını hariç tut
+    let where: Prisma.ListingWhereInput = baseWhere;
+    if (!search || !search.trim()) {
+      // Arama yoksa, admin kullanıcısının ilanlarını hariç tut
+      if (adminUser) {
+        baseWhere.userId = { not: adminUser.id };
+        where = baseWhere;
+      }
+    } else {
+      // Arama varsa, admin filtresini kaldır ve arama yap
+      const searchTerm = search.trim();
+      console.log(`[GET /api/listings] Arama terimi: "${searchTerm}"`);
+      
+      // Arama koşullarını baseWhere ile birleştir (admin filtresi YOK)
+      // Öncelik: title ve description (en önemli), sonra category, subCategory, location
+      where = {
+        AND: [
+          baseWhere, // Admin filtresi yok, sadece aktif/onaylanmış/süresi dolmamış
+          {
+            OR: [
+              // Başlıkta ara (en önemli)
+              { title: { contains: searchTerm, mode: 'insensitive' } },
+              // Açıklamada ara (ikinci öncelik)
+              { description: { contains: searchTerm, mode: 'insensitive' } },
+              // Kategori ve alt kategoride ara
+              { category: { contains: searchTerm, mode: 'insensitive' } },
+              { subCategory: { contains: searchTerm, mode: 'insensitive' } },
+              // Konumda ara
+              { location: { contains: searchTerm, mode: 'insensitive' } }
+            ]
+          }
+        ]
+      };
+      console.log(`[GET /api/listings] Arama where koşulu (title ve description öncelikli, admin filtresi YOK):`, JSON.stringify(where, null, 2));
+    }
+
+    // Debug: Arama terimi varsa, önce tüm arama terimi içeren ilanları kontrol et (filtre olmadan)
+    if (search && search.trim()) {
+      const searchTerm = search.trim();
+      try {
+        const debugListings = await prisma.listing.findMany({
+          where: {
+            OR: [
+              { title: { contains: searchTerm, mode: 'insensitive' } },
+              { description: { contains: searchTerm, mode: 'insensitive' } }
+            ]
+          },
+          select: {
+            id: true,
+            title: true,
+            isActive: true,
+            approvalStatus: true,
+            expiresAt: true,
+            userId: true,
+            user: {
+              select: {
+                email: true
+              }
+            }
+          },
+          take: 10
+        });
+        console.log(`[GET /api/listings] DEBUG: "${searchTerm}" içeren ${debugListings.length} ilan bulundu (filtre olmadan)`);
+        if (debugListings.length > 0) {
+          debugListings.forEach((l, idx) => {
+            const isExpired = l.expiresAt ? new Date(l.expiresAt) < new Date() : false;
+            const isAdminUser = adminUser && l.userId === adminUser.id;
+            console.log(`[GET /api/listings] DEBUG İlan ${idx + 1}:`, JSON.stringify({
+              title: l.title,
+              isActive: l.isActive,
+              approvalStatus: l.approvalStatus,
+              expiresAt: l.expiresAt,
+              isExpired: isExpired,
+              userEmail: l.user?.email,
+              userId: l.userId,
+              isAdminUser: isAdminUser,
+              adminUserId: adminUser?.id
+            }, null, 2));
+          });
+        } else {
+          console.log(`[GET /api/listings] DEBUG: Veritabanında "${searchTerm}" içeren hiç ilan bulunamadı`);
+        }
+      } catch (debugError) {
+        console.error(`[GET /api/listings] DEBUG hatası:`, debugError);
+      }
     }
 
     const [listings, total] = await Promise.all([

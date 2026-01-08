@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { SearchBar } from '@/components/search-bar'
@@ -111,7 +112,9 @@ export default async function Home() {
       </section>
       <section className="bg-white border-b py-4 sm:py-6">
         <div className="container mx-auto px-3 sm:px-4">
-          <SearchBar />
+          <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse rounded-lg" />}>
+            <SearchBar />
+          </Suspense>
         </div>
       </section>
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8">

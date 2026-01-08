@@ -88,11 +88,31 @@ export default function AdminPage() {
     }
   };
 
-  const handleLogout = () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Çıkış yapılıyor');
+  const handleLogout = async () => {
+    console.log('[LOGOUT] ========== BAŞLADI ==========');
+    
+    // 1. Storage temizle
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      console.log('[LOGOUT] Storage temizlendi');
+    } catch (e) {
+      console.error('[LOGOUT] Storage hatası:', e);
     }
-    signOut({ callbackUrl: '/giris' });
+    
+    // 2. NextAuth signOut - redirect: true ile direkt yönlendirme
+    try {
+      console.log('[LOGOUT] signOut çağrılıyor...');
+      await signOut({ 
+        callbackUrl: '/',
+        redirect: true  // NextAuth otomatik yönlendirsin
+      });
+    } catch (signOutError) {
+      console.error('[LOGOUT] signOut hatası:', signOutError);
+      // Hata olsa bile yönlendir
+      window.location.href = '/';
+    }
+      
   };
 
   const checkDemoListings = async () => {
@@ -214,8 +234,25 @@ export default function AdminPage() {
             </p>
           </div>
           <button
-            onClick={handleLogout}
-            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            onClick={async () => {
+              console.log('[BUTON] ========== TIKLANDI ==========');
+              alert('Çıkış yapılıyor...'); // Test için
+              
+              // Direkt signOut çağır
+              try {
+                await signOut({ 
+                  callbackUrl: '/',
+                  redirect: true 
+                });
+              } catch (err) {
+                console.error('[BUTON] Hata:', err);
+                // Hata olsa bile yönlendir
+                window.location.href = '/';
+              }
+            }}
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
+            type="button"
+            id="admin-logout-button"
           >
             <LogOut className="h-4 w-4 mr-2" />
             Çıkış Yap

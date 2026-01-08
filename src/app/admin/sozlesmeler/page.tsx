@@ -103,8 +103,10 @@ export default function AdminSozlesmelerPage() {
   };
 
   const filteredContracts = contracts.filter(contract =>
-    contract.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contract.type.toLowerCase().includes(searchTerm.toLowerCase())
+    contract.type !== 'commercial' && (
+      contract.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contract.type.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
   const getTypeLabel = (type: string) => {
@@ -260,7 +262,7 @@ export default function AdminSozlesmelerPage() {
     { type: 'renovation-request', label: 'Tadilat Talebi', route: 'olustur' },
     { type: 'furnished-housing', label: 'Eşyalı Konut', route: 'olustur' },
     { type: 'construction-agreement', label: 'Kat Karşılığı İnşaat', route: 'olustur' },
-    { type: 'commercial', label: 'İşyeri Kiralama', route: 'olustur' },
+    // { type: 'commercial', label: 'İşyeri Kiralama', route: 'olustur' }, // Gizlendi
     { type: 'vehicle', label: 'Araç Kiralama', route: 'olustur' },
     { type: 'warehouse', label: 'Depo Kiralama', route: 'olustur' },
     { type: 'sale', label: 'Satış Sözleşmesi', route: 'olustur' },
@@ -333,9 +335,9 @@ export default function AdminSozlesmelerPage() {
      { type: 'post-birth-half-day-unpaid-leave', label: 'Doğum Sonrası Yarım Gün Ücretsiz İzin Talebi Mektubu', route: 'olustur' },
    ];
 
-  // Template'i olan sözleşmeleri bul
+  // Template'i olan sözleşmeleri bul (İşyeri Kiralama hariç)
   const contractsWithTemplates = contracts.filter(c => 
-    templateTypes.some(t => t.type === c.type)
+    c.type !== 'commercial' && templateTypes.some(t => t.type === c.type)
   );
 
   return (
@@ -382,8 +384,8 @@ export default function AdminSozlesmelerPage() {
         </div>
       </div>
 
-      {/* Arama */}
-      <div className="bg-white rounded-lg shadow p-4">
+      {/* Arama - Gizlendi */}
+      {/* <div className="bg-white rounded-lg shadow p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <input
@@ -394,10 +396,10 @@ export default function AdminSozlesmelerPage() {
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-      </div>
+      </div> */}
 
-      {/* Hukuki Belgeler Listesi */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Hukuki Belgeler Listesi - Gizlendi */}
+      {/* <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -526,7 +528,7 @@ export default function AdminSozlesmelerPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

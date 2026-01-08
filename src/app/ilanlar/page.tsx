@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ListingCard } from '@/components/listing-card';
 import { SearchBar } from '@/components/search-bar';
 import { Button } from '@/components/ui/button';
@@ -24,38 +25,51 @@ interface Listing {
   };
 }
 
-export default function IlanlarPage() {
+function IlanlarContent() {
+  const searchParams = useSearchParams();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchListings();
-  }, [page]);
+  // URL'deki search parametresini al
+  const searchQuery = searchParams.get('search') || '';
 
-  const fetchListings = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`/api/listings?page=${page}&limit=20`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setListings(data.listings || []);
-        setTotalPages(data.pagination?.totalPages || 1);
-      } else {
-        setError(data.error || 'İlanlar yüklenirken bir hata oluştu');
-      }
-    } catch (error: any) {
-      console.error('İlanlar yükleme hatası:', error);
-      setError('İlanlar yüklenirken bir hata oluştu');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    // Search parametresi değiştiğinde sayfayı 1'e sıfırla
+    if (searchQuery) {
+      setPage(1);
     }
-  };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Search parametresini API'ye gönder
+        const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
+        const response = await fetch(`/api/listings?page=${page}&limit=20${searchParam}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          setListings(data.listings || []);
+          setTotalPages(data.pagination?.totalPages || 1);
+        } else {
+          setError(data.error || 'İlanlar yüklenirken bir hata oluştu');
+        }
+      } catch (error: any) {
+        console.error('İlanlar yükleme hatası:', error);
+        setError('İlanlar yüklenirken bir hata oluştu');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListings();
+  }, [page, searchQuery]); // Hem page hem de searchQuery değiştiğinde yeniden yükle
 
   if (loading && listings.length === 0) {
     return (
@@ -134,6 +148,22 @@ export default function IlanlarPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function IlanlarPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        </div>
+      </div>
+    }>
+      <IlanlarContent />
+    </Suspense>
   );
 }
 

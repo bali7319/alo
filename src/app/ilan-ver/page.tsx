@@ -211,6 +211,17 @@ export default function IlanVerPage() {
   // Plan seçimine göre maksimum resim sayısı
   // Önce kullanıcının gerçek premium planını kontrol et, yoksa form'da seçilen planı kullan
   const MAX_IMAGES = useMemo(() => {
+    // Admin kullanıcılar için sınırsız resim (999 = sınırsız)
+    if (userLimits?.isAdmin === true || userLimits?.planType === 'admin') {
+      console.log('MAX_IMAGES hesaplandı (Admin):', { 
+        selectedPlan, 
+        userPlanType: userLimits?.planType, 
+        isAdmin: userLimits?.isAdmin,
+        maxImages: 999 
+      });
+      return 999; // Sınırsız
+    }
+    
     // Kullanıcının gerçek premium planı varsa onu kullan, yoksa form'da seçilen planı kullan
     const effectivePlan = userLimits?.planType && userLimits.planType !== 'none' && userLimits.planType !== 'admin' 
       ? userLimits.planType 
@@ -236,7 +247,10 @@ export default function IlanVerPage() {
       userPlanType: userLimits?.planType, 
       effectivePlan, 
       maxImages, 
-      noneMaxImages: adminSettings.noneMaxImages 
+      noneMaxImages: adminSettings.noneMaxImages,
+      isAdmin: userLimits?.isAdmin,
+      sessionRole: session?.user?.role,
+      adminSettingsFull: adminSettings // Tüm adminSettings'i görmek için
     });
     return maxImages;
   }, [selectedPlan, userLimits, adminSettings]);
@@ -882,7 +896,15 @@ export default function IlanVerPage() {
     }, 10000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Boş dependency array - sadece mount'ta çalışır
+  
+  // Session değiştiğinde de ayarları yeniden yükle (kullanıcı değiştiğinde)
+  useEffect(() => {
+    if (session?.user) {
+      console.log('Session değişti, admin ayarları yeniden yükleniyor...');
+      fetchAdminSettings();
+    }
+  }, [session?.user?.email]); // Kullanıcı email'i değiştiğinde yeniden yükle
 
   // Loading durumu
   if (status === 'loading') {

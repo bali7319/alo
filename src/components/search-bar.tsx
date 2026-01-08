@@ -1,24 +1,42 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 export function SearchBar() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState('')
+
+  // URL'deki search parametresini oku ve input'a yükle
+  useEffect(() => {
+    const urlSearch = searchParams.get('search')
+    if (urlSearch) {
+      setSearchTerm(urlSearch)
+    }
+  }, [searchParams])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!searchTerm.trim()) return
 
+    // İlanlar sayfasına search parametresi ile yönlendir
     const params = new URLSearchParams()
     if (searchTerm.trim()) params.append('search', searchTerm.trim())
     
-    router.push(`/?${params.toString()}`)
+    router.push(`/ilanlar?${params.toString()}`)
+  }
+
+  // Enter tuşu için ekstra kontrol (güvenlik için)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSearch(e as any)
+    }
   }
 
   return (
@@ -40,6 +58,7 @@ export function SearchBar() {
             placeholder="Ne arıyorsunuz? (örn: iPhone, araba, ev eşyası...)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
             aria-label="Arama terimi"
             aria-describedby="search-description"
