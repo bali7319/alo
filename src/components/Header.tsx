@@ -27,7 +27,7 @@ interface Notification {
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const pathname = usePathname();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -134,9 +134,26 @@ export default function Header() {
       // 7. Kısa bir bekleme
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // 8. Hard redirect
+      // 8. NextAuth session'ını zorla güncelle
+      try {
+        await update(); // Session'ı yeniden yükle
+        console.log('Session güncellendi');
+      } catch (e) {
+        console.log('Session güncelleme hatası:', e);
+      }
+      
+      // 9. Hard redirect - sayfayı tamamen yenile (cache'i temizler)
       console.log('Ana sayfaya yönlendiriliyor...');
-      window.location.replace('/');
+      // Önce cache'i temizle
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => {
+            caches.delete(name);
+          });
+        });
+      }
+      // Hard redirect
+      window.location.href = '/';
       
     } catch (error) {
       console.error('SignOut hatası:', error);
