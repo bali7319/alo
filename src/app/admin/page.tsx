@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Users, FileText, Eye, MessageSquare, Star, Clock, XCircle, CheckCircle, LogOut, Trash2, Search } from 'lucide-react';
+import { Users, FileText, Eye, MessageSquare, Star, Clock, XCircle, CheckCircle, LogOut, Trash2, Search, Mail } from 'lucide-react';
 
 interface Stats {
   totalUsers: number;
@@ -89,30 +89,57 @@ export default function AdminPage() {
   };
 
   const handleLogout = async () => {
-    console.log('[LOGOUT] ========== BAŞLADI ==========');
-    
-    // 1. Storage temizle
     try {
+      // Önce NextAuth signout endpoint'ini çağır
+      await fetch('/api/auth/signout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      // Cookie'leri manuel olarak sil
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        if (name.includes('next-auth') || name.includes('session')) {
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
+        }
+      }
+      
+      // Storage temizle
       localStorage.clear();
       sessionStorage.clear();
-      console.log('[LOGOUT] Storage temizlendi');
-    } catch (e) {
-      console.error('[LOGOUT] Storage hatası:', e);
-    }
-    
-    // 2. NextAuth signOut - redirect: true ile direkt yönlendirme
-    try {
-      console.log('[LOGOUT] signOut çağrılıyor...');
+      
+      // NextAuth signOut'u çağır
       await signOut({ 
         callbackUrl: '/',
-        redirect: true  // NextAuth otomatik yönlendirsin
+        redirect: false 
       });
-    } catch (signOutError) {
-      console.error('[LOGOUT] signOut hatası:', signOutError);
-      // Hata olsa bile yönlendir
+      
+      // Kısa bir bekleme ekle
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Ana sayfaya yönlendir
+      window.location.href = '/';
+    } catch (err) {
+      console.error('[ADMIN LOGOUT] Hata:', err);
+      // Hata olsa bile cookie'leri sil ve yönlendir
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        if (name.includes('next-auth') || name.includes('session')) {
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
+        }
+      }
+      localStorage.clear();
+      sessionStorage.clear();
       window.location.href = '/';
     }
-      
   };
 
   const checkDemoListings = async () => {
@@ -235,18 +262,55 @@ export default function AdminPage() {
           </div>
           <button
             onClick={async () => {
-              console.log('[BUTON] ========== TIKLANDI ==========');
-              alert('Çıkış yapılıyor...'); // Test için
-              
-              // Direkt signOut çağır
               try {
+                // Önce NextAuth signout endpoint'ini çağır
+                await fetch('/api/auth/signout', {
+                  method: 'POST',
+                  credentials: 'include',
+                });
+                
+                // Cookie'leri manuel olarak sil
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                  const eqPos = cookie.indexOf('=');
+                  const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                  if (name.includes('next-auth') || name.includes('session')) {
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
+                  }
+                }
+                
+                // Storage temizle
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // NextAuth signOut'u çağır
                 await signOut({ 
                   callbackUrl: '/',
-                  redirect: true 
+                  redirect: false 
                 });
+                
+                // Kısa bir bekleme ekle
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Ana sayfaya yönlendir
+                window.location.href = '/';
               } catch (err) {
-                console.error('[BUTON] Hata:', err);
-                // Hata olsa bile yönlendir
+                console.error('[ADMIN LOGOUT] Hata:', err);
+                // Hata olsa bile cookie'leri sil ve yönlendir
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                  const eqPos = cookie.indexOf('=');
+                  const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                  if (name.includes('next-auth') || name.includes('session')) {
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
+                  }
+                }
+                localStorage.clear();
+                sessionStorage.clear();
                 window.location.href = '/';
               }
             }}
@@ -403,6 +467,13 @@ export default function AdminPage() {
                 className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 Sistem Ayarları
+              </button>
+              <button 
+                onClick={() => router.push('/admin/aboneler')}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email Aboneleri
               </button>
             </div>
           </div>
