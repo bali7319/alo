@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Mail, Search, Trash2, CheckCircle, XCircle, Download, ArrowLeft } from 'lucide-react';
+import { Mail, Search, Trash2, CheckCircle, XCircle, Download, ArrowLeft, Send } from 'lucide-react';
 
 interface Subscriber {
   id: string;
@@ -35,6 +35,7 @@ export default function AdminAbonelerPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [testingEmail, setTestingEmail] = useState(false);
 
   const fetchSubscribers = async () => {
     try {
@@ -173,6 +174,44 @@ export default function AdminAbonelerPage() {
     // Search zaten useEffect ile yönetiliyor, sadece form submit'i engelle
   };
 
+  const handleTestEmail = async () => {
+    const email = prompt('Test email göndermek için email adresini girin:');
+    if (!email) return;
+
+    const subject = prompt('Email konusu:', 'Test Email');
+    if (subject === null) return;
+
+    const message = prompt('Özel mesaj (isteğe bağlı):', '');
+
+    try {
+      setTestingEmail(true);
+      const response = await fetch('/api/test/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: email,
+          subject: subject || 'Test Email',
+          message: message || '',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`✅ Test email başarıyla gönderildi!\n\nAlıcı: ${data.to}\nKonu: ${data.subject}`);
+      } else {
+        alert(`❌ Hata: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Test email hatası:', error);
+      alert('Test email gönderilirken bir hata oluştu');
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -203,13 +242,23 @@ export default function AdminAbonelerPage() {
                 Toplam {pagination.total} abone
               </p>
             </div>
-            <button
-              onClick={handleExport}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              CSV İndir
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleTestEmail}
+                disabled={testingEmail}
+                className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {testingEmail ? 'Gönderiliyor...' : 'Test Email Gönder'}
+              </button>
+              <button
+                onClick={handleExport}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                CSV İndir
+              </button>
+            </div>
           </div>
         </div>
 
