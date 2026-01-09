@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [demoListings, setDemoListings] = useState<any[]>([]);
   const [checkingDemo, setCheckingDemo] = useState(false);
   const [deletingDemo, setDeletingDemo] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     // Console log'lar sadece development'ta
@@ -108,45 +109,8 @@ export default function AdminPage() {
         console.log('CSRF token hatası:', e);
       }
       
-      // 3. NextAuth'un kendi signout endpoint'ini çağır (action=signout)
-      try {
-        const formData = new URLSearchParams();
-        formData.append('csrfToken', csrfToken);
-        formData.append('callbackUrl', '/');
-        
-        // NextAuth'un kendi endpoint'i: /api/auth/[...nextauth]?action=signout
-        const signoutResponse = await fetch('/api/auth/signout?callbackUrl=/', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: formData.toString(),
-        });
-        
-        console.log('NextAuth signout endpoint çağrıldı:', signoutResponse.status);
-        
-        // Response'u kontrol et
-        if (signoutResponse.ok) {
-          const data = await signoutResponse.text();
-          console.log('Signout response:', data.substring(0, 200));
-        }
-      } catch (e) {
-        console.log('NextAuth signout endpoint hatası:', e);
-      }
-      
-      // 4. Custom signout endpoint'ini de çağır (yedek olarak)
-      try {
-        const customResponse = await fetch('/api/auth/signout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-        console.log('Custom signout endpoint çağrıldı:', customResponse.status);
-      } catch (e) {
-        console.log('Custom signout endpoint hatası:', e);
-      }
-      
-      // 5. NextAuth signOut fonksiyonunu çağır (redirect: false)
+      // 3. NextAuth signOut fonksiyonunu çağır (redirect: false)
+      // Bu, NextAuth'un kendi endpoint'ini (/api/auth/[...nextauth]) çağırır
       try {
         await signOut({ 
           callbackUrl: '/',
@@ -157,7 +121,18 @@ export default function AdminPage() {
         console.log('NextAuth signOut fonksiyonu hatası:', e);
       }
       
-      // 6. Tüm cookie'leri manuel olarak temizle
+      // 4. Custom signout endpoint'ini çağır (cookie'leri server-side'da temizlemek için)
+      try {
+        const customResponse = await fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        console.log('Custom signout endpoint çağrıldı:', customResponse.status);
+      } catch (e) {
+        console.log('Custom signout endpoint hatası:', e);
+      }
+      
+      // 5. Tüm cookie'leri manuel olarak temizle (httpOnly cookie'ler için yedek)
       const cookieNames = [
         'next-auth.session-token',
         'next-auth.csrf-token',
@@ -186,7 +161,7 @@ export default function AdminPage() {
       // 7. Kısa bir bekleme
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // 8. NextAuth session'ını zorla güncelle
+      // 7. NextAuth session'ını zorla güncelle
       try {
         await update(); // Session'ı yeniden yükle
         console.log('Session güncellendi');
@@ -194,7 +169,7 @@ export default function AdminPage() {
         console.log('Session güncelleme hatası:', e);
       }
       
-      // 9. Hard redirect - sayfayı tamamen yenile (cache'i temizler)
+      // 8. Hard redirect - sayfayı tamamen yenile (cache'i temizler)
       console.log('Ana sayfaya yönlendiriliyor...');
       // Önce cache'i temizle
       if ('caches' in window) {
@@ -336,12 +311,13 @@ export default function AdminPage() {
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
+            disabled={isLoggingOut}
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             type="button"
             id="admin-logout-button"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Çıkış Yap
+            {isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}
           </button>
         </div>
 

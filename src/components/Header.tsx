@@ -35,8 +35,22 @@ export default function Header() {
   const previousUnreadCountRef = useRef(0);
   const isInitialLoadRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (e?: React.MouseEvent) => {
+    // Double click önleme
+    if (isSigningOut) {
+      console.log('SignOut zaten devam ediyor, işlem iptal edildi');
+      return;
+    }
+    
+    // Form submit önleme
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    setIsSigningOut(true);
     try {
       console.log('SignOut başlatılıyor...');
       
@@ -45,56 +59,8 @@ export default function Header() {
       sessionStorage.clear();
       console.log('Storage temizlendi');
       
-      // 2. NextAuth'un CSRF token'ını al
-      let csrfToken = '';
-      try {
-        const csrfResponse = await fetch('/api/auth/csrf');
-        const csrfData = await csrfResponse.json();
-        csrfToken = csrfData.csrfToken;
-        console.log('CSRF token alındı');
-      } catch (e) {
-        console.log('CSRF token hatası:', e);
-      }
-      
-      // 3. NextAuth'un kendi signout endpoint'ini çağır (action=signout)
-      try {
-        const formData = new URLSearchParams();
-        formData.append('csrfToken', csrfToken);
-        formData.append('callbackUrl', '/');
-        
-        // NextAuth'un kendi endpoint'i: /api/auth/[...nextauth]?action=signout
-        const signoutResponse = await fetch('/api/auth/signout?callbackUrl=/', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: formData.toString(),
-        });
-        
-        console.log('NextAuth signout endpoint çağrıldı:', signoutResponse.status);
-        
-        // Response'u kontrol et
-        if (signoutResponse.ok) {
-          const data = await signoutResponse.text();
-          console.log('Signout response:', data.substring(0, 200));
-        }
-      } catch (e) {
-        console.log('NextAuth signout endpoint hatası:', e);
-      }
-      
-      // 4. Custom signout endpoint'ini de çağır (yedek olarak)
-      try {
-        const customResponse = await fetch('/api/auth/signout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-        console.log('Custom signout endpoint çağrıldı:', customResponse.status);
-      } catch (e) {
-        console.log('Custom signout endpoint hatası:', e);
-      }
-      
-      // 5. NextAuth signOut fonksiyonunu çağır (redirect: false)
+      // 2. NextAuth signOut fonksiyonunu çağır (redirect: false)
+      // Bu, NextAuth'un kendi endpoint'ini (/api/auth/[...nextauth]) çağırır
       try {
         await signOut({ 
           callbackUrl: '/',
@@ -105,7 +71,27 @@ export default function Header() {
         console.log('NextAuth signOut fonksiyonu hatası:', e);
       }
       
-      // 6. Tüm cookie'leri manuel olarak temizle
+      // 3. Custom signout endpoint'ini çağır (cookie'leri server-side'da temizlemek için)
+      try {
+        const customResponse = await fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        console.log('Custom signout endpoint çağrıldı:', customResponse.status);
+      } catch (e) {
+        console.log('Custom signout endpoint hatası:', e);
+      }
+      
+      // 4. NextAuth session'ını zorla güncelle
+      try {
+        await update(); // Session'ı yeniden yükle
+        console.log('Session güncellendi');
+      } catch (e) {
+        console.log('Session güncelleme hatası:', e);
+      }
+      
+      // 5. Kısa bir bekleme (tüm işlemlerin tamamlanması için)
+      await new Promise(resolve => setTimeout(resolve, 500));
       const cookieNames = [
         'next-auth.session-token',
         'next-auth.csrf-token',
@@ -142,17 +128,18 @@ export default function Header() {
         console.log('Session güncelleme hatası:', e);
       }
       
-      // 9. Hard redirect - sayfayı tamamen yenile (cache'i temizler)
+      // 6. Hard redirect - window.location.href kullan (tarayıcıyı fiziksel olarak yönlendirir)
       console.log('Ana sayfaya yönlendiriliyor...');
-      // Önce cache'i temizle
+      // Cache'i temizle
       if ('caches' in window) {
-        caches.keys().then(names => {
-          names.forEach(name => {
-            caches.delete(name);
-          });
-        });
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        } catch (e) {
+          console.log('Cache temizleme hatası:', e);
+        }
       }
-      // Hard redirect
+      // Hard redirect - tarayıcıyı fiziksel olarak yönlendir
       window.location.href = '/';
       
     } catch (error) {
@@ -160,7 +147,9 @@ export default function Header() {
       // Hata olsa bile temizlik yap ve yönlendir
       localStorage.clear();
       sessionStorage.clear();
-      window.location.replace('/');
+      window.location.href = '/';
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
@@ -551,10 +540,11 @@ export default function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleSignOut}
-                    className="cursor-pointer text-red-600 focus:text-red-600"
+                    disabled={isSigningOut}
+                    className="cursor-pointer text-red-600 focus:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
-                    Çıkış Yap
+                    {isSigningOut ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -640,14 +630,15 @@ export default function Header() {
                     </>
                   )}
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
                       setIsMenuOpen(false);
-                      handleSignOut();
+                      handleSignOut(e);
                     }}
-                    className="flex items-center w-full px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-red-600"
+                    disabled={isSigningOut}
+                    className="flex items-center w-full px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <LogOut className="h-5 w-5 mr-3" />
-                    <span className="font-medium">Çıkış Yap</span>
+                    <span className="font-medium">{isSigningOut ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}</span>
                   </button>
                 </>
               ) : (
