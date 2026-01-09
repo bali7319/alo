@@ -59,6 +59,16 @@ export default function SozlesmeOlusturPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+    
+    // Eşya listesi gibi özel alanlar için
+    if (name === 'esyalar' && Array.isArray(value)) {
+      setFormData((prev: any) => ({
+        ...prev,
+        [name]: value,
+      }));
+      return;
+    }
+    
     setFormData((prev: any) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,

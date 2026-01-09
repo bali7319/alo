@@ -90,55 +90,48 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     try {
-      // Önce NextAuth signout endpoint'ini çağır
-      await fetch('/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      
-      // Cookie'leri manuel olarak sil
-      const cookies = document.cookie.split(';');
-      for (let cookie of cookies) {
-        const eqPos = cookie.indexOf('=');
-        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-        if (name.includes('next-auth') || name.includes('session')) {
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
-        }
-      }
-      
-      // Storage temizle
+      // Storage'ı önce temizle
       localStorage.clear();
       sessionStorage.clear();
       
-      // NextAuth signOut'u çağır
+      // NextAuth'un kendi signout endpoint'ini kullan
+      // Bu endpoint otomatik olarak tüm cookie'leri temizler
       await signOut({ 
         callbackUrl: '/',
-        redirect: false 
+        redirect: true  // NextAuth otomatik yönlendirme yapsın
       });
       
-      // Kısa bir bekleme ekle
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Ana sayfaya yönlendir
-      window.location.href = '/';
-    } catch (err) {
-      console.error('[ADMIN LOGOUT] Hata:', err);
-      // Hata olsa bile cookie'leri sil ve yönlendir
-      const cookies = document.cookie.split(';');
-      for (let cookie of cookies) {
-        const eqPos = cookie.indexOf('=');
-        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-        if (name.includes('next-auth') || name.includes('session')) {
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
-        }
-      }
+      // Eğer signOut çalışmazsa, manuel temizlik yap
+      setTimeout(() => {
+        // Tüm cookie'leri temizle
+        const allCookies = document.cookie.split(';');
+        allCookies.forEach(cookie => {
+          const eqPos = cookie.indexOf('=');
+          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+          
+          if (name.toLowerCase().includes('auth') || name.toLowerCase().includes('session')) {
+            const domains = ['', '.alo17.tr', 'alo17.tr'];
+            const paths = ['/', '/admin', '/api'];
+            
+            domains.forEach(domain => {
+              paths.forEach(path => {
+                const domainPart = domain ? `;domain=${domain}` : '';
+                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
+                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
+              });
+            });
+          }
+        });
+        
+        // Hard redirect
+        window.location.replace('/');
+      }, 100);
+    } catch (error) {
+      console.error('Logout hatası:', error);
+      // Hata olsa bile yönlendir
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = '/';
+      window.location.replace('/');
     }
   };
 
@@ -261,59 +254,7 @@ export default function AdminPage() {
             </p>
           </div>
           <button
-            onClick={async () => {
-              try {
-                // Önce NextAuth signout endpoint'ini çağır
-                await fetch('/api/auth/signout', {
-                  method: 'POST',
-                  credentials: 'include',
-                });
-                
-                // Cookie'leri manuel olarak sil
-                const cookies = document.cookie.split(';');
-                for (let cookie of cookies) {
-                  const eqPos = cookie.indexOf('=');
-                  const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-                  if (name.includes('next-auth') || name.includes('session')) {
-                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
-                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
-                  }
-                }
-                
-                // Storage temizle
-                localStorage.clear();
-                sessionStorage.clear();
-                
-                // NextAuth signOut'u çağır
-                await signOut({ 
-                  callbackUrl: '/',
-                  redirect: false 
-                });
-                
-                // Kısa bir bekleme ekle
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                // Ana sayfaya yönlendir
-                window.location.href = '/';
-              } catch (err) {
-                console.error('[ADMIN LOGOUT] Hata:', err);
-                // Hata olsa bile cookie'leri sil ve yönlendir
-                const cookies = document.cookie.split(';');
-                for (let cookie of cookies) {
-                  const eqPos = cookie.indexOf('=');
-                  const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-                  if (name.includes('next-auth') || name.includes('session')) {
-                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.alo17.tr`;
-                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
-                  }
-                }
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = '/';
-              }
-            }}
+            onClick={handleLogout}
             className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
             type="button"
             id="admin-logout-button"

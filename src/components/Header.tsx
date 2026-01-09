@@ -34,6 +34,7 @@ export default function Header() {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const previousUnreadCountRef = useRef(0);
   const isInitialLoadRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSignOut = async () => {
     try {
@@ -119,17 +120,40 @@ export default function Header() {
   const fetchNotifications = async () => {
     if (!session?.user) return;
     
+    // Önceki isteği iptal et
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    
     setLoadingNotifications(true);
+    let controller: AbortController | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniye timeout
+      controller = new AbortController();
+      abortControllerRef.current = controller;
+      timeoutId = setTimeout(() => {
+        if (controller) {
+          controller.abort();
+        }
+      }, 5000); // 5 saniye timeout
       
       const response = await fetch('/api/notifications', {
         credentials: 'include',
         signal: controller.signal,
       });
       
-      clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
+      // İstek abort edildiyse devam etme
+      if (controller.signal.aborted) {
+        return;
+      }
+      
       if (response.ok) {
         const data = await response.json();
         const newUnreadCount = data.unreadCount || 0;
@@ -149,14 +173,36 @@ export default function Header() {
         setUnreadCount(newUnreadCount);
         previousUnreadCountRef.current = newUnreadCount;
       }
-    } catch (error) {
-      // Sessizce hata yok say (bildirim yükleme hatası kritik değil)
-      // Sadece development'ta logla
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Bildirim yükleme hatası:', error);
+    } catch (error: any) {
+      // AbortError'ı tamamen sessizce yok say (normal bir durum - component unmount veya timeout)
+      const isAbortError = error?.name === 'AbortError' || 
+                           error?.message?.includes('aborted') || 
+                           error?.message?.includes('signal is aborted') ||
+                           error?.message?.includes('The operation was aborted') ||
+                           error?.message?.includes('abort');
+      
+      if (isAbortError) {
+        // AbortError'ı hiç loglama - bu normal bir durum
+        return;
       }
+      // Diğer hatalar için de sessizce devam et (bildirim yükleme hatası kritik değil)
     } finally {
-      setLoadingNotifications(false);
+      // Cleanup
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      // Sadece abort edilmediyse loading state'i güncelle
+      if (controller && !controller.signal.aborted) {
+        setLoadingNotifications(false);
+      } else if (!controller) {
+        setLoadingNotifications(false);
+      }
+      
+      // Sadece mevcut controller'ı temizle
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
     }
   };
 
@@ -166,7 +212,14 @@ export default function Header() {
       fetchNotifications();
       // Her 30 saniyede bir bildirimleri kontrol et
       const interval = setInterval(fetchNotifications, 30000);
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        // Component unmount olduğunda devam eden isteği iptal et
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
+        }
+      };
     }
   }, [session]);
 

@@ -33,7 +33,13 @@ export default function AdminSozlesmelerPage() {
 
     const userRole = (session?.user as any)?.role;
     if (!session || userRole !== 'admin') {
-      router.push(`/giris?callbackUrl=${encodeURIComponent('/admin/sozlesmeler')}`);
+      // window.location kullanarak RSC payload hatasını önle
+      try {
+        router.push(`/giris?callbackUrl=${encodeURIComponent('/admin/sozlesmeler')}`);
+      } catch (error) {
+        // Fallback: window.location kullan
+        window.location.href = `/giris?callbackUrl=${encodeURIComponent('/admin/sozlesmeler')}`;
+      }
       return;
     }
 
@@ -171,6 +177,7 @@ export default function AdminSozlesmelerPage() {
       'widow-orphan-pension-request': 'Dul/Yetim Aylığı Bağlanması İçin Talep Dilekçesi',
       'judicial-control-objection': 'Adli Kontrol Kararına İtiraz Dilekçesi',
       'detention-objection': 'Tutukluluğa İtiraz Dilekçesi',
+      'eviction-need-lawsuit': 'Konutun İhtiyaç Sebebiyle Tahliyesine İlişkin Dava Dilekçesi',
       'foreclosure-objection': 'Haciz Takibine İtiraz Dilekçesi',
       'enforcement-objection': 'İlamlı İcra Takibine İtiraz Dilekçesi',
       'alimony-reduction-lawsuit': 'Nafakanın Azaltılması veya Kaldırılması İçin Dava Dilekçesi',
@@ -181,11 +188,6 @@ export default function AdminSozlesmelerPage() {
       'line-cancellation': 'Hat İptal Dilekçesi',
       'invoice-objection': 'Fatura İtiraz Dilekçesi',
       'subscription-cancellation': 'Abonelik İptal Dilekçesi',
-      'monthly-goods-notice': 'Aylık Malın Değişimi/Onarımı/İadesi İçin İhtarname',
-      'association-organ-change': 'Dernek Organlarındaki Değişiklik Bildirimi',
-      'association-address-change': 'Dernek Yerleşim Yeri Değişikliği Bildirimi',
-      'association-general-assembly-call': 'Dernek Genel Kurulunu Toplantıya Çağrı',
-      'association-bylaws': 'Dernek Tüzüğü',
       // İş ve istihdam
       'defense-letter': 'Savunma Yazısı',
       'flexible-work-request': 'İşçinin Esnek Çalışma Talebi Dilekçesi',
@@ -298,6 +300,7 @@ export default function AdminSozlesmelerPage() {
     { type: 'widow-orphan-pension-request', label: 'Dul/Yetim Aylığı Bağlanması İçin Talep Dilekçesi', route: 'olustur' },
     { type: 'judicial-control-objection', label: 'Adli Kontrol Kararına İtiraz Dilekçesi', route: 'olustur' },
     { type: 'detention-objection', label: 'Tutukluluğa İtiraz Dilekçesi', route: 'olustur' },
+    { type: 'eviction-need-lawsuit', label: 'Konutun İhtiyaç Sebebiyle Tahliyesine İlişkin Dava Dilekçesi', route: 'olustur' },
     { type: 'foreclosure-objection', label: 'Haciz Takibine İtiraz Dilekçesi', route: 'olustur' },
     { type: 'enforcement-objection', label: 'İlamlı İcra Takibine İtiraz Dilekçesi', route: 'olustur' },
     { type: 'alimony-reduction-lawsuit', label: 'Nafakanın Azaltılması veya Kaldırılması İçin Dava Dilekçesi', route: 'olustur' },
@@ -308,11 +311,6 @@ export default function AdminSozlesmelerPage() {
     { type: 'line-cancellation', label: 'Hat İptal Dilekçesi', route: 'olustur' },
     { type: 'invoice-objection', label: 'Fatura İtiraz Dilekçesi', route: 'olustur' },
     { type: 'subscription-cancellation', label: 'Abonelik İptal Dilekçesi', route: 'olustur' },
-    { type: 'monthly-goods-notice', label: 'Aylık Malın Değişimi/Onarımı/İadesi İçin İhtarname', route: 'olustur' },
-    { type: 'association-organ-change', label: 'Dernek Organlarındaki Değişiklik Bildirimi', route: 'olustur' },
-    { type: 'association-address-change', label: 'Dernek Yerleşim Yeri Değişikliği Bildirimi', route: 'olustur' },
-     { type: 'association-general-assembly-call', label: 'Dernek Genel Kurulunu Toplantıya Çağrı', route: 'olustur' },
-     { type: 'association-bylaws', label: 'Dernek Tüzüğü', route: 'olustur' },
      // İş ve istihdam
      { type: 'defense-letter', label: 'Savunma Yazısı', route: 'olustur' },
      { type: 'flexible-work-request', label: 'İşçinin Esnek Çalışma Talebi Dilekçesi', route: 'olustur' },
