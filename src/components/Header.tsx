@@ -38,22 +38,29 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
-      // 1. Önce custom signout endpoint'ini çağır (cookie'leri temizlemek için)
-      try {
-        await fetch('/api/auth/signout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-      } catch (e) {
-        // Endpoint hatası kritik değil, devam et
-        console.log('Signout endpoint hatası (devam ediliyor):', e);
-      }
-      
-      // 2. Storage'ı temizle
+      // Storage'ı temizle
       localStorage.clear();
       sessionStorage.clear();
       
-      // 3. Tüm cookie'leri manuel olarak temizle
+      // NextAuth signOut'u çağır - redirect: true ile otomatik yönlendirme
+      // NextAuth kendi endpoint'ini çağırır ve cookie'leri temizler
+      await signOut({ 
+        callbackUrl: '/',
+        redirect: true  // NextAuth otomatik yönlendirme yapsın
+      });
+      
+      // Eğer redirect çalışmazsa (güvenlik için) manuel yönlendirme
+      // Bu genellikle gerekmez ama yedek olarak ekliyoruz
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+    } catch (error) {
+      console.error('SignOut hatası:', error);
+      // Hata olsa bile temizlik yap ve yönlendir
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Cookie'leri manuel temizle
       const cookieNames = [
         'next-auth.session-token',
         'next-auth.csrf-token',
@@ -63,74 +70,15 @@ export default function Header() {
         'authjs.csrf-token',
       ];
       
-      const domains = ['', '.alo17.tr', 'alo17.tr', '.localhost', 'localhost'];
+      const domains = ['', '.alo17.tr', 'alo17.tr'];
       const paths = ['/', '/admin', '/api'];
       
-      // Tüm olası cookie isimlerini temizle
       cookieNames.forEach(name => {
         domains.forEach(domain => {
           paths.forEach(path => {
             const domainPart = domain ? `;domain=${domain}` : '';
             document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
             document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
-          });
-        });
-      });
-      
-      // Diğer tüm cookie'leri de temizle
-      const cookies = document.cookie.split(';');
-      for (let cookie of cookies) {
-        const eqPos = cookie.indexOf('=');
-        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-        if (name.toLowerCase().includes('auth') || name.toLowerCase().includes('session')) {
-          domains.forEach(domain => {
-            paths.forEach(path => {
-              const domainPart = domain ? `;domain=${domain}` : '';
-              document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
-              document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
-            });
-          });
-        }
-      }
-      
-      // 4. NextAuth signOut'u çağır (redirect: false - manuel yönlendirme yapacağız)
-      try {
-        await signOut({ 
-          callbackUrl: '/',
-          redirect: false 
-        });
-      } catch (e) {
-        console.log('NextAuth signOut hatası (devam ediliyor):', e);
-      }
-      
-      // 5. Kısa bir bekleme (cookie silme işleminin tamamlanması için)
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // 6. Ana sayfaya yönlendir
-      window.location.href = '/';
-    } catch (error) {
-      console.error('SignOut hatası:', error);
-      // Hata durumunda bile temizlik yap ve yönlendir
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // Cookie'leri temizle
-      const domains = ['', '.alo17.tr', 'alo17.tr'];
-      const paths = ['/', '/admin', '/api'];
-      const cookieNames = [
-        'next-auth.session-token',
-        'next-auth.csrf-token',
-        '__Secure-next-auth.session-token',
-        '__Host-next-auth.csrf-token',
-        'authjs.session-token',
-        'authjs.csrf-token',
-      ];
-      
-      cookieNames.forEach(name => {
-        domains.forEach(domain => {
-          paths.forEach(path => {
-            const domainPart = domain ? `;domain=${domain}` : '';
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
           });
         });
       });
