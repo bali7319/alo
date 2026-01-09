@@ -97,20 +97,86 @@ export default function AdminPage() {
       sessionStorage.clear();
       console.log('Storage temizlendi');
       
-      // 2. NextAuth signOut'u çağır - redirect: true ile NextAuth'un kendi yönlendirme mekanizmasını kullan
-      // Bu, NextAuth'un kendi endpoint'ini çağırır ve cookie'leri temizler
-      console.log('NextAuth signOut çağrılıyor (redirect: true)...');
-      await signOut({ 
-        callbackUrl: '/',
-        redirect: true  // NextAuth otomatik yönlendirme yapsın
+      // 2. NextAuth'un CSRF token'ını al
+      let csrfToken = '';
+      try {
+        const csrfResponse = await fetch('/api/auth/csrf');
+        const csrfData = await csrfResponse.json();
+        csrfToken = csrfData.csrfToken;
+        console.log('CSRF token alındı');
+      } catch (e) {
+        console.log('CSRF token hatası:', e);
+      }
+      
+      // 3. NextAuth'un kendi signout endpoint'ini çağır
+      try {
+        const formData = new URLSearchParams();
+        formData.append('csrfToken', csrfToken);
+        formData.append('callbackUrl', '/');
+        
+        const signoutResponse = await fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: formData.toString(),
+        });
+        
+        console.log('NextAuth signout endpoint çağrıldı:', signoutResponse.status);
+        
+        // Response'u kontrol et
+        if (signoutResponse.ok) {
+          const data = await signoutResponse.json();
+          console.log('Signout response:', data);
+        }
+      } catch (e) {
+        console.log('NextAuth signout endpoint hatası:', e);
+      }
+      
+      // 4. NextAuth signOut fonksiyonunu çağır (redirect: false)
+      try {
+        await signOut({ 
+          callbackUrl: '/',
+          redirect: false
+        });
+        console.log('NextAuth signOut fonksiyonu çağrıldı');
+      } catch (e) {
+        console.log('NextAuth signOut fonksiyonu hatası:', e);
+      }
+      
+      // 5. Tüm cookie'leri manuel olarak temizle
+      const cookieNames = [
+        'next-auth.session-token',
+        'next-auth.csrf-token',
+        '__Secure-next-auth.session-token',
+        '__Host-next-auth.csrf-token',
+        '__Host-next-auth.session-token',
+        'authjs.session-token',
+        'authjs.csrf-token',
+      ];
+      
+      const domains = ['', '.alo17.tr', 'alo17.tr'];
+      const paths = ['/', '/admin', '/api'];
+      
+      cookieNames.forEach(name => {
+        domains.forEach(domain => {
+          paths.forEach(path => {
+            const domainPart = domain ? `;domain=${domain}` : '';
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
+          });
+        });
       });
       
-      // Eğer redirect çalışmazsa (güvenlik için) manuel yönlendirme
-      // Bu genellikle gerekmez ama yedek olarak ekliyoruz
-      console.log('Redirect çalışmadı, manuel yönlendirme yapılıyor...');
-      setTimeout(() => {
-        window.location.replace('/');
-      }, 1000);
+      console.log('Cookie\'ler temizlendi');
+      
+      // 6. Kısa bir bekleme
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // 7. Hard redirect
+      console.log('Ana sayfaya yönlendiriliyor...');
+      window.location.replace('/');
       
     } catch (error) {
       console.error('Logout hatası:', error);
