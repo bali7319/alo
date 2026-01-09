@@ -51,99 +51,26 @@ export default function Header() {
     }
     
     setIsSigningOut(true);
+    
     try {
       console.log('SignOut başlatılıyor...');
       
-      // 1. Storage'ı temizle
+      // 1. NextAuth'un otomatik yönlendirmesini DEVRE DIŞI bırakın
+      await signOut({ redirect: false, callbackUrl: '/' });
+      console.log('NextAuth signOut çağrıldı');
+      
+      // 2. LocalStorage ve SessionStorage'ı manuel temizleyin
       localStorage.clear();
       sessionStorage.clear();
       console.log('Storage temizlendi');
-      
-      // 2. NextAuth signOut fonksiyonunu çağır (redirect: false)
-      // Bu, NextAuth'un kendi endpoint'ini (/api/auth/[...nextauth]) çağırır
-      try {
-        await signOut({ 
-          callbackUrl: '/',
-          redirect: false
-        });
-        console.log('NextAuth signOut fonksiyonu çağrıldı');
-      } catch (e) {
-        console.log('NextAuth signOut fonksiyonu hatası:', e);
-      }
-      
-      // 3. Custom signout endpoint'ini çağır (cookie'leri server-side'da temizlemek için)
-      try {
-        const customResponse = await fetch('/api/auth/signout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-        console.log('Custom signout endpoint çağrıldı:', customResponse.status);
-      } catch (e) {
-        console.log('Custom signout endpoint hatası:', e);
-      }
-      
-      // 4. NextAuth session'ını zorla güncelle
-      try {
-        await update(); // Session'ı yeniden yükle
-        console.log('Session güncellendi');
-      } catch (e) {
-        console.log('Session güncelleme hatası:', e);
-      }
-      
-      // 5. Kısa bir bekleme (tüm işlemlerin tamamlanması için)
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const cookieNames = [
-        'next-auth.session-token',
-        'next-auth.csrf-token',
-        '__Secure-next-auth.session-token',
-        '__Host-next-auth.csrf-token',
-        '__Host-next-auth.session-token',
-        'authjs.session-token',
-        'authjs.csrf-token',
-      ];
-      
-      const domains = ['', '.alo17.tr', 'alo17.tr'];
-      const paths = ['/', '/admin', '/api'];
-      
-      cookieNames.forEach(name => {
-        domains.forEach(domain => {
-          paths.forEach(path => {
-            const domainPart = domain ? `;domain=${domain}` : '';
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
-          });
-        });
-      });
-      
-      console.log('Cookie\'ler temizlendi');
-      
-      // 7. Kısa bir bekleme
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // 8. NextAuth session'ını zorla güncelle
-      try {
-        await update(); // Session'ı yeniden yükle
-        console.log('Session güncellendi');
-      } catch (e) {
-        console.log('Session güncelleme hatası:', e);
-      }
-      
-      // 6. Hard redirect - window.location.href kullan (tarayıcıyı fiziksel olarak yönlendirir)
-      console.log('Ana sayfaya yönlendiriliyor...');
-      // Cache'i temizle
-      if ('caches' in window) {
-        try {
-          const cacheNames = await caches.keys();
-          await Promise.all(cacheNames.map(name => caches.delete(name)));
-        } catch (e) {
-          console.log('Cache temizleme hatası:', e);
-        }
-      }
-      // Hard redirect - tarayıcıyı fiziksel olarak yönlendir
-      window.location.href = '/';
-      
+
+      console.log('Oturum kapatıldı, yönlendiriliyor...');
+
+      // 3. Next.js router yerine doğrudan tarayıcıyı ana sayfaya ve yenileyerek gönderin
+      // Bu, bellekteki tüm state'i kesin olarak sıfırlar
+      window.location.assign('/');
     } catch (error) {
-      console.error('SignOut hatası:', error);
+      console.error('Çıkış yapılırken hata oluştu:', error);
       // Hata olsa bile temizlik yap ve yönlendir
       localStorage.clear();
       sessionStorage.clear();

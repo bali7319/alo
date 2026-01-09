@@ -89,105 +89,46 @@ export default function AdminPage() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = async (e?: React.MouseEvent) => {
+    // Double click önleme
+    if (isLoggingOut) {
+      console.log('Logout zaten devam ediyor, işlem iptal edildi');
+      return;
+    }
+    
+    // Form submit önleme
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    setIsLoggingOut(true);
+    
     try {
-      console.log('Logout başlatılıyor...');
+      console.log('SignOut başlatılıyor...');
       
-      // 1. Storage'ı temizle
+      // 1. NextAuth'un otomatik yönlendirmesini DEVRE DIŞI bırakın
+      await signOut({ redirect: false, callbackUrl: '/' });
+      console.log('NextAuth signOut çağrıldı');
+      
+      // 2. LocalStorage ve SessionStorage'ı manuel temizleyin
       localStorage.clear();
       sessionStorage.clear();
       console.log('Storage temizlendi');
-      
-      // 2. NextAuth'un CSRF token'ını al
-      let csrfToken = '';
-      try {
-        const csrfResponse = await fetch('/api/auth/csrf');
-        const csrfData = await csrfResponse.json();
-        csrfToken = csrfData.csrfToken;
-        console.log('CSRF token alındı');
-      } catch (e) {
-        console.log('CSRF token hatası:', e);
-      }
-      
-      // 3. NextAuth signOut fonksiyonunu çağır (redirect: false)
-      // Bu, NextAuth'un kendi endpoint'ini (/api/auth/[...nextauth]) çağırır
-      try {
-        await signOut({ 
-          callbackUrl: '/',
-          redirect: false
-        });
-        console.log('NextAuth signOut fonksiyonu çağrıldı');
-      } catch (e) {
-        console.log('NextAuth signOut fonksiyonu hatası:', e);
-      }
-      
-      // 4. Custom signout endpoint'ini çağır (cookie'leri server-side'da temizlemek için)
-      try {
-        const customResponse = await fetch('/api/auth/signout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-        console.log('Custom signout endpoint çağrıldı:', customResponse.status);
-      } catch (e) {
-        console.log('Custom signout endpoint hatası:', e);
-      }
-      
-      // 5. Tüm cookie'leri manuel olarak temizle (httpOnly cookie'ler için yedek)
-      const cookieNames = [
-        'next-auth.session-token',
-        'next-auth.csrf-token',
-        '__Secure-next-auth.session-token',
-        '__Host-next-auth.csrf-token',
-        '__Host-next-auth.session-token',
-        'authjs.session-token',
-        'authjs.csrf-token',
-      ];
-      
-      const domains = ['', '.alo17.tr', 'alo17.tr'];
-      const paths = ['/', '/admin', '/api'];
-      
-      cookieNames.forEach(name => {
-        domains.forEach(domain => {
-          paths.forEach(path => {
-            const domainPart = domain ? `;domain=${domain}` : '';
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
-          });
-        });
-      });
-      
-      console.log('Cookie\'ler temizlendi');
-      
-      // 7. Kısa bir bekleme
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // 7. NextAuth session'ını zorla güncelle
-      try {
-        await update(); // Session'ı yeniden yükle
-        console.log('Session güncellendi');
-      } catch (e) {
-        console.log('Session güncelleme hatası:', e);
-      }
-      
-      // 8. Hard redirect - sayfayı tamamen yenile (cache'i temizler)
-      console.log('Ana sayfaya yönlendiriliyor...');
-      // Önce cache'i temizle
-      if ('caches' in window) {
-        caches.keys().then(names => {
-          names.forEach(name => {
-            caches.delete(name);
-          });
-        });
-      }
-      // Hard redirect
-      window.location.href = '/';
-      
+
+      console.log('Oturum kapatıldı, yönlendiriliyor...');
+
+      // 3. Next.js router yerine doğrudan tarayıcıyı ana sayfaya ve yenileyerek gönderin
+      // Bu, bellekteki tüm state'i kesin olarak sıfırlar
+      window.location.assign('/');
     } catch (error) {
-      console.error('Logout hatası:', error);
+      console.error('Çıkış yapılırken hata oluştu:', error);
       // Hata olsa bile temizlik yap ve yönlendir
       localStorage.clear();
       sessionStorage.clear();
-      window.location.replace('/');
+      window.location.href = '/';
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
