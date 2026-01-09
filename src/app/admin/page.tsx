@@ -90,48 +90,106 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     try {
-      // Storage'ı önce temizle
+      // 1. Önce custom signout endpoint'ini çağır (cookie'leri temizlemek için)
+      try {
+        await fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+      } catch (e) {
+        // Endpoint hatası kritik değil, devam et
+        console.log('Signout endpoint hatası (devam ediliyor):', e);
+      }
+      
+      // 2. Storage'ı temizle
       localStorage.clear();
       sessionStorage.clear();
       
-      // NextAuth'un kendi signout endpoint'ini kullan
-      // Bu endpoint otomatik olarak tüm cookie'leri temizler
-      await signOut({ 
-        callbackUrl: '/',
-        redirect: true  // NextAuth otomatik yönlendirme yapsın
+      // 3. Tüm cookie'leri manuel olarak temizle
+      const allCookies = document.cookie.split(';');
+      const cookieNames = [
+        'next-auth.session-token',
+        'next-auth.csrf-token',
+        '__Secure-next-auth.session-token',
+        '__Host-next-auth.csrf-token',
+        'authjs.session-token',
+        'authjs.csrf-token',
+      ];
+      
+      // Tüm olası cookie isimlerini ve domain'leri temizle
+      const domains = ['', '.alo17.tr', 'alo17.tr', '.localhost', 'localhost'];
+      const paths = ['/', '/admin', '/api'];
+      
+      cookieNames.forEach(name => {
+        domains.forEach(domain => {
+          paths.forEach(path => {
+            const domainPart = domain ? `;domain=${domain}` : '';
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
+          });
+        });
       });
       
-      // Eğer signOut çalışmazsa, manuel temizlik yap
-      setTimeout(() => {
-        // Tüm cookie'leri temizle
-        const allCookies = document.cookie.split(';');
-        allCookies.forEach(cookie => {
-          const eqPos = cookie.indexOf('=');
-          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-          
-          if (name.toLowerCase().includes('auth') || name.toLowerCase().includes('session')) {
-            const domains = ['', '.alo17.tr', 'alo17.tr'];
-            const paths = ['/', '/admin', '/api'];
-            
-            domains.forEach(domain => {
-              paths.forEach(path => {
-                const domainPart = domain ? `;domain=${domain}` : '';
-                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
-                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
-              });
-            });
-          }
-        });
+      // Diğer tüm cookie'leri de temizle
+      allCookies.forEach(cookie => {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
         
-        // Hard redirect
-        window.location.replace('/');
-      }, 100);
+        if (name.toLowerCase().includes('auth') || name.toLowerCase().includes('session')) {
+          domains.forEach(domain => {
+            paths.forEach(path => {
+              const domainPart = domain ? `;domain=${domain}` : '';
+              document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
+              document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
+            });
+          });
+        }
+      });
+      
+      // 4. NextAuth signOut'u çağır (redirect: false - manuel yönlendirme yapacağız)
+      try {
+        await signOut({ 
+          callbackUrl: '/',
+          redirect: false  // Manuel yönlendirme yapacağız
+        });
+      } catch (e) {
+        console.log('NextAuth signOut hatası (devam ediliyor):', e);
+      }
+      
+      // 5. Kısa bir bekleme (cookie silme işleminin tamamlanması için)
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // 6. Hard redirect (browser history'yi temizler)
+      window.location.href = '/';
     } catch (error) {
       console.error('Logout hatası:', error);
-      // Hata olsa bile yönlendir
+      // Hata olsa bile temizlik yap ve yönlendir
       localStorage.clear();
       sessionStorage.clear();
-      window.location.replace('/');
+      
+      // Cookie'leri temizle
+      const domains = ['', '.alo17.tr', 'alo17.tr'];
+      const paths = ['/', '/admin', '/api'];
+      const cookieNames = [
+        'next-auth.session-token',
+        'next-auth.csrf-token',
+        '__Secure-next-auth.session-token',
+        '__Host-next-auth.csrf-token',
+        'authjs.session-token',
+        'authjs.csrf-token',
+      ];
+      
+      cookieNames.forEach(name => {
+        domains.forEach(domain => {
+          paths.forEach(path => {
+            const domainPart = domain ? `;domain=${domain}` : '';
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
+          });
+        });
+      });
+      
+      // Ana sayfaya yönlendir
+      window.location.href = '/';
     }
   };
 
