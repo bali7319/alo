@@ -45,82 +45,20 @@ export default function Header() {
       sessionStorage.clear();
       console.log('Storage temizlendi');
       
-      // 2. NextAuth'un kendi signout endpoint'ini doğrudan çağır
-      try {
-        const response = await fetch('/api/auth/signout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-        console.log('Signout endpoint çağrıldı:', response.status);
-      } catch (e) {
-        console.log('Signout endpoint hatası:', e);
-      }
-      
-      // 3. Tüm cookie'leri manuel olarak temizle
-      const cookieNames = [
-        'next-auth.session-token',
-        'next-auth.csrf-token',
-        '__Secure-next-auth.session-token',
-        '__Host-next-auth.csrf-token',
-        '__Host-next-auth.session-token',
-        'authjs.session-token',
-        'authjs.csrf-token',
-      ];
-      
-      const domains = ['', '.alo17.tr', 'alo17.tr'];
-      const paths = ['/', '/admin', '/api'];
-      
-      cookieNames.forEach(name => {
-        domains.forEach(domain => {
-          paths.forEach(path => {
-            const domainPart = domain ? `;domain=${domain}` : '';
-            // Normal cookie
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
-            // Secure cookie
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
-            // SameSite strict
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure;samesite=strict`;
-            // SameSite lax
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure;samesite=lax`;
-          });
-        });
+      // 2. NextAuth signOut'u çağır - redirect: true ile NextAuth'un kendi yönlendirme mekanizmasını kullan
+      // Bu, NextAuth'un kendi endpoint'ini çağırır ve cookie'leri temizler
+      console.log('NextAuth signOut çağrılıyor (redirect: true)...');
+      await signOut({ 
+        callbackUrl: '/',
+        redirect: true  // NextAuth otomatik yönlendirme yapsın
       });
       
-      // Mevcut tüm cookie'leri de temizle
-      const allCookies = document.cookie.split(';');
-      allCookies.forEach(cookie => {
-        const eqPos = cookie.indexOf('=');
-        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-        if (name.toLowerCase().includes('auth') || name.toLowerCase().includes('session')) {
-          domains.forEach(domain => {
-            paths.forEach(path => {
-              const domainPart = domain ? `;domain=${domain}` : '';
-              document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart}`;
-              document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure`;
-            });
-          });
-        }
-      });
-      
-      console.log('Cookie\'ler temizlendi');
-      
-      // 4. NextAuth signOut'u çağır (redirect: false - manuel yönlendirme yapacağız)
-      try {
-        await signOut({ 
-          callbackUrl: '/',
-          redirect: false
-        });
-        console.log('NextAuth signOut çağrıldı');
-      } catch (e) {
-        console.log('NextAuth signOut hatası:', e);
-      }
-      
-      // 5. Kısa bir bekleme
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // 6. Hard redirect - window.location.replace kullan (history'yi temizler)
-      console.log('Ana sayfaya yönlendiriliyor...');
-      window.location.replace('/');
+      // Eğer redirect çalışmazsa (güvenlik için) manuel yönlendirme
+      // Bu genellikle gerekmez ama yedek olarak ekliyoruz
+      console.log('Redirect çalışmadı, manuel yönlendirme yapılıyor...');
+      setTimeout(() => {
+        window.location.replace('/');
+      }, 1000);
       
     } catch (error) {
       console.error('SignOut hatası:', error);
