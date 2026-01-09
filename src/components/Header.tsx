@@ -56,13 +56,14 @@ export default function Header() {
         console.log('CSRF token hatası:', e);
       }
       
-      // 3. NextAuth'un kendi signout endpoint'ini çağır
+      // 3. NextAuth'un kendi signout endpoint'ini çağır (action=signout)
       try {
         const formData = new URLSearchParams();
         formData.append('csrfToken', csrfToken);
         formData.append('callbackUrl', '/');
         
-        const signoutResponse = await fetch('/api/auth/signout', {
+        // NextAuth'un kendi endpoint'i: /api/auth/[...nextauth]?action=signout
+        const signoutResponse = await fetch('/api/auth/signout?callbackUrl=/', {
           method: 'POST',
           credentials: 'include',
           headers: {
@@ -75,14 +76,25 @@ export default function Header() {
         
         // Response'u kontrol et
         if (signoutResponse.ok) {
-          const data = await signoutResponse.json();
-          console.log('Signout response:', data);
+          const data = await signoutResponse.text();
+          console.log('Signout response:', data.substring(0, 200));
         }
       } catch (e) {
         console.log('NextAuth signout endpoint hatası:', e);
       }
       
-      // 4. NextAuth signOut fonksiyonunu çağır (redirect: false)
+      // 4. Custom signout endpoint'ini de çağır (yedek olarak)
+      try {
+        const customResponse = await fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        console.log('Custom signout endpoint çağrıldı:', customResponse.status);
+      } catch (e) {
+        console.log('Custom signout endpoint hatası:', e);
+      }
+      
+      // 5. NextAuth signOut fonksiyonunu çağır (redirect: false)
       try {
         await signOut({ 
           callbackUrl: '/',
@@ -93,7 +105,7 @@ export default function Header() {
         console.log('NextAuth signOut fonksiyonu hatası:', e);
       }
       
-      // 5. Tüm cookie'leri manuel olarak temizle
+      // 6. Tüm cookie'leri manuel olarak temizle
       const cookieNames = [
         'next-auth.session-token',
         'next-auth.csrf-token',
@@ -119,10 +131,10 @@ export default function Header() {
       
       console.log('Cookie\'ler temizlendi');
       
-      // 6. Kısa bir bekleme
+      // 7. Kısa bir bekleme
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // 7. Hard redirect
+      // 8. Hard redirect
       console.log('Ana sayfaya yönlendiriliyor...');
       window.location.replace('/');
       
