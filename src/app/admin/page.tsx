@@ -116,9 +116,9 @@ export default function AdminPage() {
       
       console.log('Oturum kapatıldı, yönlendiriliyor...');
 
-      // En güvenli yönlendirme yöntemi budur. 
-      // window.location.origin kullanarak tam URL ile yönlendirme yapıyoruz
-      window.location.href = window.location.origin; 
+      // window.location.replace() kullanarak history'yi temizliyoruz
+      // Bu, geri butonunu devre dışı bırakarak daha temiz bir geçiş sağlar
+      window.location.replace('/');
       
     } catch (error) {
       console.error('Hata:', error);
