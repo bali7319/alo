@@ -52,29 +52,28 @@ export default function Header() {
     
     setIsSigningOut(true);
     
+    console.log('SignOut başlatılıyor...');
+    
     try {
-      console.log('SignOut başlatılıyor...');
+      // redirect: false çok önemli, NextAuth'un kendi yönlendirmesini durdurur
+      await signOut({ redirect: false }); 
       
-      // 1. NextAuth'un otomatik yönlendirmesini DEVRE DIŞI bırakın
-      await signOut({ redirect: false, callbackUrl: '/' });
-      console.log('NextAuth signOut çağrıldı');
-      
-      // 2. LocalStorage ve SessionStorage'ı manuel temizleyin
+      console.log('Storage temizlendi');
       localStorage.clear();
       sessionStorage.clear();
-      console.log('Storage temizlendi');
-
+      
       console.log('Oturum kapatıldı, yönlendiriliyor...');
 
-      // 3. Next.js router yerine doğrudan tarayıcıyı ana sayfaya ve yenileyerek gönderin
-      // Bu, bellekteki tüm state'i kesin olarak sıfırlar
-      window.location.assign('/');
+      // En güvenli yönlendirme yöntemi budur. 
+      // window.location.origin kullanarak tam URL ile yönlendirme yapıyoruz
+      window.location.href = window.location.origin; 
+      
     } catch (error) {
-      console.error('Çıkış yapılırken hata oluştu:', error);
-      // Hata olsa bile temizlik yap ve yönlendir
+      console.error('Hata:', error);
+      // Hata anında yedek yönlendirme
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = '/';
+      window.location.replace('/');
     } finally {
       setIsSigningOut(false);
     }
