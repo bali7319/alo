@@ -55,8 +55,18 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Bildirim getirme hatası:', error);
+    
+    // Prisma bağlantı hatası kontrolü
+    if (error instanceof Error && error.message.includes('Prisma')) {
+      console.error('Prisma bağlantı hatası:', error);
+      return NextResponse.json(
+        { error: 'Veritabanı bağlantı hatası', notifications: [], unreadCount: 0 },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Bildirimler yüklenirken bir hata oluştu' },
+      { error: 'Bildirimler yüklenirken bir hata oluştu', notifications: [], unreadCount: 0 },
       { status: 500 }
     );
   }

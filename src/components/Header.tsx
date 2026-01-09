@@ -165,6 +165,11 @@ export default function Header() {
         setNotifications(data.notifications || []);
         setUnreadCount(newUnreadCount);
         previousUnreadCountRef.current = newUnreadCount;
+      } else if (response.status === 502 || response.status === 503) {
+        // 502/503 Bad Gateway/Service Unavailable - sunucu hatası, sessizce devam et
+        // Bildirimler kritik değil, sadece boş array ile devam et
+        setNotifications([]);
+        setUnreadCount(0);
       }
     } catch (error: any) {
       // AbortError'ı tamamen sessizce yok say (normal bir durum - component unmount veya timeout)
