@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Mail, Send, CheckCircle, XCircle, Loader } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminTestEmailPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
