@@ -121,7 +121,7 @@ export default async function Home() {
         <div className="w-full md:w-64 flex-shrink-0">
           {/* Hukuki Belgeler ve Dilekçe Butonu */}
           <div className="mb-4">
-            <Link href="/admin/sozlesmeler" className="block">
+            <Link href="/sozlesmeler" className="block">
               <Button 
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-semibold shadow-lg"
                 size="lg"
