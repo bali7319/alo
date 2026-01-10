@@ -191,7 +191,7 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/giris',
-    signOut: '/',
+    signOut: '/giris', // Çıkış yapınca buraya atar
     error: '/giris',
   },
   cookies: {
