@@ -211,7 +211,7 @@ Object.assign(turkishSlugToType, {
   'senelik-ucretli-izin-dilekcesi': 'annual-paid-leave-request',
   'dogum-sonrasi-alti-aylik-ucretsiz-izin-talebi-dilekcesi': 'post-birth-six-month-unpaid-leave',
   'dogum-sonrasi-yarim-gun-ucretsiz-izin-talebi-mektubu': 'post-birth-half-day-unpaid-leave',
-};
+});
 
 // Template tiplerinin Türkçe label'larını bulmak için
 const getTemplateLabel = (type: string): string => {
