@@ -204,6 +204,142 @@ Kullanıcı: ${listing.user.name} (${listing.user.email})
 }
 
 /**
+ * Yeni kullanıcıya hoşgeldin maili gönder
+ */
+export async function sendWelcomeEmail(user: {
+  name: string;
+  email: string;
+}): Promise<boolean> {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://alo17.tr';
+  
+  const subject = '🎉 Alo17\'e Hoş Geldiniz!';
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; }
+        .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+        .welcome-message { background: white; padding: 25px; border-radius: 10px; margin: 20px 0; text-align: center; }
+        .welcome-title { font-size: 28px; font-weight: bold; color: #1f2937; margin: 15px 0; }
+        .welcome-text { font-size: 16px; color: #4b5563; margin: 15px 0; line-height: 1.8; }
+        .features { background: white; padding: 20px; border-radius: 10px; margin: 20px 0; }
+        .feature-item { display: flex; align-items: center; margin: 15px 0; padding: 10px; }
+        .feature-icon { font-size: 24px; margin-right: 15px; }
+        .feature-text { font-size: 15px; color: #374151; }
+        .button { display: inline-block; background: linear-gradient(135deg, #f97316 0%, #fbbf24 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; font-size: 16px; }
+        .button:hover { background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%); }
+        .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+        .social-links { text-align: center; margin: 20px 0; }
+        .social-links a { color: #2563eb; text-decoration: none; margin: 0 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin: 0; font-size: 32px;">🎉 Hoş Geldiniz!</h1>
+          <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">Alo17 Ailesine Katıldığınız İçin Teşekkürler</p>
+        </div>
+        <div class="content">
+          <div class="welcome-message">
+            <div class="welcome-title">Merhaba ${user.name}!</div>
+            <div class="welcome-text">
+              Alo17'ye kayıt olduğunuz için çok teşekkür ederiz. Artık Çanakkale'nin en büyük ilan platformunun bir parçasısınız!
+            </div>
+          </div>
+          
+          <div class="features">
+            <h3 style="color: #1f2937; margin-bottom: 20px; font-size: 20px;">✨ Platformumuzda Neler Yapabilirsiniz?</h3>
+            
+            <div class="feature-item">
+              <span class="feature-icon">📢</span>
+              <span class="feature-text"><strong>Ücretsiz İlan Verin:</strong> İstediğiniz kategoride ilanınızı oluşturun ve binlerce kişiye ulaşın</span>
+            </div>
+            
+            <div class="feature-item">
+              <span class="feature-icon">🔍</span>
+              <span class="feature-text"><strong>Binlerce İlanı Keşfedin:</strong> Elektronik, giyim, ev eşyaları ve daha fazlası</span>
+            </div>
+            
+            <div class="feature-item">
+              <span class="feature-icon">⭐</span>
+              <span class="feature-text"><strong>Premium Avantajlar:</strong> İlanlarınızı öne çıkarın, daha hızlı satın</span>
+            </div>
+            
+            <div class="feature-item">
+              <span class="feature-icon">📋</span>
+              <span class="feature-text"><strong>Hukuki Belgeler:</strong> İhtiyacınıza uygun hukuki belge ve dilekçe şablonları</span>
+            </div>
+            
+            <div class="feature-item">
+              <span class="feature-icon">💬</span>
+              <span class="feature-text"><strong>Güvenli Mesajlaşma:</strong> Alıcılarla güvenli bir şekilde iletişime geçin</span>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${siteUrl}/ilan-ver" class="button">
+              🚀 İlk İlanınızı Verin
+            </a>
+          </div>
+          
+          <div class="welcome-text" style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;">
+            <p>Herhangi bir sorunuz varsa, bizimle iletişime geçmekten çekinmeyin.</p>
+            <p>İyi alışverişler dileriz! 🛍️</p>
+          </div>
+        </div>
+        <div class="footer">
+          <p><strong>Alo17 - Çanakkale'nin En Büyük İlan Sitesi</strong></p>
+          <p>${siteUrl}</p>
+          <p style="margin-top: 15px; font-size: 11px; color: #9ca3af;">
+            Bu email otomatik olarak gönderilmiştir. Lütfen bu email'e yanıt vermeyin.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  const text = `
+🎉 Alo17'ye Hoş Geldiniz!
+
+Merhaba ${user.name}!
+
+Alo17'ye kayıt olduğunuz için çok teşekkür ederiz. Artık Çanakkale'nin en büyük ilan platformunun bir parçasısınız!
+
+Platformumuzda neler yapabilirsiniz?
+
+📢 Ücretsiz İlan Verin: İstediğiniz kategoride ilanınızı oluşturun ve binlerce kişiye ulaşın
+🔍 Binlerce İlanı Keşfedin: Elektronik, giyim, ev eşyaları ve daha fazlası
+⭐ Premium Avantajlar: İlanlarınızı öne çıkarın, daha hızlı satın
+📋 Hukuki Belgeler: İhtiyacınıza uygun hukuki belge ve dilekçe şablonları
+💬 Güvenli Mesajlaşma: Alıcılarla güvenli bir şekilde iletişime geçin
+
+İlk ilanınızı vermek için: ${siteUrl}/ilan-ver
+
+Herhangi bir sorunuz varsa, bizimle iletişime geçmekten çekinmeyin.
+
+İyi alışverişler dileriz! 🛍️
+
+---
+Alo17 - Çanakkale'nin En Büyük İlan Sitesi
+${siteUrl}
+
+Bu email otomatik olarak gönderilmiştir. Lütfen bu email'e yanıt vermeyin.
+  `;
+
+  return await sendEmail({
+    to: user.email,
+    subject,
+    html,
+    text,
+  });
+}
+
+/**
  * Abonelere yeni ilan bildirimi gönder
  */
 export async function notifySubscribersNewListing(listing: {

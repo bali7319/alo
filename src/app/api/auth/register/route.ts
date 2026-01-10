@@ -6,6 +6,7 @@ import { encryptPhone } from '@/lib/encryption';
 import { sanitizeEmail, sanitizeInput } from '@/lib/sanitize';
 import { safeLog, safeError } from '@/lib/logger';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { sendWelcomeEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -98,6 +99,15 @@ export async function POST(request: NextRequest) {
 
     // Şifreyi response'dan çıkar
     const { password: _, ...userWithoutPassword } = user;
+
+    // Hoşgeldin maili gönder (async, hata olsa bile kayıt başarılı)
+    sendWelcomeEmail({
+      name: user.name,
+      email: user.email,
+    }).catch((error) => {
+      // Email gönderme hatası kayıt işlemini etkilemesin
+      safeError('Hoşgeldin maili gönderilemedi:', error);
+    });
 
     return NextResponse.json(
       {
