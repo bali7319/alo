@@ -111,8 +111,7 @@ export default async function Home() {
           <div className="mt-4 sm:mt-6">
             <Button 
               asChild
-              variant="secondary"
-              className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
               size="lg"
             >
               <Link href="/ilan-ver" className="inline-flex items-center">
