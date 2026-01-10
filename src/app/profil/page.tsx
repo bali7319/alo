@@ -273,7 +273,7 @@ export default function ProfilePage() {
                 Profili Düzenle
               </Link>
               <button
-                onClick={handleSignOut}
+                onClick={(e) => handleSignOut(e)}
                 className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-600"
               >
                 <ArrowRightOnRectangleIcon className="w-4 h-4 mr-2" />
