@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 
-export default function SifreSifirlaPage() {
+export const dynamic = 'force-dynamic';
+
+function SifreSifirlaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
