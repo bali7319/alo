@@ -1,14 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Printer, Download, Save } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
 
 export default function EvKiralamaSozlesmePage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [formData, setFormData] = useState({
     // Ev Sahibi Bilgileri
     evSahibiAd: '',
@@ -73,19 +69,7 @@ export default function EvKiralamaSozlesmePage() {
     
   });
 
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  const userRole = (session?.user as any)?.role;
-  if (!session || userRole !== 'admin') {
-    router.push(`/giris?callbackUrl=${encodeURIComponent('/admin/sozlesmeler/ev-kiralama')}`);
-    return null;
-  }
+  // Admin kontrolü kaldırıldı - herkese açık sayfa
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
