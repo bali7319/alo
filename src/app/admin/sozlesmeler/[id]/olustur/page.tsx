@@ -145,21 +145,12 @@ export default function SozlesmeOlusturPage() {
           {/* Sağ Taraf - Ön İzleme */}
           <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-100px)] lg:col-span-1 print:w-full">
             <div className="bg-white shadow-lg rounded-lg p-8 print:shadow-none print:p-0 print:w-full overflow-y-auto" style={{ maxHeight: 'calc(100vh - 100px)' }}>
-              <div className="print:w-full" style={{
+              <div className="print:w-full preview-container" style={{
                 transform: 'scale(0.65)',
                 transformOrigin: 'top center',
                 width: '153.85%',
                 marginLeft: '-26.92%'
               }}>
-                <style jsx>{`
-                  @media print {
-                    div[style*="transform"] {
-                      transform: none !important;
-                      width: 100% !important;
-                      margin-left: 0 !important;
-                    }
-                  }
-                `}</style>
                 {template.renderPreview(formData)}
               </div>
             </div>
