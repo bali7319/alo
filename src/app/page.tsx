@@ -107,7 +107,16 @@ export default async function Home() {
     <div className="min-h-screen bg-gray-50">
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-6 sm:py-8 md:py-16">
         <div className="container mx-auto px-3 sm:px-4 text-center">
-          <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-2 sm:mb-4">Ücretsiz İlan Platformu</h1>
+          <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6">Ücretsiz İlan Platformu</h1>
+          <Link href="/ilan-ver">
+            <Button 
+              className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              size="lg"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              İlan Ver
+            </Button>
+          </Link>
         </div>
       </section>
       <section className="bg-white border-b py-4 sm:py-6">
