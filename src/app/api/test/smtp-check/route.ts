@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+async function handleRequest(request: NextRequest) {
   try {
     // Admin kontrolü
     const session = await getServerSession(authOptions);
@@ -123,4 +123,12 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function GET(request: NextRequest) {
+  return handleRequest(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleRequest(request);
 }
