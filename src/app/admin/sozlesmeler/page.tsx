@@ -29,6 +29,9 @@ export default function AdminSozlesmelerPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
+    // Sayfa başlığını güncelle
+    document.title = 'Hukuki Belgeler ve Dilekçe - Alo17 Admin';
+    
     if (status === 'loading') return;
 
     const userRole = (session?.user as any)?.role;
