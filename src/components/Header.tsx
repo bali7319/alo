@@ -38,51 +38,49 @@ export default function Header() {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async (e?: React.MouseEvent) => {
-    // Double click önleme
-    if (isSigningOut) {
-      console.log('SignOut zaten devam ediyor, işlem iptal edildi');
-      return;
-    }
+    // 1. Eğer bir form veya link ise default davranışı durdurun
+    if (e && e.preventDefault) e.preventDefault();
     
-    // Form submit önleme
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+    // 2. Fonksiyonun birden fazla kez tetiklenmesini engellemek için kontrol
+    if ((window as any).isLoggingOut) return;
+    (window as any).isLoggingOut = true;
     
     setIsSigningOut(true);
-    
+
     console.log('SignOut başlatılıyor...');
-    
+
     try {
-      // 1. NextAuth'u sessizce (yönlendirme yapmadan) bitir
-      await signOut({ redirect: false }); 
-      
+      // 3. NextAuth'un kendi yönlendirme mekanizmasını tamamen kapatın (redirect: false)
+      await signOut({ 
+        redirect: false,
+        callbackUrl: window.location.origin 
+      });
+
       console.log('Storage temizlendi');
       localStorage.clear();
       sessionStorage.clear();
-      
-      // 2. Cookie'lerin silindiğinden emin olmak için tüm cookie'leri temizleme
+
+      // 4. Client-side state'i temizlemek için tüm cookie'leri manuel silin
       document.cookie.split(';').forEach((c) => {
         document.cookie = c
           .replace(/^ +/, '')
           .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
       });
-      
+
       console.log('Oturum kapatıldı, yönlendiriliyor.');
 
-      // 3. EN ÖNEMLİ KISIM: Router kullanmayın, tarayıcıyı zorla yenileyerek gönderin
-      // Bu komut tarayıcıyı 'hard reload' ile ana sayfaya fırlatır.
-      window.location.replace('/'); 
+      // 5. KRİTİK: Next.js router kullanmayın. window.location.replace kullanın.
+      // Bu, tarayıcıyı ana sayfaya zorla gönderir ve geçmişi temizler.
+      window.location.replace('/');
       
     } catch (error) {
       console.error('Çıkış hatası:', error);
-      // Hata anında yedek yönlendirme
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = '/'; 
+      window.location.href = '/';
     } finally {
       setIsSigningOut(false);
+      (window as any).isLoggingOut = false;
     }
   };
 
