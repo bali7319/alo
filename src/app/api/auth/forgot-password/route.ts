@@ -49,15 +49,16 @@ export async function POST(request: NextRequest) {
       expiresAt: resetTokenExpiry,
     });
 
-    // Email gönderme (şimdilik simüle ediliyor)
+    // Email gönderme
     const { sendEmail } = await import('@/lib/email');
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://alo17.tr';
     const resetUrl = `${siteUrl}/sifre-sifirla?token=${resetToken}&email=${encodeURIComponent(normalizedEmail)}`;
 
-    await sendEmail({
-      to: normalizedEmail,
-      subject: 'Şifre Sıfırlama - Alo17',
-      html: `
+    try {
+      const emailSent = await sendEmail({
+        to: normalizedEmail,
+        subject: 'Şifre Sıfırlama - Alo17',
+        html: `
         <!DOCTYPE html>
         <html>
         <head>
@@ -111,7 +112,22 @@ Bu link 1 saat geçerlidir.
 
 Eğer şifre sıfırlama talebinde bulunmadıysanız, bu email'i görmezden gelebilirsiniz.
       `,
-    });
+      });
+
+      if (!emailSent) {
+        console.error('❌ Şifre sıfırlama emaili gönderilemedi:', normalizedEmail);
+        // Email gönderilemese bile güvenlik için başarılı mesajı döndür
+      } else {
+        console.log('✅ Şifre sıfırlama emaili gönderildi:', normalizedEmail);
+      }
+    } catch (emailError: any) {
+      console.error('❌ Email gönderme hatası:', {
+        email: normalizedEmail,
+        error: emailError.message,
+        stack: emailError.stack,
+      });
+      // Email gönderme hatası olsa bile güvenlik için başarılı mesajı döndür
+    }
 
     return NextResponse.json({
       message: 'Eğer bu email adresi kayıtlıysa, şifre sıfırlama linki gönderildi',
