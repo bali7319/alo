@@ -20,9 +20,16 @@ export async function POST(request: NextRequest) {
       where: { email: normalizedEmail },
     });
 
+    console.log('🔍 Şifre sıfırlama isteği:', {
+      email: normalizedEmail,
+      userFound: !!user,
+      hasPassword: !!user?.password,
+    });
+
     // Güvenlik: Kullanıcı var mı yok mu bilgisini verme
     // Her zaman başarılı mesajı döndür (email enumeration saldırılarını önlemek için)
     if (!user) {
+      console.log('⚠️ Kullanıcı bulunamadı:', normalizedEmail);
       // Kullanıcı yoksa bile başarılı mesajı döndür (güvenlik)
       return NextResponse.json({
         message: 'Eğer bu email adresi kayıtlıysa, şifre sıfırlama linki gönderildi',
@@ -31,6 +38,7 @@ export async function POST(request: NextRequest) {
 
     // Sosyal medya hesabı kontrolü (şifre yoksa)
     if (!user.password) {
+      console.log('⚠️ Kullanıcının şifresi yok (sosyal medya hesabı):', normalizedEmail);
       return NextResponse.json({
         message: 'Eğer bu email adresi kayıtlıysa, şifre sıfırlama linki gönderildi',
       });
@@ -43,9 +51,9 @@ export async function POST(request: NextRequest) {
 
     // TODO: Reset token'ı veritabanına kaydet (şimdilik sadece log)
     // Prisma schema'ya PasswordResetToken modeli eklenebilir
-    console.log('Şifre sıfırlama token oluşturuldu:', {
+    console.log('✅ Şifre sıfırlama token oluşturuldu:', {
       email: normalizedEmail,
-      token: resetToken,
+      token: resetToken.substring(0, 10) + '...',
       expiresAt: resetTokenExpiry,
     });
 
@@ -53,6 +61,11 @@ export async function POST(request: NextRequest) {
     const { sendEmail } = await import('@/lib/email');
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://alo17.tr';
     const resetUrl = `${siteUrl}/sifre-sifirla?token=${resetToken}&email=${encodeURIComponent(normalizedEmail)}`;
+
+    console.log('📧 Şifre sıfırlama emaili gönderiliyor:', {
+      to: normalizedEmail,
+      resetUrl: resetUrl.substring(0, 50) + '...',
+    });
 
     try {
       const emailSent = await sendEmail({
