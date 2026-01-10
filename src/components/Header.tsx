@@ -475,7 +475,7 @@ export default function Header() {
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={handleSignOut}
+                    onClick={(e) => handleSignOut(e)}
                     disabled={isSigningOut}
                     className="cursor-pointer text-red-600 focus:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >

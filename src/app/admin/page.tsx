@@ -255,7 +255,7 @@ export default function AdminPage() {
             </p>
           </div>
           <button
-            onClick={handleLogout}
+            onClick={(e) => handleLogout(e)}
             disabled={isLoggingOut}
             className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             type="button"
