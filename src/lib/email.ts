@@ -43,7 +43,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       host: smtpHost,
       port: port,
       secure: isSecure, // 465 portu SSL kullanır, 587 için false
-      // SMTP authentication (Nodemailer otomatik algılar)
+      // SMTP authentication - ZORUNLU (relay hatası önlemek için)
       auth: {
         user: smtpUser,
         pass: smtpPass,
@@ -57,11 +57,16 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       },
       // Port 587 için STARTTLS kapalı (destek ekibi: starttls => false)
       requireTLS: false, // STARTTLS kullanma
-      connectionTimeout: 10000, // 10 saniye timeout
-      greetingTimeout: 10000,
+      connectionTimeout: 15000, // 15 saniye timeout
+      greetingTimeout: 15000,
       // Relay hatası önlemek için
       pool: false,
       maxConnections: 1,
+      // SMTP authentication'ı zorla
+      authMethod: 'PLAIN',
+      // Debug modu (geliştirme için)
+      debug: process.env.NODE_ENV === 'development',
+      logger: process.env.NODE_ENV === 'development',
     });
 
     // Email gönder
@@ -92,12 +97,21 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       throw verifyError;
     }
 
+    // From adresi MUTLAKA SMTP_USER ile aynı olmalı (relay hatası önlemek için)
+    // Display name olmadan sadece email adresi kullan
+    const fromAddressFinal = fromAddress.includes('<') ? fromAddress : fromAddress;
+    
     const info = await transporter.sendMail({
-      from: `"Alo17" <${fromAddress}>`, // SMTP_USER ile aynı kullan, display name ekle
+      from: fromAddressFinal, // SMTP_USER ile aynı kullan (display name olmadan)
       to: options.to,
       subject: options.subject,
       html: options.html,
       text: options.text || options.html.replace(/<[^>]*>/g, ''), // HTML'den text çıkar
+      // SMTP authentication'ı zorla
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
     });
 
     console.log('📧 Email başarıyla gönderildi:', {
