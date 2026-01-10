@@ -1,12 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileText } from 'lucide-react';
-import { contractTemplates } from '@/lib/contract-templates';
 
 // Bu sayfanın dinamik olarak render edilmesini sağlar
 export const dynamic = 'force-dynamic';
+
+// contractTemplates'i dinamik import et
+let contractTemplates: any = {};
+try {
+  const templates = require('@/lib/contract-templates');
+  contractTemplates = templates.contractTemplates || {};
+} catch (error) {
+  console.error('contractTemplates yüklenemedi:', error);
+}
 
 // Türkçe slug oluşturma fonksiyonu
 const createTurkishSlug = (label: string): string => {
@@ -107,10 +115,31 @@ const templateTypes = [
 ];
 
 export default function SozlesmelerPage() {
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
+    setIsClient(true);
     // Sayfa başlığını güncelle
     document.title = 'Hukuki Belgeler ve Dilekçe - Alo17';
   }, []);
+
+  // contractTemplates kontrolü
+  const availableTemplates = templateTypes.filter(t => {
+    try {
+      return t.type !== 'ev-kiralama' && contractTemplates && typeof contractTemplates === 'object' && contractTemplates[t.type];
+    } catch (error) {
+      console.error('Template kontrol hatası:', error);
+      return false;
+    }
+  });
+
+  if (!isClient) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -134,21 +163,19 @@ export default function SozlesmelerPage() {
 
         {/* Diğer Template Tipleri */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templateTypes
-            .filter(t => t.type !== 'ev-kiralama' && contractTemplates[t.type])
-            .map((templateInfo) => {
-              const slug = createTurkishSlug(templateInfo.label);
-              return (
-                <Link
-                  key={templateInfo.type}
-                  href={`/sozlesmeler/${slug}`}
-                  className="flex items-center px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-base font-medium shadow-md"
-                >
-                  <FileText className="h-5 w-5 mr-3" />
-                  {templateInfo.label}
-                </Link>
-              );
-            })}
+          {availableTemplates.map((templateInfo) => {
+            const slug = createTurkishSlug(templateInfo.label);
+            return (
+              <Link
+                key={templateInfo.type}
+                href={`/sozlesmeler/${slug}`}
+                className="flex items-center px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-base font-medium shadow-md"
+              >
+                <FileText className="h-5 w-5 mr-3" />
+                {templateInfo.label}
+              </Link>
+            );
+          })}
         </div>
 
         {/* Bilgilendirme */}
