@@ -3,18 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileText } from 'lucide-react';
+import { contractTemplates } from '@/lib/contract-templates';
 
 // Bu sayfanın dinamik olarak render edilmesini sağlar
 export const dynamic = 'force-dynamic';
-
-// contractTemplates'i dinamik import et
-let contractTemplates: any = {};
-try {
-  const templates = require('@/lib/contract-templates');
-  contractTemplates = templates.contractTemplates || {};
-} catch (error) {
-  console.error('contractTemplates yüklenemedi:', error);
-}
 
 // Türkçe slug oluşturma fonksiyonu
 const createTurkishSlug = (label: string): string => {
