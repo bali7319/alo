@@ -220,3 +220,15 @@ function SifreSifirlaContent() {
     </div>
   );
 }
+
+export default function SifreSifirlaPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    }>
+      <SifreSifirlaContent />
+    </Suspense>
+  );
+}
