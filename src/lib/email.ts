@@ -100,8 +100,20 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 
     // From adresi MUTLAKA SMTP_USER ile aynı olmalı (relay hatası önlemek için)
     // Display name olmadan sadece email adresi kullan
+    // SMTP_USER'ı kontrol et ve From adresini ayarla
+    const finalFromAddress = smtpUser; // Her zaman SMTP_USER kullan
+    
+    console.log('📧 Email gönderiliyor (detaylı):', {
+      from: finalFromAddress,
+      to: options.to,
+      subject: options.subject,
+      smtpUser: smtpUser,
+      smtpHost: smtpHost,
+      smtpPort: port,
+    });
+    
     const info = await transporter.sendMail({
-      from: fromAddress, // SMTP_USER ile aynı kullan (display name olmadan, sadece email)
+      from: finalFromAddress, // SMTP_USER ile aynı kullan (display name olmadan, sadece email)
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -109,6 +121,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
 
     console.log('📧 Email başarıyla gönderildi:', {
+      from: finalFromAddress,
       to: options.to,
       subject: options.subject,
       messageId: info.messageId,
