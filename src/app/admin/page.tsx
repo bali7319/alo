@@ -121,9 +121,22 @@ export default function AdminPage() {
 
       console.log('Oturum kapatıldı, yönlendiriliyor.');
 
-      // 5. KRİTİK: Next.js router kullanmayın. window.location.replace kullanın.
-      // Bu, tarayıcıyı ana sayfaya zorla gönderir ve geçmişi temizler.
-      window.location.replace('/');
+      // Service Worker temizliği (eğer varsa)
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            await registration.unregister();
+          }
+          console.log('Service Worker temizlendi');
+        } catch (e) {
+          console.log('Service Worker temizleme hatası:', e);
+        }
+      }
+
+      // 5. KRİTİK: Tarayıcıyı tamamen yeni bir adrese gitmeye zorlar, önbelleği bypass eder.
+      // URL'nin sonuna eklediğimiz ?logout=true parametresi, tarayıcının sayfayı "yeni bir sayfa" olarak algılamasını sağlar ve cache'i kırar.
+      window.location.assign(window.location.origin + '/?logout=true');
       
     } catch (error) {
       console.error('Çıkış hatası:', error);
