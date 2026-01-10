@@ -119,6 +119,18 @@ export default async function Home() {
       </section>
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8">
         <div className="w-full md:w-64 flex-shrink-0">
+          {/* Hukuki Belgeler ve Dilekçe Butonu */}
+          <div className="mb-4">
+            <Link href="/admin/sozlesmeler" className="block">
+              <Button 
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-semibold shadow-lg"
+                size="lg"
+              >
+                <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                Hukuki Belgeler ve Dilekçe
+              </Button>
+            </Link>
+          </div>
           {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
           <div className="mb-4">
             <Link href="/ilan-ver" className="block">
