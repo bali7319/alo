@@ -55,25 +55,32 @@ export default function Header() {
     console.log('SignOut başlatılıyor...');
     
     try {
-      // redirect: false çok önemli, NextAuth'un kendi yönlendirmesini durdurur
+      // 1. NextAuth'u sessizce (yönlendirme yapmadan) bitir
       await signOut({ redirect: false }); 
       
       console.log('Storage temizlendi');
       localStorage.clear();
       sessionStorage.clear();
       
-      console.log('Oturum kapatıldı, yönlendiriliyor...');
+      // 2. Cookie'lerin silindiğinden emin olmak için tüm cookie'leri temizleme
+      document.cookie.split(';').forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, '')
+          .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+      });
+      
+      console.log('Oturum kapatıldı, yönlendiriliyor.');
 
-      // window.location.replace() kullanarak history'yi temizliyoruz
-      // Bu, geri butonunu devre dışı bırakarak daha temiz bir geçiş sağlar
-      window.location.replace('/');
+      // 3. EN ÖNEMLİ KISIM: Router kullanmayın, tarayıcıyı zorla yenileyerek gönderin
+      // Bu komut tarayıcıyı 'hard reload' ile ana sayfaya fırlatır.
+      window.location.replace('/'); 
       
     } catch (error) {
-      console.error('Hata:', error);
+      console.error('Çıkış hatası:', error);
       // Hata anında yedek yönlendirme
       localStorage.clear();
       sessionStorage.clear();
-      window.location.replace('/');
+      window.location.href = '/'; 
     } finally {
       setIsSigningOut(false);
     }
