@@ -524,7 +524,7 @@ const UnjustTerminationCompensationPreview = ({
 };
 
 const HousingTransferPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KONUT KİRA SÖZLEŞMESİ DEVİR PROTOKOLÜ</h1>
     </div>
@@ -573,7 +573,7 @@ const HousingTransferPreview = ({ formData }: { formData: ContractFormData }) =>
 );
 
 const SubleaseApprovalPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">EV SAHİBİNİN ALT KİRA SÖZLEŞMESİNİ ONAY MEKTUBU</h1>
     </div>
@@ -613,7 +613,7 @@ const SubleaseApprovalPreview = ({ formData }: { formData: ContractFormData }) =
 );
 
 const EvictionPetitionPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">TAHLİYE DAVA DİLEKÇESİ</h1>
     </div>
@@ -662,7 +662,7 @@ const EvictionPetitionPreview = ({ formData }: { formData: ContractFormData }) =
 );
 
 const RentDeterminationPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KİRA BEDELİNİN TESPİTİNE İLİŞKİN DAVA DİLEKÇESİ</h1>
     </div>
@@ -701,7 +701,7 @@ const RentDeterminationPreview = ({ formData }: { formData: ContractFormData }) 
 );
 
 const EvictionNoticePreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">TAHLİYE İHTARNAMESİ</h1>
     </div>
@@ -741,7 +741,7 @@ const EvictionNoticePreview = ({ formData }: { formData: ContractFormData }) => 
 );
 
 const RentIncreaseNoticePreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KİRA BEDELİNİN ARTIRILMASI İÇİN İHTARNAME</h1>
     </div>
@@ -782,7 +782,7 @@ const RentIncreaseNoticePreview = ({ formData }: { formData: ContractFormData })
 );
 
 const RentReceiptPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KİRA ÖDEME BELGESİ</h1>
       {formData.belgeNo && <p className="text-sm">Belge No: {formData.belgeNo}</p>}
@@ -824,7 +824,7 @@ const RentReceiptPreview = ({ formData }: { formData: ContractFormData }) => (
 );
 
 const RentDelayNoticePreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KİRA GECİKMESİ İÇİN İHTARNAME</h1>
     </div>
@@ -865,7 +865,7 @@ const RentDelayNoticePreview = ({ formData }: { formData: ContractFormData }) =>
 );
 
 const DepositRefundPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KİRA DEPOZİTOSU İADE TALEBİ</h1>
     </div>
@@ -907,7 +907,7 @@ const DepositRefundPreview = ({ formData }: { formData: ContractFormData }) => (
 );
 
 const TenantTerminationPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KİRACI TARAFINDAN KİRA SÖZLEŞMESİNİN SONLANDIRILMASI BİLDİRİMİ</h1>
     </div>
@@ -949,7 +949,7 @@ const TenantTerminationPreview = ({ formData }: { formData: ContractFormData }) 
 );
 
 const RentTerminationPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KONUT KİRA SÖZLEŞMESİ FESİH PROTOKOLÜ</h1>
     </div>
@@ -1004,7 +1004,7 @@ const RentTerminationPreview = ({ formData }: { formData: ContractFormData }) =>
 );
 
 const RentRenewalPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KİRA YENİLEME SÖZLEŞMESİ</h1>
     </div>
@@ -1051,7 +1051,7 @@ const RentRenewalPreview = ({ formData }: { formData: ContractFormData }) => (
 );
 
 const SubleasePreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">ALT KİRA ANLAŞMASI</h1>
     </div>
@@ -1106,7 +1106,7 @@ const SubleasePreview = ({ formData }: { formData: ContractFormData }) => (
 );
 
 const RentIncreaseObjectionPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">HAKSIZ KİRA ARTIRAN EV SAHİBİNE İTİRAZ MEKTUBU</h1>
     </div>
@@ -1149,7 +1149,7 @@ const RentIncreaseObjectionPreview = ({ formData }: { formData: ContractFormData
 );
 
 const RenovationRequestPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KİRACININ KİRALANAN KONUTTA YENİLİK VEYA DEĞİŞİKLİK YAPILMASI TALEBİ</h1>
     </div>
@@ -1200,7 +1200,7 @@ const RenovationRequestPreview = ({ formData }: { formData: ContractFormData }) 
 );
 
 const FurnishedHousingPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">EŞYALI KONUT KİRA SÖZLEŞMESİ</h1>
     </div>
@@ -1252,7 +1252,7 @@ const FurnishedHousingPreview = ({ formData }: { formData: ContractFormData }) =
 );
 
 const ConstructionAgreementPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">KAT KARŞILIĞI BİNA YAPIM SÖZLEŞMESİ</h1>
     </div>
@@ -1303,7 +1303,7 @@ const ConstructionAgreementPreview = ({ formData }: { formData: ContractFormData
 );
 
 const CommercialPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="mt-8 grid grid-cols-2 gap-8">
       <div>
         <p className="font-semibold mb-4 border-t pt-2">KİRAYA VEREN</p>
@@ -1320,7 +1320,7 @@ const CommercialPreview = ({ formData }: { formData: ContractFormData }) => (
 );
 
 const VehiclePreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">ARAÇ KİRALAMA SÖZLEŞMESİ</h1>
     </div>
@@ -1371,7 +1371,7 @@ const VehiclePreview = ({ formData }: { formData: ContractFormData }) => (
 );
 
 const WarehousePreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">DEPO KİRALAMA SÖZLEŞMESİ</h1>
     </div>
@@ -1420,7 +1420,7 @@ const WarehousePreview = ({ formData }: { formData: ContractFormData }) => (
 );
 
 const SalePreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">SATIŞ SÖZLEŞMESİ</h1>
     </div>
@@ -1469,7 +1469,7 @@ const SalePreview = ({ formData }: { formData: ContractFormData }) => (
 );
 
 const ServicePreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">HİZMET SÖZLEŞMESİ</h1>
     </div>
@@ -1520,7 +1520,7 @@ const ServicePreview = ({ formData }: { formData: ContractFormData }) => (
 );
 
 const PartnershipPreview = ({ formData }: { formData: ContractFormData }) => (
-  <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+  <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
     <div className="text-center mb-6">
       <h1 className="text-xl font-bold uppercase mb-2">ORTAKLIK SÖZLEŞMESİ</h1>
     </div>
@@ -5954,7 +5954,7 @@ export const contractTemplates: { [key: string]: ContractTemplate } = {
       </div>
     ),
     renderPreview: (formData) => (
-      <div className="a4-container bg-white" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', padding: '20mm', fontSize: '12px', lineHeight: '1.6' }}>
+      <div className="a4-container bg-white page-break-after" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto 20px auto', padding: '20mm', boxShadow: '0 0 10px rgba(0,0,0,0.1)', fontSize: '12px', lineHeight: '1.6' }}>
         <div className="text-center mb-6">
           <h1 className="text-xl font-bold uppercase mb-2">ORTAKLIK SÖZLEŞMESİ</h1>
         </div>

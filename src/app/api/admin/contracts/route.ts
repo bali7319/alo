@@ -25,11 +25,22 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(contracts);
     } catch (dbError: unknown) {
-      // Eğer tablo yoksa boş array döndür
+      // Eğer tablo yoksa veya bağlantı hatası varsa boş array döndür
       const errorMessage = dbError instanceof Error ? dbError.message : '';
       const errorCode = dbError && typeof dbError === 'object' && 'code' in dbError ? dbError.code : undefined;
-      if (errorMessage.includes('does not exist') || errorMessage.includes('model') || errorCode === 'P2021') {
-        console.warn('Contract tablosu henüz oluşturulmamış, boş liste döndürülüyor');
+      
+      // Prisma hata kodları
+      if (
+        errorCode === 'P2021' || // Tablo bulunamadı
+        errorCode === 'P1001' || // Veritabanı bağlantı hatası
+        errorCode === 'P1012' || // DATABASE_URL hatası
+        errorMessage.includes('does not exist') || 
+        errorMessage.includes('model') ||
+        errorMessage.includes('DATABASE_URL') ||
+        errorMessage.includes('connection') ||
+        errorMessage.includes('connect')
+      ) {
+        console.warn('Contract tablosu/veritabanı bağlantı sorunu, boş liste döndürülüyor:', errorMessage);
         return NextResponse.json([]);
       }
       throw dbError;
@@ -37,6 +48,16 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Sözleşmeler listeleme hatası:', error);
     const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+    
+    // Prisma hatalarını daha iyi handle et
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2021' || error.code === 'P2025') {
+        // Tablo/model yoksa boş array döndür
+        console.warn('Contract tablosu/modeli bulunamadı, boş liste döndürülüyor');
+        return NextResponse.json([]);
+      }
+    }
+    
     return NextResponse.json(
       { 
         error: 'Sözleşmeler yüklenemedi', 

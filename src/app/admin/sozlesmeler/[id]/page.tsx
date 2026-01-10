@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Edit, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, Printer } from 'lucide-react';
+import { contractTemplates } from '@/lib/contract-templates';
 
 interface Contract {
   id: string;
@@ -21,6 +22,180 @@ interface Contract {
   updatedAt: string;
 }
 
+// Türkçe slug'dan İngilizce type'a çevirme
+const turkishSlugToType: { [key: string]: string } = {
+  'ev-kiralama-sozlesmesi': 'ev-kiralama',
+  'konut-devir-protokolu': 'housing-transfer',
+  'alt-kira-onay': 'sublease-approval',
+  'tahliye-dava-dilekcesi': 'eviction-petition',
+  'kira-tespit-dava-dilekcesi': 'rent-determination',
+  'tahliye-ihtarname': 'eviction-notice',
+  'kira-artis-ihtarname': 'rent-increase-notice',
+  'kira-odeme-belgesi': 'rent-receipt',
+  'kira-gecikme-ihtarname': 'rent-delay-notice',
+  'depozito-iade': 'deposit-refund',
+  'kiraci-fesih-bildirimi': 'tenant-termination',
+  'kira-fesih-protokolu': 'rent-termination',
+  'kira-yenileme': 'rent-renewal',
+  'alt-kira': 'sublease',
+  'kira-artis-itiraz': 'rent-increase-objection',
+  'tadilat-talebi': 'renovation-request',
+  'esyali-konut': 'furnished-housing',
+  'kat-karsiligi-insaat': 'construction-agreement',
+  'arac-kiralama': 'vehicle',
+  'depo-kiralama': 'warehouse',
+  'satis-sozlesmesi': 'sale',
+  'hizmet-sozlesmesi': 'service',
+  'ortaklik-sozlesmesi': 'partnership',
+  'veli-izin-belgesi': 'parent-consent',
+  'ogrenci-izin-dilekcesi': 'student-permission',
+  'anlasmali-bosanma-sozlesmesi': 'divorce-agreement',
+  'sabika-kaydi-beyani': 'criminal-record-statement',
+  'tasinir-esya-oduncu-sozlesmesi': 'movable-property-loan',
+  'tasinir-kiralama-sozlesmesi': 'movable-rental',
+  'rahatsizlikla-ilgili-komsuya-mektup': 'neighbor-complaint-letter',
+  'guvence-bedeli-iade-talebi': 'security-deposit-refund',
+  'vize-basvurusu-davet-mektubu': 'visa-invitation-letter',
+  'adres-degisikligi-bildirimi': 'address-change-notification',
+  'uzun-donem-arac-kiralama-sozlesmesi': 'long-term-vehicle-rental',
+  'saklama-sozlesmesi': 'storage-agreement',
+  'ev-isleri-icin-hizmet-sozlesmesi': 'household-service-agreement',
+  'banka-hesabini-kapatma-dilekcesi': 'bank-account-closure',
+  'havuz-bakimina-iliskin-sozlesme': 'pool-maintenance-agreement',
+  'arac-satis-vaadi-sozlesmesi': 'vehicle-sale-promise',
+  'diploma-talebi-dilekcesi': 'diploma-request',
+  'ilkogretim-ve-ortaogretim-not-itiraz-dilekcesi': 'grade-objection-primary-secondary',
+  'kredi-karti-kapatma-dilekcesi': 'credit-card-closure',
+  'isim-degisikligi-talep-dilekcesi': 'name-change-request',
+  'universite-not-itiraz-dilekcesi': 'university-grade-objection',
+  'yesil-pasaport-icin-kadro-derecesi-gosterir-belge-talebi': 'green-passport-cadre-request',
+  'soyadi-degisikligi-bildirimi': 'surname-change-notification',
+  'lise-not-itiraz-dilekcesi': 'high-school-grade-objection',
+  'vasi-atanmasi-dilekcesi': 'guardianship-appointment',
+  'mazeret-sinav-dilekcesi': 'excuse-exam-petition',
+  'dul-yetim-ayligi-baglanmasi-icin-talep-dilekcesi': 'widow-orphan-pension-request',
+  'adli-kontrol-kararina-itiraz-dilekcesi': 'judicial-control-objection',
+  'tutukluluga-itiraz-dilekcesi': 'detention-objection',
+  'konutun-ihtiyac-sebebiyle-tahliyesine-iliskin-dava-dilekcesi': 'eviction-need-lawsuit',
+  'haciz-takibine-itiraz-dilekcesi': 'foreclosure-objection',
+  'ilamli-icra-takibine-itiraz-dilekcesi': 'enforcement-objection',
+  'nafakanin-azaltilmasi-veya-kaldirilmasi-icin-dava-dilekcesi': 'alimony-reduction-lawsuit',
+  'nafakanin-artirilmasi-dava-dilekcesi': 'alimony-increase-lawsuit',
+  'bosanma-sonrasinda-nafakanin-odenmemesine-iliskin-sikayet-dilekcesi': 'alimony-nonpayment-complaint',
+  'aciz-belgesi-verilmesi-talebi': 'insolvency-certificate-request',
+  'otomatik-faturalandirmayi-devre-disi-birakma-mektubu': 'disable-auto-billing',
+  'hat-iptal-dilekcesi': 'line-cancellation',
+  'fatura-itiraz-dilekcesi': 'invoice-objection',
+  'abonelik-iptal-dilekcesi': 'subscription-cancellation',
+  'savunma-yazisi': 'defense-letter',
+  'iscinin-esnek-calisma-talebi-dilekcesi': 'flexible-work-request',
+  'bakici-ve-yardimci-hizmetli-is-sozlesmesi': 'caregiver-service-contract',
+  'emeklilik-talebi-dilekcesi': 'retirement-request',
+  'isten-cikarilma-nedenini-ogrenme-talebi-mektubu': 'dismissal-reason-request',
+  'is-teklifi-kabul-veya-ret-mektubu': 'job-offer-response',
+  'maas-artirimi-talebi': 'salary-increase-request',
+  'is-sozlesmesinin-haksiz-feshi-halinde-tazminat-talebi-dava-dilekcesi': 'unjust-termination-compensation-lawsuit',
+  'is-sozlesmesinin-isci-tarafindan-hakli-nedenle-feshi-halinde-alacak-davasi-dilekcesi': 'justified-termination-receivables-lawsuit',
+  'istifa-mektubu': 'resignation-letter',
+  'dogum-sonrasi-kismi-calisma-talebi-mektubu': 'post-birth-partial-work-request',
+  'evlat-edinme-sonrasi-ucretsiz-izin-talebi-dilekcesi': 'adoption-unpaid-leave-request',
+  'calisanin-isverenden-ucretsiz-izin-talebi-dilekcesi': 'employee-unpaid-leave-request',
+  'babalik-izni-dilekcesi': 'paternity-leave-request',
+  'analik-dogum-izni-dilekcesi': 'maternity-leave-request',
+  'senelik-ucretli-izin-dilekcesi': 'annual-paid-leave-request',
+  'dogum-sonrasi-alti-aylik-ucretsiz-izin-talebi-dilekcesi': 'post-birth-six-month-unpaid-leave',
+  'dogum-sonrasi-yarim-gun-ucretsiz-izin-talebi-mektubu': 'post-birth-half-day-unpaid-leave',
+};
+
+// Template tiplerinin Türkçe label'larını bulmak için
+const getTemplateLabel = (type: string): string => {
+  const templateLabels: { [key: string]: string } = {
+    'ev-kiralama': 'Ev Kiralama Sözleşmesi',
+    'housing-transfer': 'Konut Devir Protokolü',
+    'sublease-approval': 'Alt Kira Onay',
+    'eviction-petition': 'Tahliye Dava Dilekçesi',
+    'rent-determination': 'Kira Tespit Dava Dilekçesi',
+    'eviction-notice': 'Tahliye İhtarname',
+    'rent-increase-notice': 'Kira Artış İhtarname',
+    'rent-receipt': 'Kira Ödeme Belgesi',
+    'rent-delay-notice': 'Kira Gecikme İhtarname',
+    'deposit-refund': 'Depozito İade',
+    'tenant-termination': 'Kiracı Fesih Bildirimi',
+    'rent-termination': 'Kira Fesih Protokolü',
+    'rent-renewal': 'Kira Yenileme',
+    'sublease': 'Alt Kira',
+    'rent-increase-objection': 'Kira Artış İtiraz',
+    'renovation-request': 'Tadilat Talebi',
+    'furnished-housing': 'Eşyalı Konut',
+    'construction-agreement': 'Kat Karşılığı İnşaat',
+    'vehicle': 'Araç Kiralama',
+    'warehouse': 'Depo Kiralama',
+    'sale': 'Satış Sözleşmesi',
+    'service': 'Hizmet Sözleşmesi',
+    'partnership': 'Ortaklık Sözleşmesi',
+    'parent-consent': 'Veli İzin Belgesi',
+    'student-permission': 'Öğrenci İzin Dilekçesi',
+    'divorce-agreement': 'Anlaşmalı Boşanma Sözleşmesi',
+    'criminal-record-statement': 'Sabıka Kaydı Beyanı',
+    'movable-property-loan': 'Taşınır Eşya Ödüncü Sözleşmesi',
+    'movable-rental': 'Taşınır Kiralama Sözleşmesi',
+    'neighbor-complaint-letter': 'Rahatsızlıkla İlgili Komşuya Mektup',
+    'security-deposit-refund': 'Güvence Bedeli İade Talebi',
+    'visa-invitation-letter': 'Vize Başvurusu Davet Mektubu',
+    'address-change-notification': 'Adres Değişikliği Bildirimi',
+    'long-term-vehicle-rental': 'Uzun Dönem Araç Kiralama Sözleşmesi',
+    'storage-agreement': 'Saklama Sözleşmesi',
+    'household-service-agreement': 'Ev İşleri İçin Hizmet Sözleşmesi',
+    'bank-account-closure': 'Banka Hesabını Kapatma Dilekçesi',
+    'pool-maintenance-agreement': 'Havuz Bakımına İlişkin Sözleşme',
+    'vehicle-sale-promise': 'Araç Satış Vaadi Sözleşmesi',
+    'diploma-request': 'Diploma Talebi Dilekçesi',
+    'grade-objection-primary-secondary': 'İlköğretim ve Ortaöğretim Not İtiraz Dilekçesi',
+    'credit-card-closure': 'Kredi Kartı Kapatma Dilekçesi',
+    'name-change-request': 'İsim Değişikliği Talep Dilekçesi',
+    'university-grade-objection': 'Üniversite Not İtiraz Dilekçesi',
+    'green-passport-cadre-request': 'Yeşil Pasaport İçin Kadro Derecesi Gösterir Belge Talebi',
+    'surname-change-notification': 'Soyadı Değişikliği Bildirimi',
+    'high-school-grade-objection': 'Lise Not İtiraz Dilekçesi',
+    'guardianship-appointment': 'Vasi Atanması Dilekçesi',
+    'excuse-exam-petition': 'Mazeret Sınav Dilekçesi',
+    'widow-orphan-pension-request': 'Dul/Yetim Aylığı Bağlanması İçin Talep Dilekçesi',
+    'judicial-control-objection': 'Adli Kontrol Kararına İtiraz Dilekçesi',
+    'detention-objection': 'Tutukluluğa İtiraz Dilekçesi',
+    'eviction-need-lawsuit': 'Konutun İhtiyaç Sebebiyle Tahliyesine İlişkin Dava Dilekçesi',
+    'foreclosure-objection': 'Haciz Takibine İtiraz Dilekçesi',
+    'enforcement-objection': 'İlamlı İcra Takibine İtiraz Dilekçesi',
+    'alimony-reduction-lawsuit': 'Nafakanın Azaltılması veya Kaldırılması İçin Dava Dilekçesi',
+    'alimony-increase-lawsuit': 'Nafakanın Artırılması Dava Dilekçesi',
+    'alimony-nonpayment-complaint': 'Boşanma Sonrasında Nafakanın Ödenmemesine İlişkin Şikayet Dilekçesi',
+    'insolvency-certificate-request': 'Aciz Belgesi Verilmesi Talebi',
+    'disable-auto-billing': 'Otomatik Faturalandırmayı Devre Dışı Bırakma Mektubu',
+    'line-cancellation': 'Hat İptal Dilekçesi',
+    'invoice-objection': 'Fatura İtiraz Dilekçesi',
+    'subscription-cancellation': 'Abonelik İptal Dilekçesi',
+    'defense-letter': 'Savunma Yazısı',
+    'flexible-work-request': 'İşçinin Esnek Çalışma Talebi Dilekçesi',
+    'caregiver-service-contract': 'Bakıcı ve Yardımcı Hizmetli İş Sözleşmesi',
+    'retirement-request': 'Emeklilik Talebi Dilekçesi',
+    'dismissal-reason-request': 'İşten Çıkarılma Nedenini Öğrenme Talebi Mektubu',
+    'job-offer-response': 'İş Teklifi Kabul veya Ret Mektubu',
+    'salary-increase-request': 'Maaş Artırımı Talebi',
+    'unjust-termination-compensation-lawsuit': 'İş Sözleşmesinin Haksız Feshi Halinde Tazminat Talebi Dava Dilekçesi',
+    'justified-termination-receivables-lawsuit': 'İş Sözleşmesinin İşçi Tarafından Haklı Nedenle Feshi Halinde Alacak Davası Dilekçesi',
+    'resignation-letter': 'İstifa Mektubu',
+    'post-birth-partial-work-request': 'Doğum Sonrası Kısmi Çalışma Talebi Mektubu',
+    'adoption-unpaid-leave-request': 'Evlat Edinme Sonrası Ücretsiz İzin Talebi Dilekçesi',
+    'employee-unpaid-leave-request': 'Çalışanın İşverenden Ücretsiz İzin Talebi Dilekçesi',
+    'paternity-leave-request': 'Babalık İzni Dilekçesi',
+    'maternity-leave-request': 'Analık (Doğum) İzni Dilekçesi',
+    'annual-paid-leave-request': 'Senelik Ücretli İzin Dilekçesi',
+    'post-birth-six-month-unpaid-leave': 'Doğum Sonrası Altı Aylık Ücretsiz İzin Talebi Dilekçesi',
+    'post-birth-half-day-unpaid-leave': 'Doğum Sonrası Yarım Gün Ücretsiz İzin Talebi Mektubu',
+  };
+  
+  return templateLabels[type] || type;
+};
+
 export default function SozlesmeDetayPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -28,6 +203,14 @@ export default function SozlesmeDetayPage() {
   const contractId = params.id as string;
   const [loading, setLoading] = useState(true);
   const [contract, setContract] = useState<Contract | null>(null);
+  const [formData, setFormData] = useState<any>({});
+
+  // Türkçe slug'dan İngilizce type'a çevir (backward compatibility için)
+  const actualType = turkishSlugToType[contractId] || contractId;
+
+  // Template type kontrolü
+  const isTemplateType = contractTemplates[actualType] || actualType === 'ev-kiralama';
+  const template = contractTemplates[actualType];
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -38,8 +221,23 @@ export default function SozlesmeDetayPage() {
       return;
     }
 
+    // Ev-kiralama özel sayfaya yönlendir
+    if (actualType === 'ev-kiralama') {
+      router.push('/admin/sozlesmeler/ev-kiralama');
+      return;
+    }
+
+    // Template type ise form verilerini yükle
+    if (isTemplateType && template) {
+      const defaultData = template.getDefaultFormData();
+      setFormData(defaultData);
+      setLoading(false);
+      return;
+    }
+
+    // Contract ID olarak işle
     fetchContract();
-  }, [session, status, router, contractId]);
+  }, [session, status, router, contractId, actualType, isTemplateType, template]);
 
   const fetchContract = async () => {
     try {
@@ -55,6 +253,19 @@ export default function SozlesmeDetayPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setFormData((prev: any) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const getTypeLabel = (type: string) => {
@@ -78,10 +289,117 @@ export default function SozlesmeDetayPage() {
     );
   }
 
+  // Template type ise template sayfasını render et
+  if (isTemplateType && template) {
+    return (
+      <div className="min-h-screen bg-gray-50 print:bg-white">
+        {/* Header */}
+        <div className="bg-white border-b shadow-sm print:hidden">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Link href="/admin/sozlesmeler" className="text-gray-600 hover:text-gray-900">
+                  <ArrowLeft className="h-5 w-5" />
+                </Link>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{getTemplateLabel(actualType)}</h1>
+                  <p className="text-sm text-gray-600">Sözleşme oluştur ve yazdır</p>
+                </div>
+              </div>
+              <button
+                onClick={handlePrint}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Printer className="h-5 w-5 mr-2" />
+                Yazdır
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:grid-cols-1">
+            {/* Sol Taraf - Form */}
+            <div className="print:hidden lg:col-span-2">
+              <div className="bg-white rounded-lg shadow p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+                {template.getFormFields(formData, handleInputChange)}
+              </div>
+            </div>
+
+            {/* Sağ Taraf - Ön İzleme */}
+            <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-100px)] lg:col-span-1 print:w-full">
+              <div className="bg-white shadow-lg rounded-lg p-8 print:shadow-none print:p-0 print:w-full overflow-y-auto" style={{ maxHeight: 'calc(100vh - 100px)' }}>
+                <div className="print:w-full preview-container" style={{
+                  transform: 'scale(0.65)',
+                  transformOrigin: 'top center',
+                  width: '153.85%',
+                  marginLeft: '-26.92%'
+                }}>
+                  {template.renderPreview(formData)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Print Styles */}
+        <style jsx global>{`
+          @media print {
+            @page {
+              size: A4;
+              margin: 0;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+              width: 100% !important;
+              height: auto !important;
+            }
+            .print\\:hidden {
+              display: none !important;
+            }
+            .preview-container {
+              transform: none !important;
+              width: 100% !important;
+              margin-left: 0 !important;
+            }
+            .a4-container, .a4-page {
+              box-shadow: none !important;
+              margin: 0 !important;
+              padding: 20mm !important;
+              width: 210mm !important;
+              min-height: auto !important;
+              max-height: 297mm !important;
+              page-break-after: always;
+              display: block !important;
+              background: white !important;
+            }
+            .a4-container:last-child, .a4-page:last-child {
+              page-break-after: auto !important;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Contract detay sayfası
   if (!contract) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">Sözleşme bulunamadı</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 mb-2">Sözleşme bulunamadı</p>
+            <Link href="/admin/sozlesmeler" className="text-blue-600 hover:underline">
+              Geri dön
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -173,4 +491,3 @@ export default function SozlesmeDetayPage() {
     </div>
   );
 }
-

@@ -43,22 +43,46 @@ export default function AdminSozlesmelerPage() {
       return;
     }
 
-    fetchContracts();
+    // Session varsa ve admin ise verileri yükle
+    if (session && userRole === 'admin') {
+      fetchContracts();
+    }
   }, [session, status, router]);
 
   const fetchContracts = async () => {
     try {
-      const response = await fetch('/api/admin/contracts');
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/admin/contracts', {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      
+      // Response'un JSON olup olmadığını kontrol et
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('API Response (not JSON):', text.substring(0, 200));
+        throw new Error('Sunucudan beklenen JSON yanıtı alınamadı');
+      }
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.details || 'Hukuki belgeler yüklenemedi');
+        const errorMessage = errorData.error || errorData.details || `HTTP ${response.status}: Hukuki belgeler yüklenemedi`;
+        console.error('API Error:', errorData);
+        throw new Error(errorMessage);
       }
+      
       const data = await response.json();
       setContracts(Array.isArray(data) ? data : []);
+      // Başarılı yükleme sonrası hata mesajını temizle
+      setError(null);
     } catch (err: any) {
       const errorMessage = err.message || 'Hukuki belgeler yüklenirken hata oluştu';
       setError(errorMessage);
       console.error('Hukuki belgeler yükleme hatası:', err);
+      // Hata durumunda bile boş array set et (sayfa çalışmaya devam etsin)
+      setContracts([]);
     } finally {
       setLoading(false);
     }
@@ -212,15 +236,29 @@ export default function AdminSozlesmelerPage() {
     return types[type] || type;
   };
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Yükleniyor...</p>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Hukuki belgeler yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && contracts.length === 0) {
     return (
       <div className="space-y-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -244,6 +282,20 @@ export default function AdminSozlesmelerPage() {
       </div>
     );
   }
+
+  // Türkçe slug oluşturma fonksiyonu
+  const createTurkishSlug = (label: string): string => {
+    return label
+      .toLowerCase()
+      .replace(/ş/g, 's')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c')
+      .replace(/ı/g, 'i')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
 
   // Template'i olan sözleşme tipleri
   const templateTypes = [
@@ -333,52 +385,76 @@ export default function AdminSozlesmelerPage() {
      { type: 'post-birth-half-day-unpaid-leave', label: 'Doğum Sonrası Yarım Gün Ücretsiz İzin Talebi Mektubu', route: 'olustur' },
    ];
 
-  // Template'i olan sözleşmeleri bul (İşyeri Kiralama hariç)
-  const contractsWithTemplates = contracts.filter(c => 
-    c.type !== 'commercial' && templateTypes.some(t => t.type === c.type)
-  );
 
   return (
     <div className="space-y-6">
+      {/* Hata Mesajı - Eğer varsa göster ama sayfayı engelleme */}
+      {error && (
+        <div className={`border rounded-lg p-4 ${contracts.length > 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
+          <h3 className={`font-semibold mb-2 ${contracts.length > 0 ? 'text-yellow-800' : 'text-red-800'}`}>
+            {contracts.length > 0 ? 'Uyarı' : 'Hata'}
+          </h3>
+          <p className={`text-sm ${contracts.length > 0 ? 'text-yellow-700' : 'text-red-700'}`}>
+            {error}
+          </p>
+          {(error.includes('DATABASE_URL') || error.includes('connection') || error.includes('connect')) && (
+            <p className="text-xs mt-2 text-gray-600">
+              💡 Veritabanı bağlantısı yapılandırılmamış olabilir. .env dosyasında DATABASE_URL kontrol edin.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Hukuki Belgeler</h1>
-            <p className="mt-2 text-gray-600">Hukuki belgeleri yönetin ve düzenleyin</p>
+            <h1 className="text-3xl font-bold text-gray-900">Hukuki Belgeler ve Dilekçe</h1>
+            <p className="mt-2 text-gray-600">Hukuki belgeleri ve dilekçeleri yönetin ve düzenleyin</p>
           </div>
           <Link
             href="/admin/sozlesmeler/yeni"
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-5 w-5 mr-2" />
-            Yeni Hukuki Belge
+                  Yeni Dilekçe
           </Link>
         </div>
         
-        {/* Hukuki Belge Butonları */}
-        <div className="flex flex-col gap-2 mt-4">
-          <Link
-            href="/admin/sozlesmeler/ev-kiralama"
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm w-full"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Ev Kiralama Sözleşmesi
-          </Link>
-          {contractsWithTemplates.map((contract) => {
-            const templateInfo = templateTypes.find(t => t.type === contract.type);
-            if (!templateInfo) return null;
-            return (
-              <Link
-                key={contract.id}
-                href={`/admin/sozlesmeler/${contract.id}/${templateInfo.route}`}
-                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm w-full"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                {templateInfo.label}
-              </Link>
-            );
-          })}
+        {/* Hukuki Belge Butonları - Tüm Template Tipleri */}
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Mevcut Hukuki Belge Şablonları</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {/* Ev Kiralama - Özel sayfa */}
+            <Link
+              href="/admin/sozlesmeler/ev-kiralama"
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+            >
+              <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Ev Kiralama Sözleşmesi</span>
+            </Link>
+            
+            {/* Tüm template tipleri */}
+            {templateTypes.map((templateInfo) => {
+              const contract = contracts.find(c => c.type === templateInfo.type);
+              const turkishSlug = createTurkishSlug(templateInfo.label);
+              return (
+                <Link
+                  key={templateInfo.type}
+                  href={`/admin/sozlesmeler/${turkishSlug}`}
+                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">{templateInfo.label}</span>
+                  {contract && (
+                    <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">
+                      ✓
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
 

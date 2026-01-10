@@ -137,15 +137,29 @@ export default function SozlesmeOlusturPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:grid-cols-1">
           {/* Sol Taraf - Form */}
           <div className="print:hidden lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6 space-y-6" style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+            <div className="bg-white rounded-lg shadow p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
               {template.getFormFields(formData, handleInputChange)}
             </div>
           </div>
 
           {/* Sağ Taraf - Ön İzleme */}
-          <div className="lg:sticky lg:top-8 lg:col-span-1 print:w-full" style={{ maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
-            <div className="bg-white shadow-lg rounded-lg p-8 print:shadow-none print:p-0" style={{ transform: 'scale(0.75)', transformOrigin: 'top left', width: '133.33%' }}>
-              <div style={{ width: '210mm', minHeight: '297mm' }}>
+          <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-100px)] lg:col-span-1 print:w-full">
+            <div className="bg-white shadow-lg rounded-lg p-8 print:shadow-none print:p-0 print:w-full overflow-y-auto" style={{ maxHeight: 'calc(100vh - 100px)' }}>
+              <div className="print:w-full" style={{
+                transform: 'scale(0.65)',
+                transformOrigin: 'top center',
+                width: '153.85%',
+                marginLeft: '-26.92%'
+              }}>
+                <style jsx>{`
+                  @media print {
+                    div[style*="transform"] {
+                      transform: none !important;
+                      width: 100% !important;
+                      margin-left: 0 !important;
+                    }
+                  }
+                `}</style>
                 {template.renderPreview(formData)}
               </div>
             </div>
@@ -171,10 +185,51 @@ export default function SozlesmeOlusturPage() {
             width: 100% !important;
             height: auto !important;
           }
+          /* Tüm header ve footer elementlerini gizle */
+          header, footer, nav, .header, .footer,
+          .bg-white.border-b, .container.mx-auto:not(:has(.a4-container)) {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+          }
+          /* Header, form ve butonları gizle */
           .print\\:hidden {
             display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
           }
-          .a4-container {
+          /* Ana container */
+          .min-h-screen {
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            min-height: auto !important;
+          }
+          /* Container ve grid düzenlemeleri */
+          .container {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+          }
+          .container:not(:has(.a4-container)) {
+            display: none !important;
+          }
+          .grid {
+            display: block !important;
+            gap: 0 !important;
+          }
+          /* Form alanlarını gizle */
+          .lg\\:col-span-2:not(.print\\:w-full) {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+          }
+          /* Sadece A4 container'ları göster */
+          .a4-container, .a4-page {
             box-shadow: none !important;
             margin: 0 !important;
             padding: 20mm !important;
@@ -184,9 +239,48 @@ export default function SozlesmeOlusturPage() {
             page-break-after: always;
             display: block !important;
             background: white !important;
+            position: relative !important;
+            page-break-inside: avoid !important;
+            overflow: hidden !important;
           }
-          .a4-container:last-child {
+          .a4-container:last-child, .a4-page:last-child {
             page-break-after: auto !important;
+            min-height: auto !important;
+          }
+          .a4-container:empty, .a4-page:empty {
+            display: none !important;
+          }
+          .page-break-after {
+            page-break-after: always;
+          }
+          /* Boş sayfaları engelle */
+          @page :blank {
+            display: none;
+          }
+          /* Son sayfadan sonra boş sayfa engelle */
+          body::after {
+            display: none !important;
+          }
+          /* Gereksiz boşlukları kaldır */
+          .a4-container:last-child::after, .a4-page:last-child::after {
+            display: none !important;
+          }
+          /* Ön izleme container'ını tam genişlik yap */
+          .lg\\:sticky {
+            position: static !important;
+            width: 100% !important;
+            height: auto !important;
+            top: auto !important;
+          }
+          .lg\\:col-span-1.print\\:w-full {
+            width: 100% !important;
+            margin: 0 !important;
+          }
+          /* Shadow ve padding'leri kaldır */
+          .shadow-lg, .rounded-lg, .p-8 {
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
           }
         }
       `}</style>
