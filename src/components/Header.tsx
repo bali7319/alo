@@ -50,47 +50,48 @@ export default function Header() {
     console.log('SignOut başlatılıyor...');
 
     try {
-      // 3. NextAuth'un kendi yönlendirme mekanizmasını tamamen kapatın (redirect: false)
-      await signOut({ 
-        redirect: false,
-        callbackUrl: window.location.origin 
-      });
-
-      console.log('Storage temizlendi');
-      localStorage.clear();
-      sessionStorage.clear();
-
-      // 4. Client-side state'i temizlemek için tüm cookie'leri manuel silin
-      document.cookie.split(';').forEach((c) => {
-        document.cookie = c
-          .replace(/^ +/, '')
-          .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-      });
-
-      console.log('Oturum kapatıldı, yönlendiriliyor.');
-
-      // Service Worker temizliği (eğer varsa)
-      if ('serviceWorker' in navigator) {
-        try {
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          for (const registration of registrations) {
-            await registration.unregister();
-          }
-          console.log('Service Worker temizlendi');
-        } catch (e) {
-          console.log('Service Worker temizleme hatası:', e);
-        }
+      // 1. Tüm çerezleri (HttpOnly olmayanları) temizle
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + window.location.hostname;
+        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.' + window.location.hostname;
       }
 
-      // 5. KRİTİK: Tarayıcıyı tamamen yeni bir adrese gitmeye zorlar, önbelleği bypass eder.
-      // URL'nin sonuna eklediğimiz ?logout=true parametresi, tarayıcının sayfayı "yeni bir sayfa" olarak algılamasını sağlar ve cache'i kırar.
-      window.location.assign(window.location.origin + '/?logout=true');
+      // Storage temizleme
+      localStorage.clear();
+      sessionStorage.clear();
+      console.log('Storage temizlendi');
+
+      // 2. NextAuth endpoint'ini POST ile tetikle (Çerezleri sunucu tarafında geçersiz kılar)
+      try {
+        await fetch('/api/auth/signout', { method: 'POST', credentials: 'include' });
+        console.log('NextAuth signout endpoint çağrıldı');
+      } catch (e) {
+        console.log('NextAuth signout endpoint hatası:', e);
+      }
+
+      // NextAuth signOut fonksiyonunu da çağır (redirect: false)
+      try {
+        await signOut({ redirect: false });
+        console.log('NextAuth signOut fonksiyonu çağrıldı');
+      } catch (e) {
+        console.log('NextAuth signOut fonksiyonu hatası:', e);
+      }
+
+      console.log('Yönlendiriliyor...');
+      
+      // 3. Tarayıcıyı tamamen başka bir sayfaya zorla (Cache kırmak için query ekleyerek)
+      window.location.href = window.location.origin + '/giris?logout=' + Date.now();
       
     } catch (error) {
       console.error('Çıkış hatası:', error);
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = '/';
+      window.location.href = window.location.origin + '/giris?logout=' + Date.now();
     } finally {
       setIsSigningOut(false);
       (window as any).isLoggingOut = false;
