@@ -4,6 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Printer } from 'lucide-react';
 
+// Bu sayfanın dinamik olarak render edilmesini sağlar
+export const dynamic = 'force-dynamic';
+
 export default function EvKiralamaSozlesmePage() {
   const [formData, setFormData] = useState({
     // Ev Sahibi Bilgileri

@@ -2,8 +2,11 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { FileText, CheckCircle } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { contractTemplates } from '@/lib/contract-templates';
+
+// Bu sayfanın dinamik olarak render edilmesini sağlar
+export const dynamic = 'force-dynamic';
 
 // Türkçe slug oluşturma fonksiyonu
 const createTurkishSlug = (label: string): string => {

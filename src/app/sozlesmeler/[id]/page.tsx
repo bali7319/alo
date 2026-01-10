@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { contractTemplates } from '@/lib/contract-templates';
 
+// Bu sayfanın dinamik olarak render edilmesini sağlar
+export const dynamic = 'force-dynamic';
+
 // Türkçe slug oluşturma fonksiyonu
 const createTurkishSlug = (label: string): string => {
   return label
