@@ -65,17 +65,27 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
 
     // Email gönder
-    // From adresi SMTP_USER ile aynı olmalı (relay hatası önlemek için)
-    const fromAddress = smtpFrom === smtpUser ? smtpFrom : smtpUser;
+    // From adresi MUTLAKA SMTP_USER ile aynı olmalı (relay hatası önlemek için)
+    // SMTP_FROM varsa ve SMTP_USER ile farklıysa, SMTP_USER kullan (güvenlik)
+    const fromAddress = smtpUser; // Her zaman SMTP_USER kullan
+    
+    console.log('📧 Email gönderiliyor:', {
+      from: fromAddress,
+      to: options.to,
+      subject: options.subject,
+      smtpHost: smtpHost,
+      smtpUser: smtpUser,
+    });
     
     // SMTP bağlantısını test et
     try {
       await transporter.verify();
-      console.log('✅ SMTP bağlantısı başarılı:', { host: smtpHost, port: port });
+      console.log('✅ SMTP bağlantısı başarılı:', { host: smtpHost, port: port, user: smtpUser });
     } catch (verifyError: any) {
       console.error('❌ SMTP bağlantı hatası:', {
         host: smtpHost,
         port: port,
+        user: smtpUser,
         error: verifyError.message,
         code: verifyError.code,
       });
@@ -83,7 +93,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     }
 
     const info = await transporter.sendMail({
-      from: fromAddress, // SMTP_USER ile aynı kullan
+      from: `"Alo17" <${fromAddress}>`, // SMTP_USER ile aynı kullan, display name ekle
       to: options.to,
       subject: options.subject,
       html: options.html,
