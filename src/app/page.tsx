@@ -7,20 +7,34 @@ import { SearchBar } from '@/components/search-bar'
 import { Button } from '@/components/ui/button'
 import { getCache, setCache, createCacheKey } from '@/lib/cache'
 
-const Sidebar = dynamic(() => import("@/components/sidebar").then(mod => ({ default: mod.Sidebar })), {
-  loading: () => <div className="w-full md:w-64 h-64 bg-gray-100 animate-pulse rounded-lg" />
-})
-const FeaturedAds = dynamic(() => import('@/components/featured-ads').then(mod => ({ default: mod.FeaturedAds })), {
-  loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
-})
-const LatestAds = dynamic(() => import('@/components/latest-ads').then(mod => ({ default: mod.LatestAds })), {
-  loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
-})
+// Dynamic imports - Lazy loading için (FCP optimizasyonu)
+const Sidebar = dynamic(
+  () => import("@/components/sidebar").then(mod => ({ default: mod.Sidebar })),
+  {
+    loading: () => <div className="w-full md:w-64 h-64 bg-gray-100 animate-pulse rounded-lg" />
+  }
+)
+
+const FeaturedAds = dynamic(
+  () => import('@/components/featured-ads').then(mod => ({ default: mod.FeaturedAds })),
+  {
+    loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
+  }
+)
+
+const LatestAds = dynamic(
+  () => import('@/components/latest-ads').then(mod => ({ default: mod.LatestAds })),
+  {
+    loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
+  }
+)
 
 export const revalidate = 60; // 1 dakika cache (FCP için daha sık güncelleme)
 // Static generation kullan - FCP için daha hızlı
 // Streaming SSR - Sayfanın ilk kısmı hemen gösterilir
-export const dynamic = 'force-static'; // Static generation - Document request delay'i azaltır
+// Not: 'dynamic' export'u Next.js'te özel bir export'tur, 'force-static' ile static generation yapılır
+// Ancak 'dynamic' import ile çakışmaması için burada kullanmıyoruz
+// Next.js otomatik olarak static generation yapacak (revalidate ile)
 
 export default async function Home() {
   let featuredListings: any[] = [];
@@ -163,6 +177,18 @@ export default async function Home() {
       {/* Below-the-fold: Sidebar ve listings - Lazy load */}
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8">
         <div className="w-full md:w-64 flex-shrink-0">
+          {/* Nöbetçi Eczaneler Butonu */}
+          <div className="mb-4">
+            <Link href="/nobetci-eczaneler" className="block">
+              <Button 
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg"
+                size="lg"
+              >
+                <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                Nöbetçi Eczaneler
+              </Button>
+            </Link>
+          </div>
           {/* Hukuki Belgeler ve Dilekçe Butonu */}
           <div className="mb-4">
             <Link href="/sozlesmeler" className="block">
