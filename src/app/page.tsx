@@ -17,7 +17,7 @@ const LatestAds = dynamic(() => import('@/components/latest-ads').then(mod => ({
 })
 
 export const revalidate = 60; // 1 dakika cache (FCP için daha sık güncelleme)
-export const dynamic = 'force-dynamic'; // Dynamic rendering - FCP için
+// Static generation kullan - FCP için daha hızlı
 
 export default async function Home() {
   let featuredListings: any[] = [];
