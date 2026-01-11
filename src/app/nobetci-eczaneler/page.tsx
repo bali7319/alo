@@ -20,94 +20,180 @@ interface Eczane {
 async function getNobetciEczaneler(): Promise<Eczane[]> {
   try {
     const response = await fetch('https://www.canakkaleeo.org.tr/', {
-      next: { revalidate: 315360000 }, // 10 yıl cache (315360000 saniye)
+      next: { revalidate: 3600 }, // 1 saat cache (eczane bilgileri günlük değişir)
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
       },
     })
 
     if (!response.ok) {
-      throw new Error('Eczane verileri alınamadı')
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
 
     const html = await response.text()
     const $ = cheerio.load(html)
     const eczaneler: Eczane[] = []
 
-    // H1 başlığından sonraki eczane bilgilerini bul
-    $('h1').each((_, h1Element) => {
-      const h1Text = $(h1Element).text().trim()
-      if (h1Text.includes('Nöbetçi Eczaneler')) {
-        let currentDistrict = ''
+    // Tüm h5 başlıklarını bul (ilçe başlıkları)
+    $('h5').each((_, h5Element) => {
+      const h5Text = $(h5Element).text().trim()
+      
+      // İlçe başlığı kontrolü
+      if (h5Text.includes('NÖBETÇİ ECZANELER')) {
+        // İlçe adını çıkar
+        const districtMatch = h5Text.match(/\*\*([^*]+)\*\*\s*NÖBETÇİ ECZANELER/i) || 
+                             h5Text.match(/([A-Z\s/]+)\s*NÖBETÇİ ECZANELER/i)
+        const currentDistrict = districtMatch ? districtMatch[1].trim() : 'MERKEZ'
         
-        // H1'den sonraki tüm elementleri kontrol et
-        $(h1Element).nextAll().each((_, element) => {
-          const tagName = $(element).prop('tagName')?.toLowerCase()
-          const text = $(element).text().trim()
+        // Bu ilçenin eczanelerini bul
+        let nextElement = $(h5Element).next()
+        let maxIterations = 100 // Güvenlik için limit
+        
+        while (nextElement.length > 0 && maxIterations > 0) {
+          const tagName = nextElement.prop('tagName')?.toLowerCase()
+          const text = nextElement.text().trim()
           
-          // İlçe başlığı (h5)
-          if (tagName === 'h5') {
-            const districtMatch = text.match(/^\*\*?([^*]+)\*\*?\s*NÖBETÇİ ECZANELER/i)
-            if (districtMatch) {
-              currentDistrict = districtMatch[1].trim()
-            }
+          // Sonraki ilçe başlığına gelince dur
+          if (tagName === 'h5' && text.includes('NÖBETÇİ ECZANELER')) {
+            break
           }
           
           // Eczane başlığı (h4)
-          if (tagName === 'h4' && currentDistrict) {
-            const nameMatch = text.match(/^\*\*([^*]+)\*\*/)
-            if (nameMatch) {
+          if (tagName === 'h4') {
+            const nameMatch = text.match(/\*\*([^*]+)\*\*/) || text.match(/^([A-Z\s]+)$/)
+            if (nameMatch && nameMatch[1].length > 3) {
               const eczaneName = nameMatch[1].trim()
+              
+              // Eczane bilgilerini topla
               let address = ''
               let phone = ''
               let period = ''
               
-              // Sonraki elementlerden bilgileri al
-              $(element).nextAll().each((_, nextEl) => {
-                const nextTag = $(nextEl).prop('tagName')?.toLowerCase()
-                const nextText = $(nextEl).text().trim()
+              // Sonraki 10 elementi kontrol et
+              let infoElement = nextElement.next()
+              let infoCount = 0
+              
+              while (infoElement.length > 0 && infoCount < 10) {
+                const infoTag = infoElement.prop('tagName')?.toLowerCase()
+                const infoText = infoElement.text().trim()
                 
-                // Adres (ÇANAKKALE içeriyorsa veya uzun metin)
-                if (!address && nextText && nextText.length > 10 && !nextText.includes('Navigasyon')) {
-                  if (nextText.includes('ÇANAKKALE') || nextText.includes('MAH') || nextText.includes('CAD')) {
-                    address = nextText.replace(/\s+/g, ' ').trim()
+                // Sonraki eczane veya ilçe başlığına gelince dur
+                if (infoTag === 'h4' || (infoTag === 'h5' && infoText.includes('NÖBETÇİ'))) {
+                  break
+                }
+                
+                // Adres bilgisi
+                if (!address && infoText && infoText.length > 15) {
+                  if (infoText.includes('ÇANAKKALE') || infoText.includes('MAH') || infoText.includes('CAD') || infoText.includes('SOK')) {
+                    address = infoText.replace(/\s+/g, ' ').trim()
                   }
                 }
                 
-                // Telefon (11 haneli)
-                if (!phone && /\d{11}/.test(nextText)) {
-                  phone = nextText.match(/\d{11}/)?.[0] || ''
+                // Telefon numarası
+                const phoneMatch = infoText.match(/(0\d{10}|\d{11})/)
+                if (phoneMatch && !phone) {
+                  phone = phoneMatch[1]
                 }
                 
                 // Nöbet süresi
-                if (!period && nextText.includes('arasında nöbetçidir')) {
-                  period = nextText.replace(/\*\*/g, '').trim()
+                if (infoText.includes('arasında nöbetçidir')) {
+                  const periodMatch = infoText.match(/\*\*([^*]+)\*\*/) || 
+                                     infoText.match(/(\d{2}\.\d{2}\.\d{4}.*?\d{2}\.\d{2}\.\d{4})/)
+                  if (periodMatch) {
+                    period = periodMatch[1].trim()
+                  }
                 }
                 
-                // Sonraki ilçe veya eczane başlığına gelince dur
-                if (nextTag === 'h5' || (nextTag === 'h4' && nextText.match(/^\*\*/))) {
-                  return false
-                }
-              })
+                infoElement = infoElement.next()
+                infoCount++
+              }
               
-              if (eczaneName && address) {
+              // Eczane bilgilerini kaydet
+              if (eczaneName && (address || phone || period)) {
                 eczaneler.push({
                   name: eczaneName,
                   district: currentDistrict,
                   address: address || 'Adres bilgisi bulunamadı',
                   phone: phone || undefined,
-                  period: period || 'Süre bilgisi bulunamadı',
+                  period: period || 'Nöbet süresi bilgisi bulunamadı',
                 })
               }
             }
           }
-        })
+          
+          nextElement = nextElement.next()
+          maxIterations--
+        }
       }
     })
+
+    // Alternatif parsing: Eğer yukarıdaki yöntem çalışmazsa
+    if (eczaneler.length === 0) {
+      // Tüm strong/b tag'lerini kontrol et
+      $('strong, b, h4').each((_, element) => {
+        const text = $(element).text().trim()
+        
+        // Eczane adı kontrolü
+        if (text && text.length > 5 && text.length < 50 && !text.includes('NÖBETÇİ') && !text.includes('ECZANELER')) {
+          const eczaneName = text.replace(/\*\*/g, '').trim()
+          
+          // Önceki h5'ten ilçe bilgisini bul
+          let district = 'MERKEZ'
+          let prevElement = $(element).prevAll('h5').first()
+          if (prevElement.length) {
+            const prevText = prevElement.text().trim()
+            if (prevText.includes('NÖBETÇİ ECZANELER')) {
+              const districtMatch = prevText.match(/\*\*([^*]+)\*\*/) || prevText.match(/([A-Z\s/]+)\s*NÖBETÇİ/)
+              if (districtMatch) {
+                district = districtMatch[1].trim()
+              }
+            }
+          }
+          
+          // Sonraki elementlerden bilgileri al
+          let address = ''
+          let phone = ''
+          let period = ''
+          
+          $(element).nextAll().slice(0, 8).each((_, nextEl) => {
+            const nextText = $(nextEl).text().trim()
+            
+            if (!address && nextText.includes('ÇANAKKALE') && nextText.length > 15) {
+              address = nextText.replace(/\s+/g, ' ').trim()
+            }
+            
+            const phoneMatch = nextText.match(/(0\d{10}|\d{11})/)
+            if (phoneMatch && !phone) {
+              phone = phoneMatch[1]
+            }
+            
+            if (nextText.includes('arasında nöbetçidir')) {
+              const periodMatch = nextText.match(/\*\*([^*]+)\*\*/) || nextText.match(/(\d{2}\.\d{2}\.\d{4}.*?\d{2}\.\d{2}\.\d{4})/)
+              if (periodMatch) {
+                period = periodMatch[1].trim()
+              }
+            }
+          })
+          
+          if (address || phone || period) {
+            eczaneler.push({
+              name: eczaneName,
+              district,
+              address: address || 'Adres bilgisi bulunamadı',
+              phone: phone || undefined,
+              period: period || 'Nöbet süresi bilgisi bulunamadı',
+            })
+          }
+        }
+      })
+    }
 
     return eczaneler
   } catch (error) {
     console.error('Eczane verileri alınırken hata:', error)
+    // Hata durumunda boş liste döndür (fallback mesajı gösterilecek)
     return []
   }
 }
@@ -214,18 +300,12 @@ export default async function NobetciEczanelerPage() {
           </div>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-            <p className="text-yellow-800 mb-4">
+            <p className="text-yellow-800 mb-2">
               Eczane verileri şu anda yüklenemiyor. Lütfen daha sonra tekrar deneyin.
             </p>
-            <a
-              href="https://www.canakkaleeo.org.tr/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <MapPin className="h-5 w-5 mr-2" />
-              Çanakkale Eczacı Odası - Ana Sayfa
-            </a>
+            <p className="text-sm text-yellow-700">
+              Veriler Çanakkale Eczacı Odası sitesinden otomatik olarak çekilmektedir.
+            </p>
           </div>
         )}
       </div>
