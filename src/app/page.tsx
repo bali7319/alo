@@ -24,20 +24,21 @@ export default async function Home() {
   let latestListings: any[] = [];
 
   try {
-    // Paralel query'ler ile performans iyileştirmesi
+    // Paralel query'ler ile performans iyileştirmesi - FCP için optimize edildi
     // Sadece ilk resmi çekiyoruz - performans için
+    // take sayısını azalttık - FCP için daha hızlı yükleme
     const [premiumListings, latest] = await Promise.all([
       prisma.listing.findMany({
         where: { isPremium: true, isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
         select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
         orderBy: [{ isPremium: 'desc' }, { createdAt: 'desc' }],
-        take: 6,
+        take: 4, // FCP için azaltıldı (6'dan 4'e)
       }),
       prisma.listing.findMany({
         where: { isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
         select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
         orderBy: { createdAt: 'desc' },
-        take: 12,
+        take: 8, // FCP için azaltıldı (12'den 8'e)
       }),
     ]);
 
