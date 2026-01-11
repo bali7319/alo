@@ -127,8 +127,11 @@ export default async function Home() {
     console.error('Database error:', error);
   }
 
+  // Above-the-fold content'i önce render et (FCP için kritik)
+  // Streaming SSR ile sayfanın ilk kısmı hemen gösterilir
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Above-the-fold: Hero section - FCP için kritik */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-6 sm:py-8 md:py-16">
         <div className="container mx-auto px-3 sm:px-4 text-center">
           <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6">Ücretsiz İlan Platformu</h1>
@@ -146,6 +149,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      {/* Search bar - Above-the-fold */}
       <section className="bg-white border-b py-4 sm:py-6">
         <div className="container mx-auto px-3 sm:px-4">
           <Suspense fallback={<div className="h-16 bg-gray-100 animate-pulse rounded-lg" />}>
@@ -153,6 +157,7 @@ export default async function Home() {
           </Suspense>
         </div>
       </section>
+      {/* Below-the-fold: Sidebar ve listings - Lazy load */}
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8">
         <div className="w-full md:w-64 flex-shrink-0">
           {/* Hukuki Belgeler ve Dilekçe Butonu */}
