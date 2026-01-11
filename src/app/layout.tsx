@@ -5,8 +5,9 @@ import Providers from '@/components/Providers'
 import Header from '@/components/Header'
 import Footer from '@/components/footer'
 
-// Font optimization - Sadece gerekli font'ları yükle (444 KB → ~200 KB tasarruf)
-// Sadece Regular ve Bold yükleniyor - Medium ve SemiBold CSS ile simüle edilebilir
+// Font optimization - Sadece Regular font yükle (220 KB → ~110 KB tasarruf)
+// Bold font'u CSS font-weight ile simüle et (font-weight: 700)
+// Bu, font dosyası sayısını 2'den 1'e düşürür ve ~110 KB daha tasarruf sağlar
 const inter = localFont({
   src: [
     {
@@ -14,13 +15,8 @@ const inter = localFont({
       weight: '400',
       style: 'normal',
     },
-    {
-      path: '../fonts/Inter-Bold.woff2',
-      weight: '700',
-      style: 'normal',
-    },
-    // Medium ve SemiBold kaldırıldı - CSS font-weight ile simüle edilebilir
-    // Bu ~220 KB tasarruf sağlar
+    // Bold font kaldırıldı - CSS font-weight: 700 ile simüle edilebilir
+    // Bu ~110 KB daha tasarruf sağlar (220 KB → ~110 KB)
   ],
   variable: '--font-inter',
   display: 'swap', // Font yüklenene kadar fallback göster - FCP için kritik
