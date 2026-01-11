@@ -116,7 +116,7 @@ export default async function Home() {
               className="bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
               size="lg"
             >
-              <Link href="/ilan-ver" className="inline-flex items-center">
+              <Link href="/ilan-ver" className="inline-flex items-center" prefetch={true}>
                 <Plus className="h-5 w-5 mr-2" />
                 İlan Ver
               </Link>

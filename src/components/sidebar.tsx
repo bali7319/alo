@@ -131,6 +131,7 @@ export const Sidebar = () => {
                   <li key={`${activeCategory.slug}-${subcategory.slug}`} role="listitem" className="mb-1">
                     <Link
                       href={`/kategori/${activeCategory.slug}/${subcategory.slug}`}
+                      prefetch={false}
                       className="block px-3 py-2 text-sm rounded-md transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     >
                       <div className="flex items-center gap-2">
@@ -185,6 +186,7 @@ export const Sidebar = () => {
                   <li key={category.slug} role="listitem">
                     <Link
                       href={`/kategori/${category.slug}`}
+                      prefetch={false}
                       className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200 ${
                         isActive
                           ? "bg-blue-50 text-blue-600 font-medium"
@@ -227,6 +229,7 @@ export const Sidebar = () => {
                   <li key={`${activeCategory.slug}-${subcategory.slug}`} role="listitem" className="mb-1">
                     <Link
                       href={`/kategori/${activeCategory.slug}/${subcategory.slug}`}
+                      prefetch={false}
                       className={`block px-3 py-2 text-sm rounded-md transition-all duration-200 ${
                         isSubActive
                           ? "bg-blue-100 text-blue-700 font-medium border-l-2 border-blue-500"
