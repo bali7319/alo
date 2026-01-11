@@ -29,19 +29,39 @@ async function getNobetciEczaneler(): Promise<Eczane[]> {
     })
 
     if (!response.ok) {
+      console.error(`HTTP error! status: ${response.status}`)
       throw new Error(`HTTP error! status: ${response.status}`)
     }
 
     const html = await response.text()
+    
+    // HTML'in geldiğini kontrol et
+    if (!html || html.length < 1000) {
+      console.error('HTML çok kısa veya boş:', html.length)
+      return []
+    }
+    
     const $ = cheerio.load(html)
     const eczaneler: Eczane[] = []
+    
+    console.log('HTML yüklendi, parsing başlıyor...')
 
+    // H1 başlığını bul
+    const h1Element = $('h1').filter((_, el) => $(el).text().includes('Nöbetçi Eczaneler') || $(el).text().includes('NÖBETÇİ ECZANELER')).first()
+    
+    if (h1Element.length === 0) {
+      console.log('H1 başlığı bulunamadı, alternatif yöntem deneniyor...')
+    }
+    
     // Tüm h5 başlıklarını bul (ilçe başlıkları)
-    $('h5').each((_, h5Element) => {
+    const h5Elements = $('h5')
+    console.log(`Toplam ${h5Elements.length} h5 elementi bulundu`)
+    
+    h5Elements.each((_, h5Element) => {
       const h5Text = $(h5Element).text().trim()
       
       // İlçe başlığı kontrolü
-      if (h5Text.includes('NÖBETÇİ ECZANELER')) {
+      if (h5Text.includes('NÖBETÇİ ECZANELER') || h5Text.includes('Nöbetçi Eczaneler')) {
         // İlçe adını çıkar
         const districtMatch = h5Text.match(/\*\*([^*]+)\*\*\s*NÖBETÇİ ECZANELER/i) || 
                              h5Text.match(/([A-Z\s/]+)\s*NÖBETÇİ ECZANELER/i)
@@ -129,8 +149,12 @@ async function getNobetciEczaneler(): Promise<Eczane[]> {
       }
     })
 
+    console.log(`İlk yöntemle ${eczaneler.length} eczane bulundu`)
+    
     // Alternatif parsing: Eğer yukarıdaki yöntem çalışmazsa
     if (eczaneler.length === 0) {
+      console.log('Alternatif parsing yöntemi deneniyor...')
+      
       // Tüm strong/b tag'lerini kontrol et
       $('strong, b, h4').each((_, element) => {
         const text = $(element).text().trim()
@@ -190,6 +214,7 @@ async function getNobetciEczaneler(): Promise<Eczane[]> {
       })
     }
 
+    console.log(`Toplam ${eczaneler.length} eczane bulundu`)
     return eczaneler
   } catch (error) {
     console.error('Eczane verileri alınırken hata:', error)
