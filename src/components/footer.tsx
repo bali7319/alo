@@ -33,7 +33,7 @@ export default function Footer() {
 
       <footer className="bg-gray-900 text-white print:hidden">
         <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
             {/* Hakkımızda */}
             <div>
               <h3 className="text-lg font-semibold mb-4">Hakkımızda</h3>
@@ -67,6 +67,16 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/sss" className="text-gray-400 hover:text-white transition-colors">
+                    Sıkça Sorulan Sorular
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/yardim" className="text-gray-400 hover:text-white transition-colors">
+                    Yardım Merkezi
+                  </Link>
+                </li>
+                <li>
                   <Link href="/iletisim" className="text-gray-400 hover:text-white transition-colors">
                     İletişim
                   </Link>
@@ -74,6 +84,33 @@ export default function Footer() {
                 <li>
                   <Link href="/kariyer" className="text-gray-400 hover:text-white transition-colors">
                     Kariyer
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Popüler Kategoriler */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Popüler Kategoriler</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/kategori/hizmetler" className="text-gray-400 hover:text-white transition-colors">
+                    Çanakkale Ustaları
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/kategori/is" className="text-gray-400 hover:text-white transition-colors">
+                    İş İlanları
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/kategori/ev-ve-bahce" className="text-gray-400 hover:text-white transition-colors">
+                    Ev ve Bahçe
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/kategori/elektronik" className="text-gray-400 hover:text-white transition-colors">
+                    Elektronik
                   </Link>
                 </li>
               </ul>
@@ -115,6 +152,11 @@ export default function Footer() {
                 <li>
                   <Link href="/kullanim-kosullari" className="text-gray-400 hover:text-white transition-colors">
                     Kullanım Koşulları
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/ilan-ver" className="text-gray-400 hover:text-white transition-colors">
+                    İlan Verme Kuralları
                   </Link>
                 </li>
               </ul>
@@ -160,8 +202,37 @@ export default function Footer() {
             </div>
           </div>
 
+          {/* Güvenli Ödeme Logoları */}
+          <div className="border-t border-gray-800 pt-8 mt-8">
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-gray-400 text-sm mb-2">Güvenli Ödeme</p>
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                {/* Visa */}
+                <div className="bg-white rounded px-3 py-2 flex items-center justify-center h-10 w-16">
+                  <span className="text-blue-600 font-bold text-lg">VISA</span>
+                </div>
+                {/* Mastercard */}
+                <div className="bg-white rounded px-3 py-2 flex items-center justify-center h-10 w-20">
+                  <div className="flex gap-1">
+                    <div className="w-6 h-6 bg-red-600 rounded-full"></div>
+                    <div className="w-6 h-6 bg-orange-500 rounded-full -ml-2"></div>
+                  </div>
+                </div>
+                {/* PayTR */}
+                <div className="bg-white rounded px-3 py-2 flex items-center justify-center h-10">
+                  <span className="text-gray-800 font-semibold text-xs">PayTR</span>
+                </div>
+                {/* Shield Icon */}
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Shield className="h-5 w-5" />
+                  <span className="text-sm">SSL Güvenli</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Alt Bilgi */}
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
+          <div className="border-t border-gray-800 pt-8 mt-4 text-center text-gray-400">
             <p>&copy; {new Date().getFullYear()} Alo17. Tüm hakları saklıdır.</p>
           </div>
         </div>
