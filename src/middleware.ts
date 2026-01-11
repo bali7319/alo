@@ -215,6 +215,16 @@ export async function middleware(request: NextRequest) {
     // HTML sayfaları için cache
     response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
   }
+  
+  // Resource hints - Preload critical resources
+  if (pathname === '/') {
+    // Ana sayfa için critical resources preload
+    const preloadLinks = [
+      '</fonts/Inter-Regular.woff2>; rel=preload; as=font; type=font/woff2; crossorigin',
+      '</fonts/Inter-Medium.woff2>; rel=preload; as=font; type=font/woff2; crossorigin',
+    ];
+    response.headers.set('Link', preloadLinks.join(', '));
+  }
 
   return response;
 }

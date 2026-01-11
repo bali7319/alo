@@ -1,35 +1,39 @@
 import { Metadata, Viewport } from 'next'
-// import localFont from 'next/font/local'
+import localFont from 'next/font/local'
 import './globals.css'
 import Providers from '@/components/Providers'
 import Header from '@/components/Header'
 import Footer from '@/components/footer'
 
-// const inter = localFont({
-//   src: [
-//     {
-//       path: '../fonts/Inter-Regular.woff2',
-//       weight: '400',
-//       style: 'normal',
-//     },
-//     {
-//       path: '../fonts/Inter-Medium.woff2',
-//       weight: '500',
-//       style: 'normal',
-//     },
-//     {
-//       path: '../fonts/Inter-SemiBold.woff2',
-//       weight: '600',
-//       style: 'normal',
-//     },
-//     {
-//       path: '../fonts/Inter-Bold.woff2',
-//       weight: '700',
-//       style: 'normal',
-//     },
-//   ],
-//   variable: '--font-inter',
-// })
+// Font optimization - Tüm font dosyalarını tek bir istekte yükle
+const inter = localFont({
+  src: [
+    {
+      path: '../fonts/Inter-Regular.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/Inter-Medium.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/Inter-SemiBold.woff2',
+      weight: '600',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/Inter-Bold.woff2',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-inter',
+  display: 'swap', // Font yüklenene kadar fallback göster
+  preload: true, // Critical font'u preload et
+  fallback: ['system-ui', 'arial'], // Fallback font'lar
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://alo17.tr'),
@@ -130,8 +134,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="tr" className="h-full">
-      <body className="h-full font-sans antialiased">
+    <html lang="tr" className={`h-full ${inter.variable}`}>
+      <head>
+        {/* Resource hints - DNS prefetch ve preconnect */}
+        <link rel="dns-prefetch" href="https://alo17.tr" />
+        <link rel="preconnect" href="https://alo17.tr" crossOrigin="anonymous" />
+        {/* Critical resources preload */}
+        <link rel="preload" href="/favicon.svg" as="image" type="image/svg+xml" />
+      </head>
+      <body className={`h-full font-sans antialiased ${inter.className}`}>
         <Providers>
           <div className="min-h-screen flex flex-col">
             <Header />
