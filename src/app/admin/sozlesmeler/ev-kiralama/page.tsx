@@ -152,7 +152,7 @@ export default function EvKiralamaSozlesmePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link
-                href="/sozlesmeler"
+                href="/admin/sozlesmeler"
                 className="text-gray-600 hover:text-gray-900"
               >
                 <ArrowLeft className="h-5 w-5" />
