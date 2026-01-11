@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { SearchBar } from '@/components/search-bar'
 import { Button } from '@/components/ui/button'
+import { getCache, setCache, createCacheKey } from '@/lib/cache'
 
 const Sidebar = dynamic(() => import("@/components/sidebar").then(mod => ({ default: mod.Sidebar })), {
   loading: () => <div className="w-full md:w-64 h-64 bg-gray-100 animate-pulse rounded-lg" />
@@ -24,23 +25,44 @@ export default async function Home() {
   let latestListings: any[] = [];
 
   try {
-    // Paralel query'ler ile performans iyileştirmesi - FCP için optimize edildi
-    // Sadece ilk resmi çekiyoruz - performans için
-    // take sayısını azalttık - FCP için daha hızlı yükleme
-    const [premiumListings, latest] = await Promise.all([
-      prisma.listing.findMany({
-        where: { isPremium: true, isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
-        select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
-        orderBy: [{ isPremium: 'desc' }, { createdAt: 'desc' }],
-        take: 4, // FCP için azaltıldı (6'dan 4'e)
-      }),
-      prisma.listing.findMany({
-        where: { isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
-        select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
-        orderBy: { createdAt: 'desc' },
-        take: 8, // FCP için azaltıldı (12'den 8'e)
-      }),
-    ]);
+    // Cache key'leri oluştur
+    const premiumCacheKey = createCacheKey('homepage', 'premium-listings');
+    const latestCacheKey = createCacheKey('homepage', 'latest-listings');
+    
+    // Cache'den veri al (FCP için kritik - database query'lerini atla)
+    const cachedPremium = getCache<any[]>(premiumCacheKey);
+    const cachedLatest = getCache<any[]>(latestCacheKey);
+    
+    let premiumListings: any[] = [];
+    let latest: any[] = [];
+    
+    if (cachedPremium && cachedLatest) {
+      // Cache'den veri al - çok daha hızlı
+      premiumListings = cachedPremium;
+      latest = cachedLatest;
+    } else {
+      // Paralel query'ler ile performans iyileştirmesi - FCP için optimize edildi
+      // Sadece ilk resmi çekiyoruz - performans için
+      // take sayısını azalttık - FCP için daha hızlı yükleme
+      [premiumListings, latest] = await Promise.all([
+        prisma.listing.findMany({
+          where: { isPremium: true, isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
+          select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
+          orderBy: [{ isPremium: 'desc' }, { createdAt: 'desc' }],
+          take: 4, // FCP için azaltıldı (6'dan 4'e)
+        }),
+        prisma.listing.findMany({
+          where: { isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
+          select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 8, // FCP için azaltıldı (12'den 8'e)
+        }),
+      ]);
+      
+      // Cache'e kaydet (30 saniye TTL - FCP için)
+      setCache(premiumCacheKey, premiumListings, 30000);
+      setCache(latestCacheKey, latest, 30000);
+    }
 
     // Güvenli JSON parse fonksiyonu
     const safeParseImages = (images: string | null): string[] => {
