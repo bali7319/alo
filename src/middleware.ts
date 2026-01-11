@@ -190,6 +190,31 @@ export async function middleware(request: NextRequest) {
   if (process.env.NODE_ENV === 'production') {
     response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
+  
+  // Performance headers
+  // DNS prefetch
+  response.headers.set('X-DNS-Prefetch-Control', 'on');
+  
+  // Compression - Next.js otomatik yapıyor ama header ekleyelim
+  const acceptEncoding = request.headers.get('accept-encoding') || '';
+  if (acceptEncoding.includes('br')) {
+    response.headers.set('Content-Encoding', 'br');
+  } else if (acceptEncoding.includes('gzip')) {
+    response.headers.set('Content-Encoding', 'gzip');
+  }
+  
+  // Cache headers for static assets
+  if (pathname.startsWith('/_next/static') || pathname.startsWith('/_next/image')) {
+    response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  } else if (pathname.match(/\.(jpg|jpeg|png|gif|webp|svg|ico|woff|woff2|ttf|eot)$/)) {
+    response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  } else if (pathname.startsWith('/api/')) {
+    // API responses için kısa cache
+    response.headers.set('Cache-Control', 'no-store, must-revalidate');
+  } else {
+    // HTML sayfaları için cache
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  }
 
   return response;
 }
