@@ -114,11 +114,6 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/apple-icon.svg',
   },
-  // Resource hints - DNS prefetch ve preconnect
-  other: {
-    'dns-prefetch': 'https://alo17.tr',
-    'preconnect': 'https://alo17.tr',
-  },
 }
 
 export const viewport: Viewport = {
