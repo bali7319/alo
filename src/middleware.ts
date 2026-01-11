@@ -216,15 +216,8 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
   }
   
-  // Resource hints - Preload critical resources
-  if (pathname === '/') {
-    // Ana sayfa için critical resources preload
-    const preloadLinks = [
-      '</fonts/Inter-Regular.woff2>; rel=preload; as=font; type=font/woff2; crossorigin',
-      '</fonts/Inter-Medium.woff2>; rel=preload; as=font; type=font/woff2; crossorigin',
-    ];
-    response.headers.set('Link', preloadLinks.join(', '));
-  }
+  // Resource hints - Preload critical resources (Next.js font loader zaten yapıyor, bu ekstra)
+  // Font preload Next.js font loader tarafından otomatik yapılıyor
 
   return response;
 }
