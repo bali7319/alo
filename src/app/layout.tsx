@@ -30,9 +30,12 @@ const inter = localFont({
     },
   ],
   variable: '--font-inter',
-  display: 'swap', // Font yüklenene kadar fallback göster
+  display: 'swap', // Font yüklenene kadar fallback göster - FCP için kritik
   preload: true, // Critical font'u preload et
   fallback: ['system-ui', 'arial'], // Fallback font'lar
+  adjustFontFallback: true, // Font fallback'i optimize et
+  // Sadece critical font'u preload et (FCP için)
+  // Diğer font'lar lazy load edilecek
 })
 
 export const metadata: Metadata = {

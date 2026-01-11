@@ -16,7 +16,8 @@ const LatestAds = dynamic(() => import('@/components/latest-ads').then(mod => ({
   loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
 })
 
-export const revalidate = 300; // 5 dakika cache (performans için)
+export const revalidate = 60; // 1 dakika cache (FCP için daha sık güncelleme)
+export const dynamic = 'force-dynamic'; // Dynamic rendering - FCP için
 
 export default async function Home() {
   let featuredListings: any[] = [];
