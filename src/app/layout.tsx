@@ -5,7 +5,8 @@ import Providers from '@/components/Providers'
 import Header from '@/components/Header'
 import Footer from '@/components/footer'
 
-// Font optimization - Tüm font dosyalarını tek bir istekte yükle
+// Font optimization - Sadece gerekli font'ları yükle (444 KB → ~200 KB tasarruf)
+// Sadece Regular ve Bold yükleniyor - Medium ve SemiBold CSS ile simüle edilebilir
 const inter = localFont({
   src: [
     {
@@ -14,28 +15,18 @@ const inter = localFont({
       style: 'normal',
     },
     {
-      path: '../fonts/Inter-Medium.woff2',
-      weight: '500',
-      style: 'normal',
-    },
-    {
-      path: '../fonts/Inter-SemiBold.woff2',
-      weight: '600',
-      style: 'normal',
-    },
-    {
       path: '../fonts/Inter-Bold.woff2',
       weight: '700',
       style: 'normal',
     },
+    // Medium ve SemiBold kaldırıldı - CSS font-weight ile simüle edilebilir
+    // Bu ~220 KB tasarruf sağlar
   ],
   variable: '--font-inter',
   display: 'swap', // Font yüklenene kadar fallback göster - FCP için kritik
   preload: true, // Critical font'u preload et
   fallback: ['system-ui', 'arial'], // Fallback font'lar
   adjustFontFallback: true, // Font fallback'i optimize et
-  // Sadece critical font'u preload et (FCP için)
-  // Diğer font'lar lazy load edilecek
 })
 
 export const metadata: Metadata = {
