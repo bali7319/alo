@@ -114,6 +114,11 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/apple-icon.svg',
   },
+  // Resource hints - DNS prefetch ve preconnect
+  other: {
+    'dns-prefetch': 'https://alo17.tr',
+    'preconnect': 'https://alo17.tr',
+  },
 }
 
 export const viewport: Viewport = {
@@ -135,13 +140,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr" className={`h-full ${inter.variable}`}>
-      <head>
-        {/* Resource hints - DNS prefetch ve preconnect */}
-        <link rel="dns-prefetch" href="https://alo17.tr" />
-        <link rel="preconnect" href="https://alo17.tr" crossOrigin="anonymous" />
-        {/* Critical resources preload */}
-        <link rel="preload" href="/favicon.svg" as="image" type="image/svg+xml" />
-      </head>
       <body className={`h-full font-sans antialiased ${inter.className}`}>
         <Providers>
           <div className="min-h-screen flex flex-col">
