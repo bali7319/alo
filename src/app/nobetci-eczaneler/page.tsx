@@ -20,7 +20,7 @@ interface Eczane {
 async function getNobetciEczaneler(): Promise<Eczane[]> {
   try {
     const response = await fetch('https://www.canakkaleeo.org.tr/', {
-      next: { revalidate: 3600 }, // 1 saat cache
+      next: { revalidate: 315360000 }, // 10 yıl cache (315360000 saniye)
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
