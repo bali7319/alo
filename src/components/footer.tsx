@@ -52,6 +52,11 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/hakkimizda" className="text-gray-400 hover:text-white transition-colors">
+                    Hakkımızda
+                  </Link>
+                </li>
+                <li>
                   <Link href="/kategoriler" className="text-gray-400 hover:text-white transition-colors">
                     Kategoriler
                   </Link>
