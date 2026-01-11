@@ -19,25 +19,7 @@ interface Eczane {
 
 async function getNobetciEczaneler(): Promise<Eczane[]> {
   try {
-    // Önce kendi API'mizi dene (daha güvenilir)
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://alo17.tr'
-      const apiResponse = await fetch(`${apiUrl}/api/nobetci-eczaneler`, {
-        next: { revalidate: 3600 },
-      })
-      
-      if (apiResponse.ok) {
-        const data = await apiResponse.json()
-        if (data.eczaneler && data.eczaneler.length > 0) {
-          console.log(`API'den ${data.eczaneler.length} eczane alındı`)
-          return data.eczaneler
-        }
-      }
-    } catch (apiError) {
-      console.log('API hatası, direkt scraping deneniyor:', apiError)
-    }
-    
-    // API çalışmazsa direkt scraping yap
+    // Direkt scraping yap
     const response = await fetch('https://www.canakkaleeo.org.tr/', {
       next: { revalidate: 3600 }, // 1 saat cache (eczane bilgileri günlük değişir)
       headers: {
