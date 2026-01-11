@@ -19,6 +19,8 @@ const LatestAds = dynamic(() => import('@/components/latest-ads').then(mod => ({
 
 export const revalidate = 60; // 1 dakika cache (FCP için daha sık güncelleme)
 // Static generation kullan - FCP için daha hızlı
+// Streaming SSR - Sayfanın ilk kısmı hemen gösterilir
+export const dynamic = 'force-static'; // Static generation - Document request delay'i azaltır
 
 export default async function Home() {
   let featuredListings: any[] = [];
@@ -59,9 +61,10 @@ export default async function Home() {
         }),
       ]);
       
-      // Cache'e kaydet (30 saniye TTL - FCP için)
-      setCache(premiumCacheKey, premiumListings, 30000);
-      setCache(latestCacheKey, latest, 30000);
+      // Cache'e kaydet (60 saniye TTL - Document request delay'i azaltmak için)
+      // Daha uzun TTL = daha az database query = daha hızlı response
+      setCache(premiumCacheKey, premiumListings, 60000);
+      setCache(latestCacheKey, latest, 60000);
     }
 
     // Güvenli JSON parse fonksiyonu
