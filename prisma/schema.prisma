@@ -6,9 +6,9 @@ generator client {
 }
 
 datasource db {
-  // Development için SQLite kullanılıyor (.env dosyasında DATABASE_URL="file:./prisma/dev.db")
-  // Production için PostgreSQL kullanmak için provider'ı "postgresql" yapın ve DATABASE_URL'i güncelleyin
-  provider = "sqlite"  // Development için SQLite
+  // Production'da PostgreSQL kullanılıyor
+  // Development için SQLite kullanmak isterseniz: provider = "sqlite" ve DATABASE_URL="file:./prisma/dev.db"
+  provider = "postgresql"  // Production için PostgreSQL
   url      = env("DATABASE_URL")
   // Development için: DATABASE_URL="file:./prisma/dev.db" ve provider="sqlite"
   // Production için: DATABASE_URL="postgresql://user:password@localhost:5432/dbname" ve provider="postgresql"
