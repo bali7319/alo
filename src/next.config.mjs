@@ -113,16 +113,6 @@ const nextConfig = {
         ],
       },
       {
-        // Nöbetçi eczaneler sayfası için cache headers - 10 yıl
-        source: '/nobetci-eczaneler',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=315360000, immutable',
-          },
-        ],
-      },
-      {
         // Ana sayfa için critical font preload - Sadece Regular font (Medium kaldırıldı)
         source: '/',
         headers: [

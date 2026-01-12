@@ -177,18 +177,6 @@ export default async function Home() {
       {/* Below-the-fold: Sidebar ve listings - Lazy load */}
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8">
         <div className="w-full md:w-64 flex-shrink-0">
-          {/* Nöbetçi Eczaneler Butonu */}
-          <div className="mb-4">
-            <Link href="/nobetci-eczaneler" className="block">
-              <Button 
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg"
-                size="lg"
-              >
-                <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
-                Nöbetçi Eczaneler
-              </Button>
-            </Link>
-          </div>
           {/* Hukuki Belgeler ve Dilekçe Butonu */}
           <div className="mb-4">
             <Link href="/sozlesmeler" className="block">

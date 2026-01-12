@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">alo17</string>
+    <string name="title_activity_main">alo17</string>
+    <string name="package_name">com.alo17.tr</string>
+    <string name="custom_url_scheme">com.alo17.tr</string>
+</resources>
