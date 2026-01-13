@@ -111,7 +111,9 @@ export default async function Home() {
     }
     
     // Her istekte premium ilanları farklı rotasyon ile karıştır
-    const shuffledPremium = seededShuffle(premiumListingsRaw, rotationSeed);
+    // Undefined/null ilanları filtrele
+    const validPremiumListings = premiumListingsRaw.filter(l => l != null);
+    const shuffledPremium = seededShuffle(validPremiumListings, rotationSeed);
     // İlk 4 tanesini al (dönüşümlü gösterim için)
     const premiumListings = shuffledPremium.slice(0, 4);
 
@@ -133,7 +135,8 @@ export default async function Home() {
     };
 
     // Sadece ilk resmi gönder (performans için)
-    featuredListings = premiumListings.map(l => {
+    // Güvenlik için tekrar filtrele
+    featuredListings = premiumListings.filter(l => l != null).map(l => {
       const parsedImages = safeParseImages(l.images);
       const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
       return {
