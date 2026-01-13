@@ -36,36 +36,66 @@ export const revalidate = 60; // 1 dakika cache (FCP için daha sık güncelleme
 // Ancak 'dynamic' import ile çakışmaması için burada kullanmıyoruz
 // Next.js otomatik olarak static generation yapacak (revalidate ile)
 
+// Günlük rotasyon için seed'li shuffle fonksiyonu
+function seededShuffle<T>(array: T[], seed: string): T[] {
+  // Seed'den basit bir hash oluştur
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 32-bit integer'a çevir
+  }
+  
+  // Fisher-Yates shuffle algoritması (seed'li)
+  const shuffled = [...array];
+  const random = () => {
+    hash = ((hash * 9301) + 49297) % 233280;
+    return hash / 233280;
+  };
+  
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  
+  return shuffled;
+}
+
 export default async function Home() {
   let featuredListings: any[] = [];
   let latestListings: any[] = [];
 
   try {
+    // Her istekte farklı rotasyon için timestamp + random seed kullan
+    const now = new Date();
+    const timestamp = now.getTime();
+    const randomSeed = Math.floor(Math.random() * 1000000);
+    const rotationSeed = `${timestamp}-${randomSeed}`;
+    
     // Cache key'leri oluştur
-    const premiumCacheKey = createCacheKey('homepage', 'premium-listings');
+    const premiumRawCacheKey = createCacheKey('homepage', 'premium-listings-raw'); // Ham veri cache'i
     const latestCacheKey = createCacheKey('homepage', 'latest-listings');
     
-    // Cache'den veri al (FCP için kritik - database query'lerini atla)
-    const cachedPremium = getCache<any[]>(premiumCacheKey);
+    // Cache'den ham premium ilanları al (rotasyon için tüm havuz)
+    const cachedPremiumRaw = getCache<any[]>(premiumRawCacheKey);
     const cachedLatest = getCache<any[]>(latestCacheKey);
     
-    let premiumListings: any[] = [];
+    let premiumListingsRaw: any[] = [];
     let latest: any[] = [];
     
-    if (cachedPremium && cachedLatest) {
-      // Cache'den veri al - çok daha hızlı
-      premiumListings = cachedPremium;
+    if (cachedPremiumRaw && cachedLatest) {
+      // Cache'den ham veri al
+      premiumListingsRaw = cachedPremiumRaw;
       latest = cachedLatest;
     } else {
       // Paralel query'ler ile performans iyileştirmesi - FCP için optimize edildi
-      // Sadece ilk resmi çekiyoruz - performans için
-      // take sayısını azalttık - FCP için daha hızlı yükleme
-      [premiumListings, latest] = await Promise.all([
+      // Premium ilanlar için daha fazla ilan çek (rotasyon için havuz oluştur)
+      [premiumListingsRaw, latest] = await Promise.all([
         prisma.listing.findMany({
           where: { isPremium: true, isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
           select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
           orderBy: [{ isPremium: 'desc' }, { createdAt: 'desc' }],
-          take: 4, // FCP için azaltıldı (6'dan 4'e)
+          take: 16, // Rotasyon için daha fazla ilan çek (4'ten 16'ya)
         }),
         prisma.listing.findMany({
           where: { isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
@@ -75,11 +105,15 @@ export default async function Home() {
         }),
       ]);
       
-      // Cache'e kaydet (60 saniye TTL - Document request delay'i azaltmak için)
-      // Daha uzun TTL = daha az database query = daha hızlı response
-      setCache(premiumCacheKey, premiumListings, 60000);
+      // Ham premium ilanları cache'e kaydet (60 saniye TTL)
+      setCache(premiumRawCacheKey, premiumListingsRaw, 60000);
       setCache(latestCacheKey, latest, 60000);
     }
+    
+    // Her istekte premium ilanları farklı rotasyon ile karıştır
+    const shuffledPremium = seededShuffle(premiumListingsRaw, rotationSeed);
+    // İlk 4 tanesini al (dönüşümlü gösterim için)
+    const premiumListings = shuffledPremium.slice(0, 4);
 
     // Güvenli JSON parse fonksiyonu
     const safeParseImages = (images: string | null): string[] => {
