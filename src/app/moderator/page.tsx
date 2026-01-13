@@ -418,16 +418,17 @@ export default function ModeratorPage() {
                           <X className="w-4 h-4" />
                           Reddet
                         </Button>
-                        <Button
-                          onClick={() => handleEdit(listing)}
-                          variant="outline"
-                          className="w-full flex items-center justify-center gap-2"
-                        >
-                          <Edit className="w-4 h-4" />
-                          Düzenle
-                        </Button>
                       </>
                     )}
+                    {/* Düzenleme butonu tüm ilanlar için görünür */}
+                    <Button
+                      onClick={() => handleEdit(listing)}
+                      variant="outline"
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Düzenle
+                    </Button>
                     <Link href={`/ilan/${listing.id}`} target="_blank">
                       <Button variant="outline" className="w-full flex items-center justify-center gap-2">
                         <Eye className="w-4 h-4" />

@@ -179,6 +179,7 @@ export default function IlanVerPage() {
 
   const [imageError, setImageError] = useState<string>('');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const [userLimits, setUserLimits] = useState<{
     activeListingCount: number;
@@ -254,6 +255,21 @@ export default function IlanVerPage() {
     });
     return maxImages;
   }, [selectedPlan, userLimits, adminSettings]);
+
+  // Mobil cihaz tespiti
+  useEffect(() => {
+    const checkMobile = () => {
+      // Ekran genişliği kontrolü
+      const isMobileWidth = window.innerWidth < 768;
+      // User agent kontrolü
+      const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(isMobileWidth || isMobileUserAgent);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Giriş kontrolü ve kullanıcı bilgilerini yükle
   useEffect(() => {
@@ -1447,9 +1463,9 @@ export default function IlanVerPage() {
                   <p className="text-gray-600 mb-2">Resim yüklemek için tıklayın</p>
                   <p className="text-sm text-gray-500 mb-3">
                     {MAX_IMAGES >= 999 ? (
-                      <>Sınırsız resim yükleyebilirsiniz, her biri en fazla {MAX_FILE_SIZE / (1024 * 1024)}MB</>
+                      <>Sınırsız resim yükleyebilirsiniz, her biri en fazla {MAX_FILE_SIZE / (1024 * 1024)}MB (çoklu seçim yapabilirsiniz)</>
                     ) : (
-                      <>Maksimum {MAX_IMAGES} resim, her biri en fazla {MAX_FILE_SIZE / (1024 * 1024)}MB</>
+                      <>Maksimum {MAX_IMAGES} resim, her biri en fazla {MAX_FILE_SIZE / (1024 * 1024)}MB (çoklu seçim yapabilirsiniz)</>
                     )}
                   </p>
                   <p className="text-sm text-blue-600 mb-3">
@@ -1490,21 +1506,23 @@ export default function IlanVerPage() {
                           : 'bg-blue-600 text-white hover:bg-blue-700'
                       }`}
                     >
-                      {MAX_IMAGES < 999 && images.length >= MAX_IMAGES ? 'Maksimum resim sayısına ulaşıldı' : 'Galeriden Seç'}
+                      {MAX_IMAGES < 999 && images.length >= MAX_IMAGES ? 'Maksimum resim sayısına ulaşıldı' : 'Galeriden Seç (Çoklu)'}
                     </label>
                     
-                    {/* Mobil cihazlarda kamera butonu göster */}
-                    <label
-                      htmlFor="image-upload-camera"
-                      className={`inline-flex items-center px-4 py-2 rounded-md cursor-pointer transition-colors ${
-                        MAX_IMAGES < 999 && images.length >= MAX_IMAGES
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-green-600 text-white hover:bg-green-700'
-                      }`}
-                    >
-                      <Camera className="w-4 h-4 mr-2" />
-                      {MAX_IMAGES < 999 && images.length >= MAX_IMAGES ? 'Limit Doldu' : 'Kamera ile Çek'}
-                    </label>
+                    {/* Sadece mobil cihazlarda kamera butonu göster */}
+                    {isMobile && (
+                      <label
+                        htmlFor="image-upload-camera"
+                        className={`inline-flex items-center px-4 py-2 rounded-md cursor-pointer transition-colors ${
+                          MAX_IMAGES < 999 && images.length >= MAX_IMAGES
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        {MAX_IMAGES < 999 && images.length >= MAX_IMAGES ? 'Limit Doldu' : 'Kamera ile Çek'}
+                      </label>
+                    )}
                   </div>
                 </div>
                 

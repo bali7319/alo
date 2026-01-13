@@ -182,13 +182,14 @@ export default function IlanDuzenlePage() {
           throw new Error('İlan bulunamadı');
         }
 
-        // Kullanıcı kontrolü - sadece ilan sahibi veya admin düzenleyebilir
+        // Kullanıcı kontrolü - sadece ilan sahibi, admin veya moderatör düzenleyebilir
         const { getAdminEmail } = await import('@/lib/admin');
         const adminEmail = getAdminEmail();
-        const isAdmin = session?.user?.email === adminEmail;
+        const isAdmin = session?.user?.email === adminEmail || session?.user?.role === 'admin';
+        const isModerator = session?.user?.role === 'moderator';
         const isOwner = session?.user?.email === listingData.user?.email;
         
-        if (!isAdmin && !isOwner) {
+        if (!isAdmin && !isModerator && !isOwner) {
           throw new Error('Bu ilanı düzenleme yetkiniz yok');
         }
 
