@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { categories } from "@/lib/categories"
+import { Input } from "@/components/ui/input"
 import { 
   Smartphone, 
   Laptop, 
@@ -25,7 +26,8 @@ import {
   Hotel,
   MoreHorizontal,
   Menu,
-  X
+  X,
+  Search
 } from "lucide-react"
 
 const categoryIcons = {
@@ -69,6 +71,7 @@ const categoryColors = {
 export const Sidebar = () => {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   
   // Pathname'i parse et: /kategori/hizmetler/guvenlik -> ['kategori', 'hizmetler', 'guvenlik']
   const pathSegments = pathname?.split("/").filter(Boolean) || []
@@ -80,6 +83,33 @@ export const Sidebar = () => {
   
   // Alt kategori sayfası kontrolü: /kategori/[slug]/[subSlug] veya /kategori/[slug]/[subSlug]/[subsubslug]
   const isSubCategoryPage = isCategoryRoute && currentSubcategory !== undefined && currentSubcategory !== ''
+  
+  // Kategori arama filtresi
+  const filterCategories = (cats: typeof categories) => {
+    if (!searchTerm.trim()) return cats;
+    const searchLower = searchTerm.toLowerCase();
+    return cats.filter(cat => {
+      const matchesName = cat.name.toLowerCase().includes(searchLower);
+      const matchesSubcategory = cat.subcategories?.some(sub => 
+        sub.name.toLowerCase().includes(searchLower) ||
+        sub.subcategories?.some(subSub => subSub.name.toLowerCase().includes(searchLower))
+      );
+      return matchesName || matchesSubcategory;
+    });
+  };
+  
+  // Alt kategori arama filtresi
+  const filterSubCategories = (subCats: typeof categories[0]['subcategories']) => {
+    if (!searchTerm.trim() || !subCats) return subCats;
+    const searchLower = searchTerm.toLowerCase();
+    return subCats.filter(sub => {
+      const matchesName = sub.name.toLowerCase().includes(searchLower);
+      const matchesSubSub = sub.subcategories?.some(subSub => 
+        subSub.name.toLowerCase().includes(searchLower)
+      );
+      return matchesName || matchesSubSub;
+    });
+  };
 
   // Aktif kategoriyi bul
   const activeCategory = currentCategory ? categories.find(cat => cat.slug === currentCategory) : undefined
@@ -118,13 +148,37 @@ export const Sidebar = () => {
         }`}
         aria-label="Kategoriler menüsü"
       >
+        {/* Arama Kutusu */}
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Kategori ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-3 py-2 text-sm w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
       {!isSubCategoryPage ? (
         // Ana kategori sayfasında: O kategorinin alt kategorilerini göster
         activeCategory && activeCategory.subcategories && activeCategory.subcategories.length > 0 ? (
           <>
             <h2 className="text-lg font-semibold mb-4">Alt Kategoriler</h2>
-            <ul className="space-y-1" role="list">
-              {activeCategory.subcategories.map((subcategory) => {
+            {searchTerm.trim() && filterSubCategories(activeCategory.subcategories)?.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-sm">Aradığınız kriterlere uygun alt kategori bulunamadı.</p>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="mt-2 text-blue-600 hover:text-blue-800 underline text-sm"
+                >
+                  Aramayı temizle
+                </button>
+              </div>
+            ) : (
+              <ul className="space-y-1" role="list">
+                {filterSubCategories(activeCategory.subcategories)?.map((subcategory) => {
                 const hasSubSubcategories = subcategory.subcategories && subcategory.subcategories.length > 0;
                 
                 return (
@@ -170,14 +224,31 @@ export const Sidebar = () => {
                   </li>
                 );
               })}
-            </ul>
+              </ul>
+            )}
+            {searchTerm.trim() && filterSubCategories(activeCategory.subcategories) && filterSubCategories(activeCategory.subcategories)!.length > 0 && (
+              <div className="mt-2 text-xs text-gray-500 text-center">
+                {filterSubCategories(activeCategory.subcategories)!.length} alt kategori bulundu
+              </div>
+            )}
           </>
         ) : (
           // Alt kategorisi yoksa ana kategorileri göster
           <>
             <h2 className="text-lg font-semibold mb-4">Kategoriler</h2>
-            <ul className="space-y-2" role="list">
-              {categories.map((category) => {
+            {searchTerm.trim() && filterCategories(categories).length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-sm">Aradığınız kriterlere uygun kategori bulunamadı.</p>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="mt-2 text-blue-600 hover:text-blue-800 underline text-sm"
+                >
+                  Aramayı temizle
+                </button>
+              </div>
+            ) : (
+              <ul className="space-y-2" role="list">
+                {filterCategories(categories).map((category) => {
                 const IconComponent = categoryIcons[category.slug as keyof typeof categoryIcons] || MoreHorizontal;
                 const iconColor = categoryColors[category.slug as keyof typeof categoryColors] || "text-slate-500";
                 const isActive = currentCategory === category.slug;
@@ -201,7 +272,13 @@ export const Sidebar = () => {
                   </li>
                 )
               })}
-            </ul>
+              </ul>
+            )}
+            {searchTerm.trim() && filterCategories(categories).length > 0 && (
+              <div className="mt-2 text-xs text-gray-500 text-center">
+                {filterCategories(categories).length} kategori bulundu
+              </div>
+            )}
           </>
         )
       ) : (
@@ -220,9 +297,20 @@ export const Sidebar = () => {
               </Link>
             </div>
             <h2 className="text-lg font-semibold mb-4">Alt Kategoriler</h2>
-            <ul className="space-y-1" role="list">
-              {activeCategory.subcategories.map((subcategory) => {
-                const isSubActive = currentSubcategory === subcategory.slug;
+            {searchTerm.trim() && filterSubCategories(activeCategory.subcategories)?.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-sm">Aradığınız kriterlere uygun alt kategori bulunamadı.</p>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="mt-2 text-blue-600 hover:text-blue-800 underline text-sm"
+                >
+                  Aramayı temizle
+                </button>
+              </div>
+            ) : (
+              <ul className="space-y-1" role="list">
+                {filterSubCategories(activeCategory.subcategories)?.map((subcategory) => {
+                  const isSubActive = currentSubcategory === subcategory.slug;
                 const hasSubSubcategories = subcategory.subcategories && subcategory.subcategories.length > 0;
                 
                 return (
@@ -280,7 +368,13 @@ export const Sidebar = () => {
                   </li>
                 );
               })}
-            </ul>
+              </ul>
+            )}
+            {searchTerm.trim() && filterSubCategories(activeCategory.subcategories) && filterSubCategories(activeCategory.subcategories)!.length > 0 && (
+              <div className="mt-2 text-xs text-gray-500 text-center">
+                {filterSubCategories(activeCategory.subcategories)!.length} alt kategori bulundu
+              </div>
+            )}
           </>
         ) : (
           <div className="text-sm text-gray-500">Alt kategori bulunamadı</div>
