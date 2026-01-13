@@ -1,3 +1,8 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useParams } from 'next/navigation';
 import { ArrowLeft, AlertTriangle, Send, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -40,49 +45,76 @@ const reportReasons: ReportReason[] = [
   }
 ];
 
-// generateStaticParams fonksiyonu ekle
-export async function generateStaticParams() {
-  // Örnek olarak ilk 10 ilanı statik olarak oluştur
-  const listings = [
-    { id: '1' },
-    { id: '2' },
-    { id: '3' },
-    { id: '4' },
-    { id: '5' },
-    { id: '6' },
-    { id: '7' },
-    { id: '8' },
-    { id: '9' },
-    { id: '10' }
-  ];
-  
-  return listings.map((listing) => ({
-    id: listing.id,
-  }));
-}
+export default function IlanSikayetPage() {
+  const params = useParams();
+  const { data: session } = useSession();
+  const listingId = params?.id as string;
+  const [listing, setListing] = useState<any>(null);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-// Server-side component'e çevir
-export default async function IlanSikayetPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: listingId } = await params;
-  
-  // Server-side data fetching
-  let listing: any = null;
-  
-  try {
-    // Mock veri - gerçek uygulamada API'den gelecek
-    listing = {
-      id: listingId,
-      title: 'iPhone 14 Pro Max',
-      price: 25000,
-      location: 'İstanbul',
-      seller: {
-        name: 'Ahmet Yılmaz',
-        email: 'ahmet@example.com'
+  // İlan bilgilerini yükle
+  useEffect(() => {
+    if (!listingId) return;
+    
+    const fetchListing = async () => {
+      try {
+        const response = await fetch(`/api/listings/${listingId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setListing(data.listing);
+        }
+      } catch (error) {
+        console.error('İlan yükleme hatası:', error);
       }
     };
-  } catch (error) {
-    console.error('İlan yükleme hatası:', error);
-  }
+
+    fetchListing();
+  }, [listingId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedReason || !description.trim()) return;
+
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+
+    try {
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          listingId,
+          reason: selectedReason,
+          description: description.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitStatus('success');
+        setSelectedReason('');
+        setDescription('');
+        // 3 saniye sonra ilan sayfasına yönlendir
+        setTimeout(() => {
+          window.location.href = `/ilan/${listingId}`;
+        }, 3000);
+      } else {
+        const errorData = await response.json();
+        setSubmitStatus('error');
+        alert(errorData.error || 'Şikayet gönderilirken bir hata oluştu');
+      }
+    } catch (error) {
+      console.error('Şikayet gönderme hatası:', error);
+      setSubmitStatus('error');
+      alert('Şikayet gönderilirken bir hata oluştu');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -121,49 +153,74 @@ export default async function IlanSikayetPage({ params }: { params: Promise<{ id
             <h3 className="text-lg font-semibold text-gray-800">Şikayet Nedeni Seçin</h3>
           </div>
 
-          <div className="space-y-4 mb-6">
-            {reportReasons.map((reason) => (
-              <label
-                key={reason.id}
-                className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg cursor-pointer transition-colors hover:border-gray-300"
-              >
-                <input
-                  type="radio"
-                  name="reason"
-                  value={reason.id}
-                  className="mt-1 text-alo-orange focus:ring-alo-orange"
-                />
-                <div>
-                  <div className="font-medium text-gray-800">{reason.label}</div>
-                  <div className="text-sm text-gray-600">{reason.description}</div>
-                </div>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 mb-6">
+              {reportReasons.map((reason) => (
+                <label
+                  key={reason.id}
+                  className={`flex items-start space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+                    selectedReason === reason.id
+                      ? 'border-red-500 bg-red-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="reason"
+                    value={reason.id}
+                    checked={selectedReason === reason.id}
+                    onChange={(e) => setSelectedReason(e.target.value)}
+                    className="mt-1 text-alo-orange focus:ring-alo-orange"
+                    required
+                  />
+                  <div>
+                    <div className="font-medium text-gray-800">{reason.label}</div>
+                    <div className="text-sm text-gray-600">{reason.description}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Açıklama <span className="text-red-500">*</span>
               </label>
-            ))}
-          </div>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-alo-orange focus:border-transparent"
+                rows={4}
+                placeholder="Şikayetinizi detaylı olarak açıklayın..."
+                required
+              />
+            </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Açıklama
-            </label>
-            <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-alo-orange focus:border-transparent"
-              rows={4}
-              placeholder="Şikayetinizi detaylı olarak açıklayın..."
-            />
-          </div>
+            {submitStatus === 'success' && (
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-800">
+                  <CheckCircle className="w-5 h-5" />
+                  <p className="font-medium">Şikayetiniz başarıyla gönderildi!</p>
+                </div>
+              </div>
+            )}
 
-          <div className="flex justify-end space-x-4">
-            <Link 
-              href={`/ilan/${listingId}`}
-              className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              İptal
-            </Link>
-            <button className="flex items-center space-x-2 bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors">
-              <Send className="w-4 h-4" />
-              <span>Şikayet Gönder</span>
-            </button>
-          </div>
+            <div className="flex justify-end space-x-4">
+              <Link 
+                href={`/ilan/${listingId}`}
+                className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                İptal
+              </Link>
+              <button 
+                type="submit"
+                disabled={isSubmitting || !selectedReason || !description.trim()}
+                className="flex items-center space-x-2 bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send className="w-4 h-4" />
+                <span>{isSubmitting ? 'Gönderiliyor...' : 'Şikayet Gönder'}</span>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

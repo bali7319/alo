@@ -1,8 +1,60 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Mail, Phone, MapPin } from 'lucide-react'
 
 export default function ContactPage() {
+  const { data: session } = useSession();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: '',
+  });
+
+  // Kullanıcı bilgilerini yükle ve form'a doldur
+  useEffect(() => {
+    if (session?.user) {
+      setFormData(prev => ({
+        ...prev,
+        name: prev.name || session.user?.name || '',
+        email: prev.email || session.user?.email || '',
+      }));
+
+      // API'den telefon bilgisini çek (gerekirse)
+      const loadUserProfile = async () => {
+        try {
+          const response = await fetch('/api/user/profile');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user) {
+              // Telefon bilgisi gerekirse buraya eklenebilir
+            }
+          }
+        } catch (error) {
+          console.error('Kullanıcı bilgileri yüklenirken hata:', error);
+        }
+      };
+
+      loadUserProfile();
+    }
+  }, [session]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Form gönderme işlemi buraya eklenecek
+    alert('Mesajınız gönderildi! (Bu özellik henüz aktif değil)');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">İletişim</h1>
@@ -45,7 +97,7 @@ export default function ContactPage() {
         {/* İletişim Formu */}
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-semibold mb-4">Bize Ulaşın</h2>
-          <form className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Adınız Soyadınız
@@ -53,6 +105,9 @@ export default function ContactPage() {
               <input
                 type="text"
                 id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Adınız Soyadınız"
               />
@@ -65,8 +120,12 @@ export default function ContactPage() {
               <input
                 type="email"
                 id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="ornek@email.com"
+                required
               />
             </div>
 
@@ -77,8 +136,12 @@ export default function ContactPage() {
               <input
                 type="text"
                 id="subject"
+                name="subject"
+                value={formData.subject}
+                onChange={handleInputChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Konu"
+                required
               />
             </div>
 
@@ -88,9 +151,13 @@ export default function ContactPage() {
               </label>
               <textarea
                 id="message"
+                name="message"
+                value={formData.message}
+                onChange={handleInputChange}
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Mesajınızı yazın..."
+                required
               ></textarea>
             </div>
 
