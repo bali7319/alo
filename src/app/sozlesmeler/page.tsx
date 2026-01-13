@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FileText } from 'lucide-react';
+import { FileText, Search } from 'lucide-react';
 import { contractTemplates } from '@/lib/contract-templates';
+import { Input } from '@/components/ui/input';
 
 // Bu sayfanın dinamik olarak render edilmesini sağlar
 export const dynamic = 'force-dynamic';
@@ -108,6 +109,7 @@ const templateTypes = [
 
 export default function SozlesmelerPage() {
   const [isClient, setIsClient] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     setIsClient(true);
@@ -125,6 +127,13 @@ export default function SozlesmelerPage() {
     }
   });
 
+  // Arama filtresi
+  const filteredTemplates = availableTemplates.filter(template => {
+    if (!searchTerm.trim()) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return template.label.toLowerCase().includes(searchLower);
+  });
+
   if (!isClient) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -139,7 +148,19 @@ export default function SozlesmelerPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Hukuki Belgeler ve Dilekçe</h1>
-          <p className="text-gray-600">İhtiyacınıza uygun hukuki belge ve dilekçe şablonlarını seçin ve oluşturun</p>
+          <p className="text-gray-600 mb-4">İhtiyacınıza uygun hukuki belge ve dilekçe şablonlarını seçin ve oluşturun</p>
+          
+          {/* Arama Kutusu */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Sözleşme veya dilekçe ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
         </div>
 
         {/* Ev Kiralama Sözleşmesi - Özel Buton */}
@@ -154,8 +175,19 @@ export default function SozlesmelerPage() {
         </div>
 
         {/* Diğer Template Tipleri */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {availableTemplates.map((templateInfo) => {
+        {filteredTemplates.length === 0 && searchTerm.trim() ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">Aradığınız kriterlere uygun sözleşme bulunamadı.</p>
+            <button
+              onClick={() => setSearchTerm('')}
+              className="mt-4 text-blue-600 hover:text-blue-800 underline"
+            >
+              Aramayı temizle
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredTemplates.map((templateInfo) => {
             const slug = createTurkishSlug(templateInfo.label);
             return (
               <Link
@@ -168,7 +200,15 @@ export default function SozlesmelerPage() {
               </Link>
             );
           })}
-        </div>
+          </div>
+        )}
+        
+        {/* Arama sonuç sayısı */}
+        {searchTerm.trim() && filteredTemplates.length > 0 && (
+          <div className="mt-4 text-sm text-gray-600">
+            {filteredTemplates.length} sonuç bulundu
+          </div>
+        )}
 
         {/* Bilgilendirme */}
         <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
