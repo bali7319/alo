@@ -13,7 +13,7 @@ interface FeaturedAdsProps {
   listings?: Listing[];
 }
 
-export function FeaturedAds({ category, subcategory, subSubcategory, limit = 6, title, listings = [] }: FeaturedAdsProps) {
+export function FeaturedAds({ category, subcategory, subSubcategory, limit, title, listings = [] }: FeaturedAdsProps) {
   const normalizeSlug = (value?: string) => (value ? createSlug(value) : '');
   const targetCategorySlug = category ? createSlug(category) : '';
   const targetSubcategorySlug = subcategory ? createSlug(subcategory) : '';
@@ -31,7 +31,8 @@ export function FeaturedAds({ category, subcategory, subSubcategory, limit = 6, 
     return matchesCategory && matchesSubcategory && matchesSubSubcategory;
   });
 
-  const displayAds = filteredAds.slice(0, limit);
+  // Limit varsa uygula, yoksa tüm ilanları göster
+  const displayAds = limit && limit > 0 ? filteredAds.slice(0, limit) : filteredAds;
 
   return (
     <section aria-labelledby="featured-ads-title">

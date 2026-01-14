@@ -193,61 +193,107 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   // Veritabanından ilanları çek (build sırasında hata olursa boş liste)
   // Hem slug hem de tam kategori adı ile arama yap (veritabanında her ikisi de olabilir)
-  // PERFORMANS: Sadece ilk 100 ilanı çek (sayfa yüklenmesi için yeterli)
-  let listings: any[] = [];
+  // TÜM ilanları çek (kategori sayfaları için)
+  let allListings: any[] = [];
+  let premiumListings: any[] = [];
   try {
-    listings = await withTimeout(
-      prisma.listing.findMany({
-        where: {
-          OR: [
-            { category: slug }, // Slug formatında (örn: "elektronik")
-            { category: categoryName }, // Tam kategori adı formatında (örn: "Elektronik")
-          ],
-          isActive: true,
-          approvalStatus: 'approved',
-          expiresAt: {
-            gt: new Date() // Süresi dolmamış ilanlar
-          }
-        },
-        select: {
-          id: true,
-          title: true,
-          price: true,
-          location: true,
-          category: true,
-          subCategory: true,
-          description: true, // Kısaltılacak
-          images: true, // Resimleri çek
-          createdAt: true,
-          condition: true,
-          isPremium: true,
-          premiumUntil: true,
-          expiresAt: true,
-          views: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              // email: true, // Gereksiz
+    // Tüm ilanları çek (premium ve normal)
+    [allListings, premiumListings] = await Promise.all([
+      withTimeout(
+        prisma.listing.findMany({
+          where: {
+            OR: [
+              { category: slug }, // Slug formatında (örn: "elektronik")
+              { category: categoryName }, // Tam kategori adı formatında (örn: "Elektronik")
+            ],
+            isActive: true,
+            approvalStatus: 'approved',
+            expiresAt: {
+              gt: new Date() // Süresi dolmamış ilanlar
+            }
+          },
+          select: {
+            id: true,
+            title: true,
+            price: true,
+            location: true,
+            category: true,
+            subCategory: true,
+            description: true,
+            images: true,
+            createdAt: true,
+            condition: true,
+            isPremium: true,
+            premiumUntil: true,
+            expiresAt: true,
+            views: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
-        },
-        orderBy: [
-          { isPremium: 'desc' }, // Premium ilanlar önce
-          { createdAt: 'desc' }, // Sonra tarihe göre
-        ],
-        take: 50, // PERFORMANS: İlk sayfa için 50 ilan yeterli
-      }),
-      5000 // 5 saniye timeout (8'den 5'e düşürüldü)
-    );
+          orderBy: { createdAt: 'desc' }, // En yeni ilanlar önce
+        }),
+        8000 // 8 saniye timeout
+      ),
+      withTimeout(
+        prisma.listing.findMany({
+          where: {
+            OR: [
+              { category: slug },
+              { category: categoryName },
+            ],
+            isActive: true,
+            approvalStatus: 'approved',
+            expiresAt: {
+              gt: new Date()
+            },
+            isPremium: true, // Sadece premium ilanlar
+          },
+          select: {
+            id: true,
+            title: true,
+            price: true,
+            location: true,
+            category: true,
+            subCategory: true,
+            description: true,
+            images: true,
+            createdAt: true,
+            condition: true,
+            isPremium: true,
+            premiumUntil: true,
+            expiresAt: true,
+            views: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: [
+            { premiumUntil: 'desc' }, // Premium süresi dolmamış olanlar önce
+            { createdAt: 'desc' },
+          ],
+        }),
+        8000
+      ),
+    ]);
+    
+    console.log(`[Kategori ${slug}] Toplam ilan: ${allListings.length}, Premium ilan: ${premiumListings.length}`);
   } catch (error) {
     // Build sırasında veritabanı bağlantısı yoksa boş liste
     console.error('Kategori ilanları getirme hatası:', error);
     console.warn('Database connection failed during build, using empty listings');
-    listings = []; // Boş liste döndür
+    allListings = [];
+    premiumListings = [];
   }
 
-  const formattedListings = listings.map(listing => {
+  // Premium ilanları formatla
+  const formattedPremiumListings = premiumListings.map(listing => {
     // Güvenli JSON parse fonksiyonu
     const safeParseImages = (images: string | null): string[] => {
       if (!images) return [];
@@ -278,6 +324,51 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       subCategory: listing.subCategory || undefined,
       description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''), // Kısaltıldı
       images: firstImage, // İlk resmi gönder
+      createdAt: listing.createdAt.toISOString(),
+      condition: listing.condition,
+      isPremium: listing.isPremium,
+      premiumUntil: listing.premiumUntil?.toISOString(),
+      expiresAt: listing.expiresAt.toISOString(),
+      views: listing.views,
+      user: {
+        ...listing.user,
+        name: listing.user?.name ?? undefined,
+      },
+    };
+  });
+
+  // Tüm ilanları formatla
+  const formattedListings = allListings.map(listing => {
+    // Güvenli JSON parse fonksiyonu
+    const safeParseImages = (images: string | null): string[] => {
+      if (!images) return [];
+      try {
+        if (typeof images === 'string') {
+          if (images.startsWith('data:image')) {
+            return [images];
+          }
+          const parsed = JSON.parse(images);
+          return Array.isArray(parsed) ? parsed : [];
+        }
+        return Array.isArray(images) ? images : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const parsedImages = safeParseImages(listing.images);
+    // Sadece ilk resmi gönder (performans için)
+    const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
+
+    return {
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      location: listing.location,
+      category: listing.category,
+      subCategory: listing.subCategory || undefined,
+      description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''),
+      images: firstImage,
       createdAt: listing.createdAt.toISOString(),
       condition: listing.condition,
       isPremium: listing.isPremium,
@@ -401,15 +492,17 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
               <FeaturedAds 
                 title={`Öne Çıkan ${foundCategory.name}`}
                 category={foundCategory.slug} 
-                listings={formattedListings} 
+                listings={formattedPremiumListings} 
+                limit={1000}
               />
             </section>
             
             <section>
               <LatestAds 
-                title={`Son Eklenen ${foundCategory.name}`}
+                title={`Tüm ${foundCategory.name} İlanları`}
                 category={foundCategory.slug} 
                 listings={formattedListings} 
+                limit={1000}
               />
             </section>
           </div>

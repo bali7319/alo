@@ -15,7 +15,7 @@ interface LatestAdsProps {
   listings?: Listing[];
 }
 
-export function LatestAds({ category, subcategory, subSubcategory, limit = 6, title, listings = [] }: LatestAdsProps) {
+export function LatestAds({ category, subcategory, subSubcategory, limit, title, listings = [] }: LatestAdsProps) {
   const normalizeSlug = (value?: string) => (value ? createSlug(value) : '');
   const targetCategorySlug = category ? createSlug(category) : '';
   const targetSubcategorySlug = subcategory ? createSlug(subcategory) : '';
@@ -35,7 +35,8 @@ export function LatestAds({ category, subcategory, subSubcategory, limit = 6, ti
 
   // En son eklenen ilanları al
   const sortedAds = [...filteredAds].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const displayAds = sortedAds.slice(0, limit);
+  // Limit varsa uygula, yoksa tüm ilanları göster
+  const displayAds = limit && limit > 0 ? sortedAds.slice(0, limit) : sortedAds;
 
   return (
     <section aria-labelledby="latest-ads-title">

@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { SearchBar } from '@/components/search-bar'
 import { Button } from '@/components/ui/button'
-import { getCache, setCache, createCacheKey } from '@/lib/cache'
+import IlanlarimButton from '@/components/ilanlarim-button'
 
 // Dynamic imports - Lazy loading için (FCP optimizasyonu)
 const Sidebar = dynamic(
@@ -29,12 +29,9 @@ const LatestAds = dynamic(
   }
 )
 
-export const revalidate = 60; // 1 dakika cache (FCP için daha sık güncelleme)
-// Static generation kullan - FCP için daha hızlı
-// Streaming SSR - Sayfanın ilk kısmı hemen gösterilir
-// Not: 'dynamic' export'u Next.js'te özel bir export'tur, 'force-static' ile static generation yapılır
-// Ancak 'dynamic' import ile çakışmaması için burada kullanmıyoruz
-// Next.js otomatik olarak static generation yapacak (revalidate ile)
+// Ana sayfayı dynamic yap - Her istekte fresh data çek (tüm ilanlar için)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Cache yok - Her zaman fresh data
 
 // Günlük rotasyon için seed'li shuffle fonksiyonu
 function seededShuffle<T>(array: T[], seed: string): T[] {
@@ -72,50 +69,90 @@ export default async function Home() {
     const randomSeed = Math.floor(Math.random() * 1000000);
     const rotationSeed = `${timestamp}-${randomSeed}`;
     
-    // Cache key'leri oluştur
-    const premiumRawCacheKey = createCacheKey('homepage', 'premium-listings-raw'); // Ham veri cache'i
-    const latestCacheKey = createCacheKey('homepage', 'latest-listings');
+    // Cache'i devre dışı bırak - Her zaman fresh data çek
+    // Paralel query'ler ile performans iyileştirmesi
+    // TÜM ilanları çek (limit yok)
+    const [premiumListingsRaw, latest] = await Promise.all([
+      prisma.listing.findMany({
+        where: { 
+          isPremium: true, 
+          isActive: true, 
+          approvalStatus: 'approved',
+          OR: [
+            { expiresAt: { gt: new Date() } },
+            { expiresAt: null } // Süresi belirtilmemiş ilanlar da dahil
+          ]
+        },
+        select: { 
+          id: true, 
+          title: true, 
+          price: true, 
+          location: true, 
+          category: true, 
+          images: true, 
+          createdAt: true, 
+          isPremium: true, 
+          views: true, 
+          user: { 
+            select: { id: true, name: true } 
+          } 
+        },
+        orderBy: [{ isPremium: 'desc' }, { createdAt: 'desc' }],
+        // Limit yok - Tüm premium ilanlar
+      }),
+      prisma.listing.findMany({
+        where: { 
+          isActive: true, 
+          approvalStatus: 'approved',
+          OR: [
+            { expiresAt: { gt: new Date() } },
+            { expiresAt: null } // Süresi belirtilmemiş ilanlar da dahil
+          ]
+        },
+        select: { 
+          id: true, 
+          title: true, 
+          price: true, 
+          location: true, 
+          category: true, 
+          images: true, 
+          createdAt: true, 
+          isPremium: true, 
+          views: true, 
+          user: { 
+            select: { id: true, name: true } 
+          } 
+        },
+        orderBy: { createdAt: 'desc' },
+        // Limit yok - Tüm ilanlar
+      }),
+    ]);
     
-    // Cache'den ham premium ilanları al (rotasyon için tüm havuz)
-    const cachedPremiumRaw = getCache<any[]>(premiumRawCacheKey);
-    const cachedLatest = getCache<any[]>(latestCacheKey);
+    console.log(`[Ana Sayfa] Premium ilan sayısı: ${premiumListingsRaw.length}`);
+    console.log(`[Ana Sayfa] Toplam ilan sayısı: ${latest.length}`);
     
-    let premiumListingsRaw: any[] = [];
-    let latest: any[] = [];
-    
-    if (cachedPremiumRaw && cachedLatest) {
-      // Cache'den ham veri al
-      premiumListingsRaw = cachedPremiumRaw;
-      latest = cachedLatest;
-    } else {
-      // Paralel query'ler ile performans iyileştirmesi - FCP için optimize edildi
-      // Premium ilanlar için daha fazla ilan çek (rotasyon için havuz oluştur)
-      [premiumListingsRaw, latest] = await Promise.all([
-        prisma.listing.findMany({
-          where: { isPremium: true, isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
-          select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
-          orderBy: [{ isPremium: 'desc' }, { createdAt: 'desc' }],
-          take: 16, // Rotasyon için daha fazla ilan çek (4'ten 16'ya)
-        }),
-        prisma.listing.findMany({
-          where: { isActive: true, approvalStatus: 'approved', expiresAt: { gt: new Date() } },
-          select: { id: true, title: true, price: true, location: true, category: true, images: true, createdAt: true, isPremium: true, views: true, user: { select: { id: true, name: true } } },
-          orderBy: { createdAt: 'desc' },
-          take: 8, // FCP için azaltıldı (12'den 8'e)
-        }),
-      ]);
-      
-      // Ham premium ilanları cache'e kaydet (60 saniye TTL)
-      setCache(premiumRawCacheKey, premiumListingsRaw, 60000);
-      setCache(latestCacheKey, latest, 60000);
-    }
+    // Debug: Filtreler olmadan toplam ilan sayısını kontrol et
+    const totalWithoutFilters = await prisma.listing.count();
+    const totalActive = await prisma.listing.count({ where: { isActive: true } });
+    const totalApproved = await prisma.listing.count({ where: { isActive: true, approvalStatus: 'approved' } });
+    const totalNotExpired = await prisma.listing.count({ 
+      where: { 
+        isActive: true, 
+        approvalStatus: 'approved', 
+        expiresAt: { gt: new Date() } 
+      } 
+    });
+    console.log(`[Ana Sayfa Debug] Toplam ilan (filtresiz): ${totalWithoutFilters}`);
+    console.log(`[Ana Sayfa Debug] Aktif ilan: ${totalActive}`);
+    console.log(`[Ana Sayfa Debug] Onaylı ilan: ${totalApproved}`);
+    console.log(`[Ana Sayfa Debug] Süresi dolmamış ilan: ${totalNotExpired}`);
     
     // Her istekte premium ilanları farklı rotasyon ile karıştır
     // Undefined/null ilanları filtrele
     const validPremiumListings = premiumListingsRaw.filter(l => l != null);
     const shuffledPremium = seededShuffle(validPremiumListings, rotationSeed);
-    // İlk 4 tanesini al (dönüşümlü gösterim için)
-    const premiumListings = shuffledPremium.slice(0, 4);
+    // Tüm premium ilanları göster (rotasyon ile karıştırılmış)
+    const premiumListings = shuffledPremium;
 
     // Güvenli JSON parse fonksiyonu
     const safeParseImages = (images: string | null): string[] => {
@@ -226,6 +263,10 @@ export default async function Home() {
               </Button>
             </Link>
           </div>
+          {/* İlanlarım Butonu - Sadece giriş yapılmış kullanıcılar için */}
+          <Suspense fallback={null}>
+            <IlanlarimButton />
+          </Suspense>
           {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
           <div className="mb-4">
             <Link href="/ilan-ver" className="block">
@@ -242,7 +283,7 @@ export default async function Home() {
         </div>
         <div className="flex-1 space-y-8">
           <FeaturedAds title="Öne Çıkan İlanlar" listings={featuredListings} />
-          <LatestAds title="Son Eklenen İlanlar" listings={latestListings} />
+          <LatestAds title="Tüm İlanlar" listings={latestListings} />
         </div>
       </div>
     </div>

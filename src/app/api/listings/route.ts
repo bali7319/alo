@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getAdminEmail } from '@/lib/admin';
 import { Prisma } from '@prisma/client';
 import { createListingSchema } from '@/lib/validations/listing';
 import { clearCachePattern } from '@/lib/cache';
@@ -19,13 +18,8 @@ export async function GET(request: NextRequest) {
 
     console.log(`[GET /api/listings] Fetching page ${page}, limit ${limit}, search: ${search}`);
 
-    // Admin kullanıcısını bul (ilanlarını hariç tutmak için)
-    const adminUser = await prisma.user.findUnique({
-      where: { email: getAdminEmail() },
-      select: { id: true },
-    });
-
     // Sadece aktif ve onaylanmış ilanları getir
+    // NOT: Admin ilanları da görünüyor (admin filtresi kaldırıldı)
     const baseWhere: Prisma.ListingWhereInput = {
       isActive: true,
       approvalStatus: 'approved',
@@ -34,16 +28,21 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // Arama terimi varsa, admin filtresini kaldır (arama sonuçlarında admin ilanları da görünsün)
-    // Arama yoksa, admin kullanıcısının ilanlarını hariç tut
-    let where: Prisma.ListingWhereInput = baseWhere;
-    if (!search || !search.trim()) {
-      // Arama yoksa, admin kullanıcısının ilanlarını hariç tut
-      if (adminUser) {
-        baseWhere.userId = { not: adminUser.id };
-        where = baseWhere;
+    // Debug: Toplam ilan sayısını kontrol et
+    const totalActiveListings = await prisma.listing.count({
+      where: {
+        isActive: true,
+        approvalStatus: 'approved',
       }
-    } else {
+    });
+    const totalNonExpiredListings = await prisma.listing.count({
+      where: baseWhere
+    });
+    console.log(`[GET /api/listings] Debug - Toplam aktif ilan: ${totalActiveListings}, Süresi dolmamış: ${totalNonExpiredListings}`);
+
+    // Arama terimi varsa, arama yap
+    let where: Prisma.ListingWhereInput = baseWhere;
+    if (search && search.trim()) {
       // Arama varsa, admin filtresini kaldır ve arama yap
       const searchTerm = search.trim();
       console.log(`[GET /api/listings] Arama terimi: "${searchTerm}"`);
@@ -101,7 +100,6 @@ export async function GET(request: NextRequest) {
         if (debugListings.length > 0) {
           debugListings.forEach((l, idx) => {
             const isExpired = l.expiresAt ? new Date(l.expiresAt) < new Date() : false;
-            const isAdminUser = adminUser && l.userId === adminUser.id;
             console.log(`[GET /api/listings] DEBUG İlan ${idx + 1}:`, JSON.stringify({
               title: l.title,
               isActive: l.isActive,
@@ -109,9 +107,7 @@ export async function GET(request: NextRequest) {
               expiresAt: l.expiresAt,
               isExpired: isExpired,
               userEmail: l.user?.email,
-              userId: l.userId,
-              isAdminUser: isAdminUser,
-              adminUserId: adminUser?.id
+              userId: l.userId
             }, null, 2));
           });
         } else {

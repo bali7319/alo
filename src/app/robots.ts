@@ -7,17 +7,19 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: '/',
         disallow: [
+          // API endpoint'leri - kesinlikle engelle
           '/api/',
+          // Kullanıcı özel sayfaları - engelle
           '/admin/',
+          '/moderator/',
           '/profil/',
           '/ilanlarim/',
           '/favorilerim/',
           '/mesajlar/',
           '/odeme/',
-          '/giris',
-          '/kayit',
-          '/register',
-          '/login',
+          '/fatura/',
+          '/sifre-sifirla/',
+          '/sifremi-unuttum/',
           // Eski URL pattern'lerini engelle (404 hatalarını önlemek için)
           '/commodity/',
           '/content.php',
@@ -40,11 +42,15 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           '/api/',
           '/admin/',
+          '/moderator/',
           '/profil/',
           '/ilanlarim/',
           '/favorilerim/',
           '/mesajlar/',
           '/odeme/',
+          '/fatura/',
+          '/sifre-sifirla/',
+          '/sifremi-unuttum/',
           // Eski URL pattern'lerini engelle
           '/commodity/',
           '/content.php',

@@ -51,18 +51,42 @@ function IlanlarContent() {
         
         // Search parametresini API'ye gönder
         const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
-        const response = await fetch(`/api/listings?page=${page}&limit=20${searchParam}`);
-        const data = await response.json();
+        const apiUrl = `/api/listings?page=${page}&limit=20${searchParam}`;
         
-        if (response.ok) {
-          setListings(data.listings || []);
+        console.log('[İlanlar] API isteği:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          cache: 'no-store', // Her zaman fresh data
+        });
+        
+        console.log('[İlanlar] API response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[İlanlar] API hatası:', response.status, errorText);
+          throw new Error(`API hatası: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('[İlanlar] API data:', { 
+          listingsCount: data.listings?.length || 0, 
+          total: data.pagination?.total || 0,
+          totalPages: data.pagination?.totalPages || 0
+        });
+        
+        if (data.listings && Array.isArray(data.listings)) {
+          setListings(data.listings);
           setTotalPages(data.pagination?.totalPages || 1);
         } else {
-          setError(data.error || 'İlanlar yüklenirken bir hata oluştu');
+          console.warn('[İlanlar] Beklenmeyen data formatı:', data);
+          setListings([]);
+          setTotalPages(1);
         }
       } catch (error: any) {
-        console.error('İlanlar yükleme hatası:', error);
-        setError('İlanlar yüklenirken bir hata oluştu');
+        console.error('[İlanlar] Yükleme hatası:', error);
+        setError(error.message || 'İlanlar yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.');
+        setListings([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
@@ -107,12 +131,24 @@ function IlanlarContent() {
           </div>
         )}
 
-        {listings.length === 0 && !loading ? (
+        {listings.length === 0 && !loading && !error ? (
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg mb-4">Henüz ilan bulunmuyor.</p>
             <Button asChild>
               <a href="/ilan-ver">İlan Ver</a>
             </Button>
+          </div>
+        ) : listings.length === 0 && !loading && error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600 text-lg mb-4">{error}</p>
+            <div className="flex gap-4 justify-center">
+              <Button onClick={() => window.location.reload()}>
+                Sayfayı Yenile
+              </Button>
+              <Button asChild variant="outline">
+                <a href="/ilan-ver">İlan Ver</a>
+              </Button>
+            </div>
           </div>
         ) : (
           <>

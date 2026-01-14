@@ -71,32 +71,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   )
 
   // İlan sayfaları (aktif ve onaylı)
+  // NOT: Google sitemap limiti 50,000 URL'dir
+  // Büyük siteler için sitemap index kullanılmalı
   let listingPages: MetadataRoute.Sitemap = []
   try {
     const listings = await prisma.listing.findMany({
       where: {
         isActive: true,
         approvalStatus: 'approved',
+        expiresAt: {
+          gt: new Date(), // Süresi dolmamış ilanlar
+        },
       },
       select: {
         id: true,
         title: true,
         updatedAt: true,
+        createdAt: true,
       },
       orderBy: { updatedAt: 'desc' },
-      take: 5000, // PERFORMANS: İlk 5000 ilan yeterli (sitemap için)
+      take: 10000, // Sitemap limitini artırdık (50,000'e kadar güvenli)
     })
 
     listingPages = listings.map((listing) => ({
       url: `${baseUrl}/ilan/${createSlug(listing.title)}`,
-      lastModified: listing.updatedAt,
+      lastModified: listing.updatedAt || listing.createdAt,
       changeFrequency: 'weekly' as const,
       priority: 0.6,
     }))
   } catch (error) {
     console.error('Sitemap listing error:', error)
+    // Hata durumunda boş array döndür, sitemap bozulmasın
   }
 
-  return [...staticPages, ...categoryPages, ...subCategoryPages, ...listingPages]
+  // Tüm sayfaları birleştir
+  const allPages = [
+    ...staticPages,
+    ...categoryPages,
+    ...subCategoryPages,
+    ...listingPages,
+  ]
+
+  // Sitemap limiti kontrolü (50,000 URL)
+  if (allPages.length > 50000) {
+    console.warn(`Sitemap çok büyük (${allPages.length} URL). Sitemap index kullanmayı düşünün.`)
+    // İlk 50,000'i döndür
+    return allPages.slice(0, 50000)
+  }
+
+  return allPages
 }
 
