@@ -1,4 +1,4 @@
-import dynamic from 'next/dynamic'
+import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { Plus } from 'lucide-react'
@@ -8,21 +8,21 @@ import { Button } from '@/components/ui/button'
 import IlanlarimButton from '@/components/ilanlarim-button'
 
 // Dynamic imports - Lazy loading için (FCP optimizasyonu)
-const Sidebar = dynamic(
+const Sidebar = nextDynamic(
   () => import("@/components/sidebar").then(mod => ({ default: mod.Sidebar })),
   {
     loading: () => <div className="w-full md:w-64 h-64 bg-gray-100 animate-pulse rounded-lg" />
   }
 )
 
-const FeaturedAds = dynamic(
+const FeaturedAds = nextDynamic(
   () => import('@/components/featured-ads').then(mod => ({ default: mod.FeaturedAds })),
   {
     loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
   }
 )
 
-const LatestAds = dynamic(
+const LatestAds = nextDynamic(
   () => import('@/components/latest-ads').then(mod => ({ default: mod.LatestAds })),
   {
     loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
