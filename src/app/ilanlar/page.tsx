@@ -113,6 +113,11 @@ function IlanlarContent() {
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-8 md:py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-2xl md:text-4xl font-bold text-white mb-4">Tüm İlanlar</h1>
+          <div className="mt-4 flex justify-center">
+            <Button asChild className="bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold shadow-lg">
+              <a href="/ilan-ver">İlan Ver</a>
+            </Button>
+          </div>
         </div>
       </section>
 
