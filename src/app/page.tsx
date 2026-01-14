@@ -5,27 +5,14 @@ import { Plus } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { SearchBar } from '@/components/search-bar'
 import { Button } from '@/components/ui/button'
-import IlanlarimButton from '@/components/ilanlarim-button'
+import { FeaturedAds } from '@/components/featured-ads'
+import { LatestAds } from '@/components/latest-ads'
 
 // Dynamic imports - Lazy loading için (FCP optimizasyonu)
 const Sidebar = nextDynamic(
   () => import("@/components/sidebar").then(mod => ({ default: mod.Sidebar })),
   {
     loading: () => <div className="w-full md:w-64 h-64 bg-gray-100 animate-pulse rounded-lg" />
-  }
-)
-
-const FeaturedAds = nextDynamic(
-  () => import('@/components/featured-ads').then(mod => ({ default: mod.FeaturedAds })),
-  {
-    loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
-  }
-)
-
-const LatestAds = nextDynamic(
-  () => import('@/components/latest-ads').then(mod => ({ default: mod.LatestAds })),
-  {
-    loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
   }
 )
 
@@ -69,9 +56,11 @@ export default async function Home() {
     const randomSeed = Math.floor(Math.random() * 1000000);
     const rotationSeed = `${timestamp}-${randomSeed}`;
     
-    // Cache'i devre dışı bırak - Her zaman fresh data çek
-    // Paralel query'ler ile performans iyileştirmesi
-    // TÜM ilanları çek (limit yok)
+    // Not: "tüm ilanları" tek seferde çekmek üretimde timeout/performans sorunlarına yol açabilir.
+    // Ana sayfada yüksek ama makul limit kullanıyoruz; tam liste için /ilanlar.
+    const PREMIUM_TAKE = 200;
+    const LATEST_TAKE = 500;
+
     const [premiumListingsRaw, latest] = await Promise.all([
       prisma.listing.findMany({
         where: { 
@@ -98,7 +87,7 @@ export default async function Home() {
           } 
         },
         orderBy: [{ isPremium: 'desc' }, { createdAt: 'desc' }],
-        // Limit yok - Tüm premium ilanlar
+        take: PREMIUM_TAKE,
       }),
       prisma.listing.findMany({
         where: { 
@@ -124,28 +113,9 @@ export default async function Home() {
           } 
         },
         orderBy: { createdAt: 'desc' },
-        // Limit yok - Tüm ilanlar
+        take: LATEST_TAKE,
       }),
     ]);
-    
-    console.log(`[Ana Sayfa] Premium ilan sayısı: ${premiumListingsRaw.length}`);
-    console.log(`[Ana Sayfa] Toplam ilan sayısı: ${latest.length}`);
-    
-    // Debug: Filtreler olmadan toplam ilan sayısını kontrol et
-    const totalWithoutFilters = await prisma.listing.count();
-    const totalActive = await prisma.listing.count({ where: { isActive: true } });
-    const totalApproved = await prisma.listing.count({ where: { isActive: true, approvalStatus: 'approved' } });
-    const totalNotExpired = await prisma.listing.count({ 
-      where: { 
-        isActive: true, 
-        approvalStatus: 'approved', 
-        expiresAt: { gt: new Date() } 
-      } 
-    });
-    console.log(`[Ana Sayfa Debug] Toplam ilan (filtresiz): ${totalWithoutFilters}`);
-    console.log(`[Ana Sayfa Debug] Aktif ilan: ${totalActive}`);
-    console.log(`[Ana Sayfa Debug] Onaylı ilan: ${totalApproved}`);
-    console.log(`[Ana Sayfa Debug] Süresi dolmamış ilan: ${totalNotExpired}`);
     
     // Her istekte premium ilanları farklı rotasyon ile karıştır
     // Undefined/null ilanları filtrele
@@ -263,10 +233,6 @@ export default async function Home() {
               </Button>
             </Link>
           </div>
-          {/* İlanlarım Butonu - Sadece giriş yapılmış kullanıcılar için */}
-          <Suspense fallback={null}>
-            <IlanlarimButton />
-          </Suspense>
           {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
           <div className="mb-4">
             <Link href="/ilan-ver" className="block">
@@ -284,6 +250,11 @@ export default async function Home() {
         <div className="flex-1 space-y-8">
           <FeaturedAds title="Öne Çıkan İlanlar" listings={featuredListings} />
           <LatestAds title="Tüm İlanlar" listings={latestListings} />
+          <div className="pt-2">
+            <Link href="/ilanlar" className="inline-flex">
+              <Button variant="outline">Tüm ilanları /ilanlar sayfasında gör</Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
