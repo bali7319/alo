@@ -68,12 +68,12 @@ export default async function Home() {
         where: { 
           isActive: true, 
           approvalStatus: 'approved',
-          expiresAt: { gt: nowForDb },
-          OR: [
-            // Bazı ilanlarda "premium" durumunu boolean yerine premiumUntil üzerinden takip ediyoruz
-            { isPremium: true },
-            { premiumUntil: { gt: nowForDb } },
-          ]
+          // Premium'u belirle: isPremium=true veya premiumUntil devam ediyor
+          // Görünürlük: expiresAt geçmiş olsa bile premiumUntil devam ediyorsa göster
+          AND: [
+            { OR: [{ isPremium: true }, { premiumUntil: { gt: nowForDb } }] },
+            { OR: [{ expiresAt: { gt: nowForDb } }, { premiumUntil: { gt: nowForDb } }] },
+          ],
         },
         select: { 
           id: true, 

@@ -16,8 +16,12 @@ async function checkListings() {
       where: {
         isActive: true,
         approvalStatus: 'approved',
-        expiresAt: { gt: now },
-        OR: [{ isPremium: true }, { premiumUntil: { gt: now } }]
+        // Premium'u belirle: isPremium=true veya premiumUntil devam ediyor
+        // Görünürlük: expiresAt geçmiş olsa bile premiumUntil devam ediyorsa say
+        AND: [
+          { OR: [{ isPremium: true }, { premiumUntil: { gt: now } }] },
+          { OR: [{ expiresAt: { gt: now } }, { premiumUntil: { gt: now } }] },
+        ],
       }
     });
 
