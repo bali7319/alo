@@ -58,16 +58,22 @@ export default async function Home() {
     
     // Not: "tüm ilanları" tek seferde çekmek üretimde timeout/performans sorunlarına yol açabilir.
     // Ana sayfada yüksek ama makul limit kullanıyoruz; tam liste için /ilanlar.
-    const PREMIUM_TAKE = 200;
+    // Premium sayısı artarsa eski premiumlar da düşmesin diye biraz yüksek tutuyoruz.
+    const PREMIUM_TAKE = 1000;
     const LATEST_TAKE = 500;
+    const nowForDb = new Date();
 
     const [premiumListingsRaw, latest] = await Promise.all([
       prisma.listing.findMany({
         where: { 
-          isPremium: true, 
           isActive: true, 
           approvalStatus: 'approved',
-          expiresAt: { gt: new Date() }
+          expiresAt: { gt: nowForDb },
+          OR: [
+            // Bazı ilanlarda "premium" durumunu boolean yerine premiumUntil üzerinden takip ediyoruz
+            { isPremium: true },
+            { premiumUntil: { gt: nowForDb } },
+          ]
         },
         select: { 
           id: true, 
@@ -83,14 +89,17 @@ export default async function Home() {
             select: { id: true, name: true } 
           } 
         },
-        orderBy: [{ isPremium: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [
+          { premiumUntil: 'desc' },
+          { createdAt: 'desc' },
+        ],
         take: PREMIUM_TAKE,
       }),
       prisma.listing.findMany({
         where: { 
           isActive: true, 
           approvalStatus: 'approved',
-          expiresAt: { gt: new Date() }
+          expiresAt: { gt: nowForDb }
         },
         select: { 
           id: true, 
