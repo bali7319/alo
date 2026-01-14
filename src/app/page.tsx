@@ -67,10 +67,7 @@ export default async function Home() {
           isPremium: true, 
           isActive: true, 
           approvalStatus: 'approved',
-          OR: [
-            { expiresAt: { gt: new Date() } },
-            { expiresAt: null } // Süresi belirtilmemiş ilanlar da dahil
-          ]
+          expiresAt: { gt: new Date() }
         },
         select: { 
           id: true, 
@@ -93,10 +90,7 @@ export default async function Home() {
         where: { 
           isActive: true, 
           approvalStatus: 'approved',
-          OR: [
-            { expiresAt: { gt: new Date() } },
-            { expiresAt: null } // Süresi belirtilmemiş ilanlar da dahil
-          ]
+          expiresAt: { gt: new Date() }
         },
         select: { 
           id: true, 
