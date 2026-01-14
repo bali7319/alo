@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { CategoryIcon } from '@/components/category-icon';
 
 export const metadata: Metadata = {
   title: 'Kategoriler - Tüm İlan Kategorileri | Alo17',
@@ -69,8 +68,10 @@ function CategoriesPage() {
               className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
             >
               <div className="p-6">
-                <div className="flex items-center justify-center w-20 h-20 mx-auto mb-4 bg-white rounded-xl border border-gray-100 group-hover:border-gray-200 transition-colors">
-                  <CategoryIcon slug={category.slug} alt={`${category.name} kategorisi simgesi`} size={64} />
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
+                  <span className="text-2xl font-bold text-blue-600">
+                    {category.name.charAt(0)}
+                  </span>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 text-center mb-2 group-hover:text-blue-600 transition-colors">
                   {category.name}
