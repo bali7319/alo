@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { categories } from "@/lib/categories"
@@ -30,7 +31,7 @@ import {
   Search
 } from "lucide-react"
 
-const categoryIcons = {
+const categoryFallbackIcons = {
   is: Briefcase,
   hizmetler: Wrench,
   elektronik: Smartphone,
@@ -47,25 +48,6 @@ const categoryIcons = {
   "saglik-guzellik": Heart,
   "sanat-hobi": Palette,
   "ucretsiz-gel-al": Gift
-}
-
-const categoryColors = {
-  is: "text-blue-500",
-  hizmetler: "text-green-500",
-  elektronik: "text-blue-500",
-  "ev-ve-bahce": "text-orange-500",
-  giyim: "text-purple-500",
-  "moda-stil": "text-purple-500",
-  "sporlar-oyunlar-eglenceler": "text-orange-500",
-  "anne-bebek": "text-pink-500",
-  "cocuk-dunyasi": "text-pink-500",
-  "egitim-kurslar": "text-indigo-500",
-  "yemek-icecek": "text-yellow-500",
-  "catering-ticaret": "text-emerald-500",
-  "turizm-konaklama": "text-cyan-500",
-  "saglik-guzellik": "text-red-500",
-  "sanat-hobi": "text-purple-500",
-  "ucretsiz-gel-al": "text-green-500"
 }
 
 export const Sidebar = () => {
@@ -249,8 +231,7 @@ export const Sidebar = () => {
             ) : (
               <ul className="space-y-2" role="list">
                 {filterCategories(categories).map((category) => {
-                const IconComponent = categoryIcons[category.slug as keyof typeof categoryIcons] || MoreHorizontal;
-                const iconColor = categoryColors[category.slug as keyof typeof categoryColors] || "text-slate-500";
+                const FallbackIcon = categoryFallbackIcons[category.slug as keyof typeof categoryFallbackIcons] || MoreHorizontal;
                 const isActive = currentCategory === category.slug;
                 
                 return (
@@ -266,7 +247,21 @@ export const Sidebar = () => {
                       aria-current={isActive ? "page" : undefined}
                       aria-label={`${category.name} kategorisini görüntüle`}
                     >
-                      <IconComponent className={`w-5 h-5 transition-colors duration-200 ${isActive ? "text-blue-600" : iconColor}`} aria-hidden="true" />
+                      <span className="relative w-5 h-5 flex-shrink-0" aria-hidden="true">
+                        <Image
+                          src={`/category-icons/${category.slug}.svg`}
+                          alt=""
+                          fill
+                          sizes="20px"
+                          className="object-contain"
+                          onError={(e) => {
+                            // Next/Image onError doesn't provide direct fallback render;
+                            // fallback icon is rendered below if image fails in some browsers.
+                            (e.currentTarget as any).style.display = 'none'
+                          }}
+                        />
+                        <FallbackIcon className={`w-5 h-5 ${isActive ? "text-blue-600" : "text-slate-500"}`} />
+                      </span>
                       <span>{category.name}</span>
                     </Link>
                   </li>
