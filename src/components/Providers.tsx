@@ -80,8 +80,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider 
       refetchInterval={0} 
       refetchOnWindowFocus={false}
-      // NextAuth hatalarını sessizleştirmek için
-      basePath={process.env.NEXTAUTH_URL || '/api/auth'}
     >
       {children}
     </SessionProvider>

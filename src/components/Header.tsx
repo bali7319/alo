@@ -50,7 +50,7 @@ export default function Header() {
     console.log('SignOut başlatılıyor...');
 
     try {
-      // 1. Tüm çerezleri (HttpOnly olmayanları) temizle
+      // 1) Storage temizleme (güvenlik ve UI tutarlılığı için)
       const cookies = document.cookie.split(';');
       for (let i = 0; i < cookies.length; i++) {
         const cookie = cookies[i];
@@ -66,32 +66,15 @@ export default function Header() {
       sessionStorage.clear();
       console.log('Storage temizlendi');
 
-      // 2. NextAuth endpoint'ini POST ile tetikle (Çerezleri sunucu tarafında geçersiz kılar)
-      try {
-        await fetch('/api/auth/signout', { method: 'POST', credentials: 'include' });
-        console.log('NextAuth signout endpoint çağrıldı');
-      } catch (e) {
-        console.log('NextAuth signout endpoint hatası:', e);
-      }
-
-      // NextAuth signOut fonksiyonunu da çağır (redirect: false)
-      try {
-        await signOut({ redirect: false });
-        console.log('NextAuth signOut fonksiyonu çağrıldı');
-      } catch (e) {
-        console.log('NextAuth signOut fonksiyonu hatası:', e);
-      }
-
-      console.log('Yönlendiriliyor...');
-      
-      // 3. Tarayıcıyı tamamen başka bir sayfaya zorla (Cache kırmak için query ekleyerek)
-      window.location.href = window.location.origin + '/giris?logout=' + Date.now();
+      // 2) NextAuth'un yerleşik signOut akışı (cookie temizliği + redirect)
+      // /giris sayfası logout parametresinde ek cookie temizliği yapıyor.
+      await signOut({ callbackUrl: '/giris?logout=true' });
       
     } catch (error) {
       console.error('Çıkış hatası:', error);
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = window.location.origin + '/giris?logout=' + Date.now();
+      window.location.href = window.location.origin + '/giris?logout=true';
     } finally {
       setIsSigningOut(false);
       (window as any).isLoggingOut = false;

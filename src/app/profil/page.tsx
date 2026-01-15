@@ -151,12 +151,6 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     try {
-      // Önce NextAuth signout endpoint'ini çağır (cookie'yi silmek için)
-      const response = await fetch('/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      
       // Cookie'leri manuel olarak sil (güvenlik için)
       const cookies = document.cookie.split(';');
       for (let cookie of cookies) {
@@ -171,16 +165,7 @@ export default function ProfilePage() {
       }
       
       // NextAuth signOut'u çağır (session'ı temizlemek için)
-      await signOut({ 
-        callbackUrl: '/',
-        redirect: false 
-      });
-      
-      // Kısa bir bekleme ekle (cookie silme işleminin tamamlanması için)
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Ana sayfaya yönlendir
-      window.location.href = '/';
+      await signOut({ callbackUrl: '/giris?logout=true' });
     } catch (error) {
       console.error('SignOut hatası:', error);
       // Hata durumunda bile cookie'leri sil ve yönlendir
@@ -194,8 +179,8 @@ export default function ProfilePage() {
           document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=alo17.tr`;
         }
       }
-      // Ana sayfaya yönlendir
-      window.location.href = '/';
+      // Giriş sayfasına yönlendir
+      window.location.href = '/giris?logout=true';
     }
   };
 
