@@ -41,41 +41,32 @@ function buildCookieDeletionResponse(nextPath: string) {
     },
   });
 
-  const cookieNames = [
-    // NextAuth/Auth.js session + csrf
+  // Nginx bazı durumlarda çok büyük header setlerinde 502 döndürebiliyor.
+  // Logout için minimum gerekli olan session cookie'lerini temizlemek yeterli.
+  const isProduction = process.env.NODE_ENV === 'production';
+  const secure = isProduction; // prod'da true olmalı
+
+  const minimalCookieNames = [
+    // NextAuth/Auth.js session token cookie'leri
     'next-auth.session-token',
     '__Secure-next-auth.session-token',
     '__Host-next-auth.session-token',
     'authjs.session-token',
-    'next-auth.csrf-token',
-    '__Secure-next-auth.csrf-token',
-    '__Host-next-auth.csrf-token',
-    'authjs.csrf-token',
-
-    // callback / pkce helpers
-    'next-auth.callback-url',
-    '__Secure-next-auth.callback-url',
-    '__Host-next-auth.callback-url',
-    'next-auth.pkce.code_verifier',
-    '__Secure-next-auth.pkce.code_verifier',
-    '__Host-next-auth.pkce.code_verifier',
   ];
 
-  const isProduction = process.env.NODE_ENV === 'production';
-  const domains: Array<string | undefined> = [undefined, 'alo17.tr', '.alo17.tr'];
-  const paths = ['/', '/admin', '/api'];
-
-  for (const name of cookieNames) {
-    // Not: NextResponse.cookies.set aynı isimli cookie'leri overwrite edebiliyor;
-    // bu yüzden header'a manuel append yapıyoruz (Path=/ ve Domain varyasyonları için).
-    for (const path of paths) {
-      for (const domain of domains) {
-        response.headers.append(
-          'Set-Cookie',
-          serializeDeletionCookie({ name, path, domain, secure: isProduction })
-        );
-      }
+  for (const name of minimalCookieNames) {
+    // __Host- cookie'lerde Domain OLAMAZ, Path=/ olmalı
+    if (name.startsWith('__Host-')) {
+      response.headers.append('Set-Cookie', serializeDeletionCookie({ name, path: '/', secure: true }));
+      continue;
     }
+
+    // Domain'siz varyasyon (bazı ortamlarda cookie domain'siz set edilebiliyor)
+    response.headers.append('Set-Cookie', serializeDeletionCookie({ name, path: '/', secure }));
+
+    // Ana domain varyasyonları
+    response.headers.append('Set-Cookie', serializeDeletionCookie({ name, path: '/', domain: 'alo17.tr', secure }));
+    response.headers.append('Set-Cookie', serializeDeletionCookie({ name, path: '/', domain: '.alo17.tr', secure }));
   }
 
   return response;
