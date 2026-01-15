@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-function buildCookieDeletionResponse(nextUrl: string) {
-  const response = NextResponse.redirect(nextUrl, 302);
+function buildCookieDeletionResponse(nextPath: string) {
+  // Relative redirect: prod'da Host yanlış (localhost) görünebilse bile
+  // tarayıcı mevcut origin üzerinde kalır (örn. alo17.tr).
+  const response = new NextResponse(null, {
+    status: 302,
+    headers: {
+      Location: nextPath,
+    },
+  });
 
   const cookieNames = [
     // NextAuth/Auth.js session + csrf
@@ -55,7 +62,7 @@ export async function GET(request: NextRequest) {
 
   // Only allow same-origin relative redirects
   const safeNext = next.startsWith('/') ? next : '/giris?logout=true';
-  return buildCookieDeletionResponse(new URL(safeNext, url.origin).toString());
+  return buildCookieDeletionResponse(safeNext);
 }
 
 export async function POST(request: NextRequest) {
