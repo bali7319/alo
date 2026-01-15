@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function serializeDeletionCookie(opts: {
+  name: string;
+  path: string;
+  domain?: string;
+  secure: boolean;
+}) {
+  // Expire immediately + Max-Age=0 for compatibility
+  const base = [`${opts.name}=`, `Path=${opts.path}`, 'Expires=Thu, 01 Jan 1970 00:00:00 GMT', 'Max-Age=0', 'HttpOnly', 'SameSite=Lax'];
+  if (opts.domain) base.push(`Domain=${opts.domain}`);
+  if (opts.secure) base.push('Secure');
+  return base.join(';\x20');
+}
+
 function buildCookieDeletionResponse(nextPath: string) {
   // Bazı reverse proxy/edge katmanları 30x response'larda Set-Cookie'yi problemli işleyebiliyor.
   // Bu yüzden 200 HTML döndürüp, cookie'leri sildikten sonra client-side redirect yapıyoruz.
@@ -53,20 +66,14 @@ function buildCookieDeletionResponse(nextPath: string) {
   const paths = ['/', '/admin', '/api'];
 
   for (const name of cookieNames) {
-    // Default delete
-    response.cookies.delete(name);
-
+    // Not: NextResponse.cookies.set aynı isimli cookie'leri overwrite edebiliyor;
+    // bu yüzden header'a manuel append yapıyoruz (Path=/ ve Domain varyasyonları için).
     for (const path of paths) {
       for (const domain of domains) {
-        response.cookies.set(name, '', {
-          value: '',
-          expires: new Date(0),
-          httpOnly: true,
-          secure: isProduction,
-          sameSite: 'lax',
-          path,
-          ...(domain ? { domain } : {}),
-        });
+        response.headers.append(
+          'Set-Cookie',
+          serializeDeletionCookie({ name, path, domain, secure: isProduction })
+        );
       }
     }
   }
