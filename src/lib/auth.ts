@@ -5,7 +5,7 @@ import { JWT } from 'next-auth/jwt';
 import { compare } from 'bcryptjs';
 import { prisma } from './prisma';
 import { isAdminEmail } from './admin';
-import { safeLog, safeError } from './logger';
+import { safeLog, safeError, safeWarn } from './logger';
 
 // Debug mode: sadece development veya DEBUG_AUTH env variable ile aktif
 const DEBUG_AUTH = process.env.NODE_ENV === 'development' || process.env.DEBUG_AUTH === 'true';
@@ -35,8 +35,9 @@ const providers: (ReturnType<typeof CredentialsProvider> | ReturnType<typeof Goo
         }
         
         // Veritabanından kullanıcıyı bul (email case-insensitive)
-        const user = await prisma.user.findUnique({
-          where: { email: emailLower },
+        // Not: Daha önce Google ile farklı case'lerde kaydolmuş kullanıcılar olabiliyor.
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: emailLower, mode: 'insensitive' } },
           select: {
             id: true,
             email: true,
@@ -242,21 +243,24 @@ export const authOptions: NextAuthOptions = {
             return false;
           }
 
+          // Google bazen email'i farklı case'lerde döndürebiliyor; her yerde normalize edelim.
+          const normalizedEmail = user.email.toLowerCase().trim();
+
           if (DEBUG_AUTH) {
-            safeLog('Google sign in başladı', { email: user.email, name: user.name });
+            safeLog('Google sign in başladı', { email: normalizedEmail, name: user.name }, ['email']);
           }
 
           // Kullanıcıyı veritabanında ara
-          let dbUser = await prisma.user.findUnique({
-            where: { email: user.email },
+          let dbUser = await prisma.user.findFirst({
+            where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
           });
 
           // Kullanıcı yoksa oluştur
           if (!dbUser) {
-            console.log('Yeni kullanıcı oluşturuluyor:', user.email);
+            console.log('Yeni kullanıcı oluşturuluyor:', normalizedEmail);
             dbUser = await prisma.user.create({
               data: {
-                email: user.email,
+                email: normalizedEmail,
                 name: user.name || (profile?.name as string | undefined) || 'Kullanıcı',
                 password: '', // Google ile giriş yapanların şifresi yok
                 phone: null,
@@ -272,6 +276,7 @@ export const authOptions: NextAuthOptions = {
             if (DEBUG_AUTH) {
               safeLog('Kullanıcı güncelleniyor', { userId: dbUser.id });
             }
+            // Email'i normalize etmeyi deneme (unique çakışma riskini minimize etmek için sadece id üzerinden güncelle)
             dbUser = await prisma.user.update({
               where: { id: dbUser.id },
               data: {
