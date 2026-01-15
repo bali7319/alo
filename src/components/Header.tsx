@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 
 interface Notification {
@@ -66,9 +66,8 @@ export default function Header() {
       sessionStorage.clear();
       console.log('Storage temizlendi');
 
-      // 2) NextAuth'un yerleşik signOut akışı (cookie temizliği + redirect)
-      // /giris sayfası logout parametresinde ek cookie temizliği yapıyor.
-      await signOut({ callbackUrl: '/giris?logout=true' });
+      // 2) Sunucu tarafında cookie temizleyip redirect eden güvenilir logout
+      window.location.href = `/api/logout?next=${encodeURIComponent('/giris?logout=true')}&ts=${Date.now()}`;
       
     } catch (error) {
       console.error('Çıkış hatası:', error);

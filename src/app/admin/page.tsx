@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Users, FileText, Eye, MessageSquare, Star, Clock, XCircle, CheckCircle, LogOut, Trash2, Search, Mail } from 'lucide-react';
 
@@ -118,8 +118,8 @@ export default function AdminPage() {
       sessionStorage.clear();
       console.log('Storage temizlendi');
 
-      // NextAuth'un yerleşik signOut akışı
-      await signOut({ callbackUrl: '/giris?logout=true' });
+      // Sunucu tarafında cookie temizleyip redirect eden güvenilir logout
+      window.location.href = `/api/logout?next=${encodeURIComponent('/giris?logout=true')}&ts=${Date.now()}`;
       
     } catch (error) {
       console.error('Çıkış hatası:', error);

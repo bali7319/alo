@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import {
   UserIcon,
   EnvelopeIcon,
@@ -164,8 +164,8 @@ export default function ProfilePage() {
         }
       }
       
-      // NextAuth signOut'u çağır (session'ı temizlemek için)
-      await signOut({ callbackUrl: '/giris?logout=true' });
+      // Sunucu tarafında cookie temizleyip redirect eden güvenilir logout
+      window.location.href = `/api/logout?next=${encodeURIComponent('/giris?logout=true')}&ts=${Date.now()}`;
     } catch (error) {
       console.error('SignOut hatası:', error);
       // Hata durumunda bile cookie'leri sil ve yönlendir
