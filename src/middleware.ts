@@ -279,22 +279,17 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Logout parametresi kontrolü - eğer logout=true varsa, token olsa bile giriş sayfasına yönlendir
+  // Logout parametresi kontrolü:
+  // /giris?logout=true sayfasının açılmasına İZİN ver (cookie temizliği burada tamamlanıyor)
+  // Diğer tüm sayfalarda logout=true varsa kullanıcıyı /giris?logout=true'ye taşı.
   const logoutParam = request.nextUrl.searchParams.get('logout');
   if (logoutParam === 'true') {
-    // Logout parametresini temizle ve ana sayfaya yönlendir
-    const cleanUrl = new URL('/', request.url);
-    cleanUrl.searchParams.delete('logout');
-    
-    // Admin/moderator route'larındaysa giriş sayfasına yönlendir
-    if (pathname.startsWith('/admin') || pathname.startsWith('/moderator')) {
+    if (pathname !== '/giris') {
       const loginUrl = new URL('/giris', request.url);
-      loginUrl.searchParams.delete('logout');
+      loginUrl.searchParams.set('logout', 'true');
       return NextResponse.redirect(loginUrl);
     }
-    
-    // Diğer sayfalarda logout parametresini temizle
-    return NextResponse.redirect(cleanUrl);
+    // /giris?logout=true için devam et
   }
 
   // Admin ve moderator route'ları için authentication kontrolü
