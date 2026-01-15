@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, Edit, CreditCard, Send, CheckCircle, Loader2 } from 'lucide-react';
@@ -454,10 +454,10 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 pt-6 border-t">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t">
               <Link
                 href={`/ilan-ver/duzenle/${listing.id}`}
-                className="w-full sm:w-auto sm:min-w-[200px] inline-flex items-center justify-center whitespace-nowrap px-8 py-4 text-base bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+                className="w-full inline-flex items-center justify-center whitespace-nowrap px-10 py-4 text-base bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
               >
                 <Edit className="w-5 h-5 mr-2" />
                 Düzenle
@@ -468,12 +468,12 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
                   <button
                     onClick={handleProceedToPayment}
                     disabled={isSubmitting}
-                    className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center whitespace-nowrap px-8 py-4 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full inline-flex items-center justify-center whitespace-nowrap px-10 py-4 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <CreditCard className="w-5 h-5 mr-2" />
                     {isSubmitting ? 'Yönlendiriliyor...' : 'Ödemeye Geç'}
                   </button>
-                  <div className="w-full text-center text-sm text-yellow-600 mt-2">
+                  <div className="sm:col-span-2 w-full text-center text-sm text-yellow-600">
                     ⚠️ Premium plan seçilmiş. Ödeme yapmadan ilan onaya gönderilemez.
                   </div>
                 </>
@@ -481,7 +481,7 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
                 <button
                   onClick={handleSubmitForApproval}
                   disabled={isSubmitting}
-                  className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center whitespace-nowrap px-8 py-4 text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full inline-flex items-center justify-center whitespace-nowrap px-10 py-4 text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
