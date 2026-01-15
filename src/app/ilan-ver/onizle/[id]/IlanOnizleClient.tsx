@@ -454,10 +454,10 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 pt-6 border-t">
               <Link
                 href={`/ilan-ver/duzenle/${listing.id}`}
-                className="flex-1 flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+                className="w-full sm:w-auto sm:min-w-[200px] inline-flex items-center justify-center whitespace-nowrap px-8 py-4 text-base bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
               >
                 <Edit className="w-5 h-5 mr-2" />
                 Düzenle
@@ -468,7 +468,7 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
                   <button
                     onClick={handleProceedToPayment}
                     disabled={isSubmitting}
-                    className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center whitespace-nowrap px-8 py-4 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <CreditCard className="w-5 h-5 mr-2" />
                     {isSubmitting ? 'Yönlendiriliyor...' : 'Ödemeye Geç'}
@@ -481,7 +481,7 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
                 <button
                   onClick={handleSubmitForApproval}
                   disabled={isSubmitting}
-                  className="flex-1 flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center whitespace-nowrap px-8 py-4 text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
