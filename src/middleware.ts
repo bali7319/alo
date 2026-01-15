@@ -340,14 +340,6 @@ export async function middleware(request: NextRequest) {
   // DNS prefetch
   response.headers.set('X-DNS-Prefetch-Control', 'on');
   
-  // Compression - Next.js otomatik yapıyor ama header ekleyelim
-  const acceptEncoding = request.headers.get('accept-encoding') || '';
-  if (acceptEncoding.includes('br')) {
-    response.headers.set('Content-Encoding', 'br');
-  } else if (acceptEncoding.includes('gzip')) {
-    response.headers.set('Content-Encoding', 'gzip');
-  }
-  
   // Cache headers for static assets
   if (pathname.startsWith('/_next/static') || pathname.startsWith('/_next/image')) {
     response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
