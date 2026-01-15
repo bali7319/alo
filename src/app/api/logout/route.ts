@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function buildCookieDeletionResponse(nextPath: string) {
-  // Relative redirect: prod'da Host yanlış (localhost) görünebilse bile
-  // tarayıcı mevcut origin üzerinde kalır (örn. alo17.tr).
-  const response = new NextResponse(null, {
-    status: 302,
+  // Bazı reverse proxy/edge katmanları 30x response'larda Set-Cookie'yi problemli işleyebiliyor.
+  // Bu yüzden 200 HTML döndürüp, cookie'leri sildikten sonra client-side redirect yapıyoruz.
+  // Böylece cookie silme tarayıcı tarafından kesin uygulanır.
+  const html = `<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content="0;url=${nextPath}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Çıkış yapılıyor…</title>
+  </head>
+  <body>
+    <p>Çıkış yapılıyor…</p>
+    <script>
+      window.location.replace(${JSON.stringify(nextPath)});
+    </script>
+  </body>
+</html>`;
+
+  const response = new NextResponse(html, {
+    status: 200,
     headers: {
-      Location: nextPath,
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store, max-age=0',
     },
   });
 
