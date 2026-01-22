@@ -7,6 +7,7 @@ import { Heart, Phone, Mail, Share2, Facebook, Twitter, Instagram, MessageCircle
 import Image from 'next/image';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AutoLinkText } from '@/components/seo/AutoLinkText';
 
 const FALLBACK_IMAGE_SRC = '/images/logo.svg';
 
@@ -29,7 +30,7 @@ interface Listing {
     phone: string;
   };
   createdAt: Date;
-  views: number;
+  views?: number;
   condition: string;
   brand: string;
   approvalStatus: string;
@@ -42,9 +43,13 @@ interface Listing {
 
 interface IlanDetayClientProps {
   id: string; // Bu artık slug veya ID olabilir
+  seo?: {
+    internalLinking: boolean;
+    linkTracking: boolean;
+  };
 }
 
-export default function IlanDetayClient({ id }: IlanDetayClientProps) {
+export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [listing, setListing] = useState<Listing | null>(null);
@@ -196,7 +201,7 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
           phone: (listingData.phone || listingData.user?.phone || '').trim() // İlan telefon numarası öncelikli
         },
         createdAt: new Date(listingData.createdAt),
-        views: listingData.views || 0,
+        views: typeof listingData.views === 'number' ? listingData.views : undefined,
         condition: listingData.condition || '',
         brand: listingData.brand || '',
         approvalStatus: listingData.approvalStatus || 'pending',
@@ -364,6 +369,25 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
     }
   };
 
+  const getDirectionsUrl = (address: string) => {
+    const destination = encodeURIComponent(address);
+    // origin verilmezse çoğu cihaz mevcut konumdan yol tarifi açar.
+    return `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+  };
+
+  const getDirectionsUrlForDevice = (address: string) => {
+    const destination = encodeURIComponent(address);
+    // iOS'ta Apple Maps daha iyi UX (harita uygulamasını direkt açar)
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent || '';
+      const isIOS = /iPad|iPhone|iPod/i.test(ua);
+      if (isIOS) {
+        return `https://maps.apple.com/?daddr=${destination}&dirflg=d`;
+      }
+    }
+    return `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+  };
+
   const handleReport = async () => {
     if (!session) {
       const currentPath = window.location.pathname;
@@ -438,17 +462,42 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
       {/* Breadcrumb */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
-          <div className="flex items-center space-x-1 sm:space-x-2 py-3 sm:py-4 text-xs sm:text-sm text-gray-600">
-            <Link href="/" className="hover:text-alo-orange">Ana Sayfa</Link>
-            <ChevronRight className="h-4 w-4" />
-            <Link href="/ilanlar" className="hover:text-alo-orange">İlanlar</Link>
-            <ChevronRight className="h-4 w-4" />
-            <Link href={`/kategori/${listing.category}`} className="hover:text-alo-orange capitalize">
-              {listing.category.replace('-', ' ')}
-            </Link>
-            <ChevronRight className="h-4 w-4" />
-            <span className="text-gray-900">{listing.title}</span>
-          </div>
+          <nav aria-label="Breadcrumb" className="py-3 sm:py-4">
+            <ol className="flex flex-nowrap items-center gap-x-1 sm:gap-x-2 overflow-x-auto text-xs sm:text-sm text-gray-600 leading-4 sm:leading-none">
+              <li className="inline-flex items-center leading-none shrink-0">
+                <Link href="/" className="inline-flex items-center leading-none hover:text-alo-orange whitespace-nowrap">
+                  Ana Sayfa
+                </Link>
+              </li>
+              <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
+                <span className="text-gray-400 select-none leading-none">›</span>
+              </li>
+              <li className="inline-flex items-center leading-none shrink-0">
+                <Link href="/ilanlar" className="inline-flex items-center leading-none hover:text-alo-orange whitespace-nowrap">
+                  İlanlar
+                </Link>
+              </li>
+              <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
+                <span className="text-gray-400 select-none leading-none">›</span>
+              </li>
+              <li className="inline-flex items-center leading-none shrink-0">
+                <Link
+                  href={`/kategori/${listing.category}`}
+                  className="inline-flex items-center leading-none hover:text-alo-orange capitalize whitespace-nowrap"
+                >
+                  {listing.category.replace('-', ' ')}
+                </Link>
+              </li>
+              <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
+                <span className="text-gray-400 select-none leading-none">›</span>
+              </li>
+              <li className="inline-flex items-center leading-none text-gray-900 min-w-0">
+                <span className="inline-flex items-center leading-none truncate max-w-[60vw] sm:max-w-none">
+                  {listing.title}
+                </span>
+              </li>
+            </ol>
+          </nav>
         </div>
       </div>
 
@@ -462,10 +511,12 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">{listing.title}</h1>
                   <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
-                    <span className="flex items-center">
-                      <Eye className="h-4 w-4 mr-1" />
-                      {listing.views} görüntülenme
-                    </span>
+                    {typeof listing.views === 'number' && (
+                      <span className="flex items-center">
+                        <Eye className="h-4 w-4 mr-1" />
+                        {listing.views} görüntülenme
+                      </span>
+                    )}
                     <span>{listing.location}</span>
                     <span>{new Date(listing.createdAt).toLocaleDateString('tr-TR')}</span>
                   </div>
@@ -523,14 +574,14 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
                   })()}
                 </div>
                 {listing.images.length > 1 && (
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     {listing.images.map((image, index) => (
                       image && image.startsWith('data:image') ? (
                         <img
                           key={index}
                           src={image}
-                          alt={`${listing.title} - ${index + 2}`}
-                          className={`w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
+                          alt={`${listing.title} - görsel ${index + 1}`}
+                          className={`w-full h-16 sm:h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
                           onClick={() => setSelectedImageIndex(index)}
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
@@ -540,10 +591,10 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
                         <Image
                           key={index}
                           src={image || FALLBACK_IMAGE_SRC}
-                          alt={`${listing.title} - ${index + 2}`}
+                          alt={`${listing.title} - görsel ${index + 1}`}
                           width={200}
                           height={150}
-                          className={`w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
+                          className={`w-full h-16 sm:h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
                           onClick={() => setSelectedImageIndex(index)}
                           onError={(e) => {
                             const img = e.target as unknown as HTMLImageElement;
@@ -561,7 +612,15 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">İlan Açıklaması</h2>
               <div className="prose max-w-none">
-                <p className="text-gray-700 leading-relaxed">{listing.description}</p>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                  <AutoLinkText
+                    text={listing.description}
+                    listingId={listing.id}
+                    source="listing_description"
+                    enableInternalLinking={seo?.internalLinking ?? true}
+                    enableLinkTracking={seo?.linkTracking ?? false}
+                  />
+                </p>
               </div>
             </div>
 
@@ -617,9 +676,34 @@ export default function IlanDetayClient({ id }: IlanDetayClientProps) {
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-900">{listing.seller.name}</h3>
-                  <p className="text-sm text-gray-600">{listing.location}</p>
+                  {listing.location ? (
+                    <a
+                      href={getDirectionsUrlForDevice(listing.location)}
+                      className="text-sm text-gray-600 hover:text-alo-orange underline-offset-4 hover:underline"
+                      aria-label="Haritalarda yol tarifi al"
+                      title="Haritalarda yol tarifi al"
+                    >
+                      {listing.location}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-gray-600">-</p>
+                  )}
                 </div>
               </div>
+
+              {/* Mobilde link tıklaması sorun çıkarabiliyor: buton ekle */}
+              {listing.location && (
+                <div className="mt-3">
+                  <a
+                    href={getDirectionsUrlForDevice(listing.location)}
+                    className="w-full inline-flex items-center justify-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    aria-label="Adrese git (yol tarifi)"
+                    title="Adrese git (yol tarifi)"
+                  >
+                    Adrese Git
+                  </a>
+                </div>
+              )}
               
               <div className="space-y-2">
                 {/* Telefon butonu - telefon numarası varsa ve showPhone false değilse göster */}

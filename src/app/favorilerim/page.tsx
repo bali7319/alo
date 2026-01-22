@@ -22,7 +22,6 @@ interface FavoriteListing {
   isPremium: boolean;
   premiumUntil?: string;
   expiresAt: string;
-  views: number;
   user: {
     id: string;
     name?: string;
@@ -175,10 +174,6 @@ export default function FavorilerimPage() {
                     <span className="text-lg font-bold text-blue-600">
                       ₺{listing.price.toLocaleString()}
                     </span>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <EyeIcon className="w-4 h-4 mr-1" />
-                      {listing.views}
-                    </div>
                   </div>
                   
                   <div className="flex items-center text-sm text-gray-500 mb-3">

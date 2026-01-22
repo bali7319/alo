@@ -8,9 +8,10 @@ import { LazyImage } from '@/components/ui/lazy-image'
 
 interface ListingCardProps {
   listing: Listing
+  showViews?: boolean
 }
 
-export function ListingCard({ listing }: ListingCardProps) {
+export function ListingCard({ listing, showViews = false }: ListingCardProps) {
   // Resim URL'ini belirle
   const getImageUrl = () => {
     // Önce gerçek resimleri kontrol et
@@ -74,11 +75,13 @@ export function ListingCard({ listing }: ListingCardProps) {
             </div>
           )}
           
-          {/* Görüntülenme Sayısı */}
-          <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded text-xs z-10">
-            <Eye className="w-3 h-3 inline mr-1" aria-hidden="true" />
-            {listing.views || 0}
-          </div>
+          {/* Görüntülenme Sayısı (sadece ilan sahibi/admin için) */}
+          {showViews && typeof listing.views === 'number' && (
+            <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded text-xs z-10">
+              <Eye className="w-3 h-3 inline mr-1" aria-hidden="true" />
+              {listing.views}
+            </div>
+          )}
         </div>
         
         <div className="p-4">

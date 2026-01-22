@@ -10,6 +10,16 @@ import { clearCachePattern } from '@/lib/cache';
 export async function GET(request: NextRequest) {
   try {
     console.log('[GET /api/listings] Request received');
+    const session = await getServerSession(authOptions);
+    const sessionEmail = session?.user?.email || null;
+    const { isAdminEmail } = await import('@/lib/admin');
+    const dbUser = sessionEmail
+      ? await prisma.user.findUnique({ where: { email: sessionEmail }, select: { role: true } }).catch(() => null)
+      : null;
+    const isAdmin =
+      !!sessionEmail &&
+      (((session?.user as any)?.role === 'admin') || dbUser?.role === 'admin' || isAdminEmail(sessionEmail));
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -132,7 +142,7 @@ export async function GET(request: NextRequest) {
           images: true,
           createdAt: true,
           isPremium: true,
-          views: true,
+          ...(isAdmin ? { views: true } : {}),
           user: {
             select: {
               id: true,
@@ -150,7 +160,7 @@ export async function GET(request: NextRequest) {
     console.log(`[GET /api/listings] Found ${listings.length} listings, total: ${total}`);
 
     // Images'ı parse et - Base64 kontrolü ile
-    const formattedListings = listings.map(listing => {
+    const formattedListings = listings.map((listing: any) => {
       let images: string[] = [];
       
       // Base64 resim kontrolü
@@ -174,11 +184,26 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      return {
-        ...listing,
-        images,
+      const formatted: any = {
+        id: listing.id,
+        title: listing.title,
+        price: listing.price,
+        location: listing.location,
+        category: listing.category,
+        subCategory: listing.subCategory,
         description: listing.description?.substring(0, 200) + (listing.description?.length > 200 ? '...' : ''),
+        images,
+        createdAt: listing.createdAt,
+        isPremium: listing.isPremium,
+        user: listing.user,
       };
+
+      // views sadece admin görebilsin (public listelerde gösterilmesin)
+      if (isAdmin && typeof listing.views === 'number') {
+        formatted.views = listing.views;
+      }
+
+      return formatted;
     });
 
     return NextResponse.json({
@@ -372,21 +397,34 @@ export async function POST(request: NextRequest) {
     }
 
     // Premium plan seçilmişse, ödeme yapılmadan premium yapılmamalı
-    // Ödeme başarılı olduğunda webhook'ta isPremium: true yapılacak
-    const shouldBePremium = isPremium || false;
-    const hasPremiumFeatures = premiumFeatures && (
-      typeof premiumFeatures === 'string' 
-        ? JSON.parse(premiumFeatures) 
-        : premiumFeatures
-    ) && Object.keys(typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures).length > 0;
-    
-    // Premium plan veya premium özellik seçilmişse, ödeme bekliyor demektir
-    // Bu durumda isPremium: false olmalı (ödeme yapılmadan premium olmamalı)
-    // approvalStatus: 'pending' olmalı ama ödeme yapılmadan onaya gönderilmemeli
-    const finalIsPremium = false; // Ödeme yapılmadan premium olmamalı
-    const finalApprovalStatus = (shouldBePremium || hasPremiumFeatures) 
-      ? 'pending' // Premium seçilmişse pending (ama ödeme bekliyor)
-      : 'pending'; // Ücretsiz plan seçilmişse direkt pending
+    // Ödeme başarılı olduğunda webhook/callback/process ile isPremium/premiumUntil set edilecek
+    const shouldBePremium = Boolean(isPremium);
+
+    // premiumFeatures string | object | array olabilir (frontend bazen string[] gönderiyor)
+    const parsedPremiumFeatures = (() => {
+      if (!premiumFeatures) return null;
+      try {
+        return typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures;
+      } catch {
+        return premiumFeatures;
+      }
+    })();
+
+    const hasPremiumFeatures =
+      Array.isArray(parsedPremiumFeatures)
+        ? parsedPremiumFeatures.length > 0
+        : parsedPremiumFeatures && typeof parsedPremiumFeatures === 'object'
+          ? Object.keys(parsedPremiumFeatures as Record<string, unknown>).length > 0
+          : false;
+
+    const requiresPayment = shouldBePremium || hasPremiumFeatures;
+
+    // Ödeme yapılmadan premium olmamalı
+    const finalIsPremium = false;
+
+    // Ödeme gerektiren ilanlar, ödeme tamamlanana kadar moderatör onay kuyruğuna düşmemeli
+    // Not: approvalStatus alanı String olduğu için migration olmadan yeni bir durum kullanıyoruz.
+    const finalApprovalStatus = requiresPayment ? 'payment_pending' : 'pending';
 
     // İlanı oluştur
     const listing = await prisma.listing.create({
@@ -422,7 +460,8 @@ export async function POST(request: NextRequest) {
     clearCachePattern('homepage-listings');
     clearCachePattern('category-listings');
 
-    // Admin'e bildirim gönder (sadece onay bekleyen ilanlar için)
+    // Admin'e bildirim gönder (sadece gerçekten moderatör onayı bekleyen ilanlar için)
+    // payment_pending durumunda (ödeme bekliyor) bildirim gönderme
     if (finalApprovalStatus === 'pending') {
       try {
         // Email bildirimi (async, hata olsa bile devam et)

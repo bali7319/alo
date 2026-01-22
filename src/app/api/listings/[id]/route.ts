@@ -33,6 +33,9 @@ export async function GET(
       );
     }
 
+    // Oturum bilgisi (views görünürlüğü ve owner kontrolü için)
+    const session = await getServerSession(authOptions);
+
     // Slug'dan ID çıkarmayı dene
     const possibleId = extractIdFromSlug(slugOrId);
     
@@ -66,7 +69,6 @@ export async function GET(
         const adminEmail = getAdminEmail();
         
         // İlan sahibi kontrolü - pending durumundaki ilanlar sahibi tarafından görülebilir
-        const session = await getServerSession(authOptions);
         const isOwner = session?.user?.email && listing.user.email === session.user.email;
         
         if (listing.user.email !== adminEmail && !isOwner) {
@@ -236,7 +238,6 @@ export async function GET(
           const adminEmail = getAdminEmail();
           
           // İlan sahibi kontrolü - pending durumundaki ilanlar sahibi tarafından görülebilir
-          const session = await getServerSession(authOptions);
           const isOwner = session?.user?.email && fullListing.user.email === session.user.email;
           
             if (fullListing.user.email !== adminEmail && !isOwner) {
@@ -264,14 +265,34 @@ export async function GET(
     const listingId = listing.id;
     const cacheKey = createCacheKey('listing-detail', listingId);
     
-    // Cache kontrolü (30 saniye TTL - listing detayları daha dinamik)
-    const cached = getCache<{ listing: unknown }>(cacheKey);
-    const isCacheHit = !!cached;
+    // Public cache kontrolü (30 saniye TTL - listing detayları daha dinamik)
+    // Not: views sadece owner/admin görebilir; bu yüzden cache sadece "public" response için kullanılır.
+    const cachedPublic = getCache<{ listing: unknown }>(cacheKey);
+    const isCacheHit = !!cachedPublic;
+
+    // Views'i görebilir mi? (sadece ilan sahibi veya admin)
+    const sessionEmail = session?.user?.email || null;
+    const { isAdminEmail } = await import('@/lib/admin');
+    const sessionUser = sessionEmail
+      ? await prisma.user.findUnique({
+          where: { email: sessionEmail },
+          select: { id: true, role: true },
+        }).catch(() => null)
+      : null;
+    const isAdmin =
+      !!sessionEmail &&
+      (((session?.user as any)?.role === 'admin') ||
+        sessionUser?.role === 'admin' ||
+        isAdminEmail(sessionEmail));
+    const isOwner =
+      !!sessionEmail &&
+      (listing.user.email === sessionEmail ||
+        (sessionUser?.id ? listing.userId === sessionUser.id : false));
+    const canSeeViews = isAdmin || isOwner;
     
     // Views artırma (sadece cache miss olduğunda ve ilan sahibi değilse)
     if (!isCacheHit && listing.isActive && listing.approvalStatus === 'approved') {
       // Session kontrolü - ilan sahibi kendi ilanını görüntülediğinde views artırma
-      const session = await getServerSession(authOptions);
       const isOwner = session?.user?.email && listing.user.email === session.user.email;
       
       if (!isOwner) {
@@ -289,8 +310,9 @@ export async function GET(
       }
     }
     
-    if (cached) {
-      return NextResponse.json(cached, {
+    // Public cache'ten dön (owner/admin değilse)
+    if (!canSeeViews && cachedPublic) {
+      return NextResponse.json(cachedPublic, {
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
@@ -395,7 +417,8 @@ export async function GET(
       premiumFeatures,
       premiumUntil: listing.premiumUntil?.toISOString(),
       expiresAt: listing.expiresAt?.toISOString() || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Varsayılan 30 gün
-      views: listing.views,
+      // views sadece ilan sahibi ve admin görsün
+      views: canSeeViews ? listing.views : undefined,
       isActive: listing.isActive,
       approvalStatus: listing.approvalStatus,
       createdAt: listing.createdAt?.toISOString() || new Date().toISOString(),
@@ -408,14 +431,18 @@ export async function GET(
 
     const response = { listing: formattedListing };
 
-    // Cache'e kaydet (30 saniye TTL)
-    setCache(cacheKey, response, 30000);
+    // Cache'e kaydet (30 saniye TTL) - sadece public response için
+    if (!canSeeViews) {
+      setCache(cacheKey, response, 30000);
+    }
 
     return NextResponse.json(response, {
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
-        'X-Cache': 'MISS',
+        'Cache-Control': !canSeeViews
+          ? 'public, s-maxage=30, stale-while-revalidate=60'
+          : 'private, no-store, no-cache, must-revalidate',
+        'X-Cache': !canSeeViews ? 'MISS' : 'BYPASS',
       },
     });
   } catch (error) {
@@ -880,6 +907,26 @@ export async function PATCH(
         { error: 'Bu ilanı güncelleme yetkiniz yok' },
         { status: 403 }
       );
+    }
+
+    // Ödeme bekleyen (payment_pending) ilanlar, ödeme tamamlanmadan "pending" (moderasyon kuyruğu) durumuna alınamaz.
+    // Bu kontrol, frontend/localStorage manipülasyonları ile bypass edilmesini engeller.
+    if (body.approvalStatus === 'pending' && listing.approvalStatus === 'payment_pending') {
+      const hasPremiumApplied = Boolean((listing as any).isPremium && (listing as any).premiumUntil);
+      const paidInvoice = await prisma.invoice.findFirst({
+        where: {
+          listingId: listing.id,
+          status: 'paid',
+        },
+        select: { id: true },
+      });
+
+      if (!paidInvoice && !hasPremiumApplied) {
+        return NextResponse.json(
+          { error: 'Ödeme tamamlanmadan ilan onaya gönderilemez.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Güncelleme verilerini hazırla (sadece approvalStatus güncellenebilir)

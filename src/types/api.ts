@@ -22,7 +22,8 @@ export interface ListingResponse {
   isPremium: boolean;
   premiumUntil: string | null;
   expiresAt: string;
-  views: number;
+  // views sadece ilan sahibi/admin için dönebilir
+  views?: number;
   user: {
     id: string;
     name: string | null;

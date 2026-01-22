@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { getCategoryNameBySlug, getSubCategoryNameBySlug } from '@/lib/category-mappings';
 import type { ListingWhereInput, ListingResponse, CategoryListingsResponse } from '@/types/api';
 import { categoryQuerySchema } from '@/lib/validations/category';
@@ -41,6 +43,18 @@ export async function GET(
         }
       );
     }
+    
+    // Admin kontrolü (views sadece admin'e dönecek; admin response'u cache'lenmeyecek)
+    const session = await getServerSession(authOptions);
+    const sessionEmail = session?.user?.email || null;
+    const { isAdminEmail } = await import('@/lib/admin');
+    const dbUser = sessionEmail
+      ? await prisma.user.findUnique({ where: { email: sessionEmail }, select: { role: true } }).catch(() => null)
+      : null;
+    const isAdmin =
+      !!sessionEmail &&
+      (((session?.user as any)?.role === 'admin') || dbUser?.role === 'admin' || isAdminEmail(sessionEmail));
+
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
     
@@ -70,7 +84,7 @@ export async function GET(
     
     // İlk sayfa için cache kontrolü (büyük response'lar için cache yok)
     // Sadece küçük sayfalarda cache kullan (performans için)
-    if (page === 1 && limit <= 20) {
+    if (!isAdmin && page === 1 && limit <= 20) {
       const cached = getCache<CategoryListingsResponse>(cacheKey);
       if (cached) {
         return NextResponse.json(cached, {
@@ -121,7 +135,7 @@ export async function GET(
           isPremium: true,
           premiumUntil: true,
           expiresAt: true,
-          views: true,
+          ...(isAdmin ? { views: true } : {}),
           user: {
             select: {
               id: true,
@@ -148,12 +162,12 @@ export async function GET(
     });
 
     // Listing'leri formatla (service layer kullan)
-    const formattedListings: ListingResponse[] = listings.map(listing => {
+    const formattedListings: ListingResponse[] = listings.map((listing: any) => {
       const parsedImages = safeParseImages(listing.images);
       // Sadece ilk resmi gönder (performans için)
       const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
 
-      return {
+      const formatted: any = {
         id: listing.id,
         title: listing.title,
         price: listing.price,
@@ -167,13 +181,18 @@ export async function GET(
         isPremium: listing.isPremium,
         premiumUntil: listing.premiumUntil?.toISOString() || null,
         expiresAt: listing.expiresAt.toISOString(),
-        views: listing.views,
         user: {
           id: listing.user.id,
           name: listing.user.name,
           email: listing.user.email,
         },
       };
+      
+      if (isAdmin && typeof listing.views === 'number') {
+        formatted.views = listing.views;
+      }
+
+      return formatted;
     });
 
     const response: CategoryListingsResponse = {
@@ -187,7 +206,7 @@ export async function GET(
     };
 
     // İlk sayfa için cache'e kaydet (30 saniye TTL)
-    if (page === 1 && limit <= 20) {
+    if (!isAdmin && page === 1 && limit <= 20) {
       setCache(cacheKey, response, 30000);
     }
 
@@ -195,10 +214,10 @@ export async function GET(
       {
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': page === 1 && limit <= 20 
+          'Cache-Control': !isAdmin && page === 1 && limit <= 20 
             ? 'public, s-maxage=30, stale-while-revalidate=60' 
-            : 'no-store, no-cache, must-revalidate',
-          'X-Cache': 'MISS',
+            : 'private, no-store, no-cache, must-revalidate',
+          'X-Cache': !isAdmin ? 'MISS' : 'BYPASS',
           'X-RateLimit-Limit': '100',
           'X-RateLimit-Remaining': rateLimit.remaining.toString(),
           'X-RateLimit-Reset': rateLimit.resetTime.toString(),

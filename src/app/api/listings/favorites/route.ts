@@ -74,7 +74,6 @@ export async function GET() {
       isPremium: fav.listing.isPremium,
       premiumUntil: fav.listing.premiumUntil?.toISOString(),
       expiresAt: fav.listing.expiresAt.toISOString(),
-      views: fav.listing.views,
       user: fav.listing.user,
     }));
 
