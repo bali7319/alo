@@ -56,74 +56,11 @@ const nextConfig = {
   // Cache memory size limitini artır (Single item size exceeds maxSize hatası için)
   // Not: Bu geçici bir çözümdür, asıl çözüm resim boyutlarını küçültmektir
   cacheMaxMemorySize: 0, // 0 = sınırsız (geçici çözüm)
-  
-  // Eski URL'leri yönlendir (SEO için)
+
+  // Legacy/spam URL'ler için yönlendirme yapma.
+  // Bu URL'ler `src/middleware.ts` içinde 410 Gone döndürülerek Google'ın daha hızlı düşürmesi sağlanır.
   async redirects() {
-    return [
-      // Eski sistem URL'lerini ana sayfaya yönlendir
-      {
-        source: '/commodity/:path*',
-        destination: '/',
-        permanent: true, // 301 redirect
-      },
-      {
-        source: '/content.php',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/detail.php',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/shop/:path*',
-        destination: '/ilanlar',
-        permanent: true,
-      },
-      {
-        source: '/ctg/:path*',
-        destination: '/kategoriler',
-        permanent: true,
-      },
-      {
-        source: '/shopping/:path*',
-        destination: '/ilanlar',
-        permanent: true,
-      },
-      {
-        source: '/products/:path*',
-        destination: '/ilanlar',
-        permanent: true,
-      },
-      {
-        source: '/p/:path*',
-        destination: '/',
-        permanent: true,
-      },
-      // Sayısal URL'leri ana sayfaya yönlendir
-      {
-        source: '/:id(\\d+)',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/:id(\\d+).:ext(html|htm|phtml|shtml)',
-        destination: '/',
-        permanent: true,
-      },
-      // Özel karakterleri ana sayfaya yönlendir
-      {
-        source: '/$',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/&',
-        destination: '/',
-        permanent: true,
-      },
-    ];
+    return [];
   },
 }
 
