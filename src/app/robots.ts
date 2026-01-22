@@ -20,20 +20,9 @@ export default function robots(): MetadataRoute.Robots {
           '/fatura/',
           '/sifre-sifirla/',
           '/sifremi-unuttum/',
-          // Eski URL pattern'lerini engelle (404 hatalarını önlemek için)
-          '/commodity/',
-          '/content.php',
-          '/detail.php',
-          '/shop/',
-          '/ctg/',
-          '/shopping/',
-          '/products/',
-          '/p/',
-          // Sayısal URL'leri engelle (eski sistem URL'leri)
-          '/*[0-9]*.html',
-          '/*[0-9]*.htm',
-          '/*[0-9]*.phtml',
-          '/*[0-9]*.shtml',
+          // Not: Eski/spam URL pattern'lerini robots ile engellemiyoruz.
+          // Çünkü Google "Blocked by robots.txt" olarak raporlar ve index'ten çıkarması gecikebilir.
+          // Bu URL'ler middleware'de 410 Gone dönüyor; botların görmesi daha iyi.
         ],
       },
       {
@@ -51,19 +40,7 @@ export default function robots(): MetadataRoute.Robots {
           '/fatura/',
           '/sifre-sifirla/',
           '/sifremi-unuttum/',
-          // Eski URL pattern'lerini engelle
-          '/commodity/',
-          '/content.php',
-          '/detail.php',
-          '/shop/',
-          '/ctg/',
-          '/shopping/',
-          '/products/',
-          '/p/',
-          '/*[0-9]*.html',
-          '/*[0-9]*.htm',
-          '/*[0-9]*.phtml',
-          '/*[0-9]*.shtml',
+          // Not: Eski/spam URL pattern'leri 410 Gone ile kaldırılıyor (middleware).
         ],
       },
     ],
