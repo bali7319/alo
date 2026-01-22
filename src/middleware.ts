@@ -60,139 +60,7 @@ function getClientIP(request: NextRequest): string {
 export async function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
 
-  // www.alo17.tr'den alo17.tr'ye yönlendirme (SEO için)
-  // Tüm www. ile başlayan hostname'leri yakala
-  if (hostname && hostname.startsWith('www.')) {
-    const url = request.nextUrl.clone();
-    url.hostname = hostname.replace(/^www\./, '');
-    url.protocol = 'https:'; // HTTPS'e zorla
-    return NextResponse.redirect(url, 301); // 301 Permanent Redirect
-  }
-
-  // Eski URL pattern'lerini yönlendir (404 hatalarını önlemek için)
-  // Bu pattern'ler Google Search Console'daki 404 hatalarını önlemek için
-  const oldUrlPatterns = [
-    // Eski sistem path'leri
-    /^\/commodity\//,                    // /commodity/archives/lawsuits813812685264
-    /^\/content\.php/,                    // /content.php?id=81277225285
-    /^\/detail\.php/,                     // /detail.php?81277225285
-    /^\/shop\//,                          // /shop/detial/g81277225285.html
-    /^\/ctg\//,                           // /ctg/search/?ctgItemCd=81277225285
-    /^\/shopping\//,                      // /shopping/search-word/list?q=81277225285
-    /^\/products\//,                      // /products/81277225285
-    /^\/p\//,                             // /p/shoppingcart/...
-    
-    // Sayısal ID'ler (eski sistem URL'leri)
-    /^\/[0-9]{10,15}$/,                   // /81277225285 (10-15 haneli sayılar)
-    /^\/[0-9]{10,15}\.(html|htm|phtml|shtml)$/, // /81277225285.html
-    /^\/[0-9]{10,15}\.html$/,             // /81235625398.html
-    /^\/[0-9]{10,15}\.htm$/,               // /814415161419.htm
-    /^\/[0-9]{10,15}\.phtml$/,            // /81277225285.phtml
-    /^\/[0-9]{10,15}\.shtml$/,            // /81225178059.shtml
-    
-    // Query string ile sayısal ID'ler
-    /^\?[0-9]{10,15}$/,                   // ?81277225285
-    /^\?s=[0-9]{10,15}$/,                 // ?s=81277225285
-    /^\?commodity\//,                     // ?commodity/voice/concludes81193970314
-    
-    // Geçersiz karakterler
-    /^\/(\$|&)$/,                         // /$ veya /&
-    
-    // Eski sistem query parametreleri
-    /^\/shop\/goods_id=/,                 // /shop/goods_id=81277225285
-    /^\/shop\/detial\//,                  // /shop/detial/g81277225285.html
-  ];
-
-  // Pathname kontrolü - Eski URL'ler için 410 Gone (kalıcı olarak silindi)
-  // 410 Gone, Google'a bu URL'lerin artık mevcut olmadığını ve index'ten çıkarılması gerektiğini söyler
-  for (const pattern of oldUrlPatterns) {
-    if (pattern.test(pathname)) {
-      // 410 Gone - Kalıcı olarak silindi (Google index'ten daha hızlı çıkarır)
-      // Kullanıcıya bilgilendirici bir sayfa göster
-      const html = `<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sayfa Kaldırıldı - Alo17</title>
-  <meta name="robots" content="noindex, nofollow">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f9fafb; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; }
-    .container { background: white; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 2rem; max-width: 28rem; width: 100%; text-align: center; }
-    .icon { width: 4rem; height: 4rem; background: #fed7aa; border-radius: 9999px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
-    .icon svg { width: 2rem; height: 2rem; color: #ea580c; }
-    h1 { font-size: 3.75rem; font-weight: 700; color: #ea580c; margin-bottom: 0.5rem; }
-    h2 { font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem; }
-    p { color: #4b5563; margin-bottom: 1.5rem; }
-    .buttons { display: flex; flex-direction: column; gap: 0.75rem; }
-    .btn { display: inline-block; padding: 0.75rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 500; transition: all 0.2s; }
-    .btn-primary { background: #2563eb; color: white; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-outline { border: 1px solid #d1d5db; color: #374151; }
-    .btn-outline:hover { background: #f9fafb; }
-    .help { margin-top: 1.5rem; font-size: 0.875rem; color: #6b7280; }
-    .help a { color: #2563eb; text-decoration: none; }
-    .help a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="icon">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-      </svg>
-    </div>
-    <h1>410</h1>
-    <h2>Sayfa Kaldırıldı</h2>
-    <p>Aradığınız sayfa kalıcı olarak kaldırılmıştır.</p>
-    <div class="buttons">
-      <a href="/" class="btn btn-primary">Ana Sayfaya Dön</a>
-      <a href="/ilanlar" class="btn btn-outline">İlanları Görüntüle</a>
-    </div>
-    <div class="help">
-      <p>Yardıma mı ihtiyacınız var?</p>
-      <a href="/iletisim">Bizimle İletişime Geçin</a>
-    </div>
-  </div>
-</body>
-</html>`;
-      
-      return new NextResponse(html, {
-        status: 410,
-        statusText: 'Gone',
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
-          // Strong hint for crawlers even without parsing HTML
-          'X-Robots-Tag': 'noindex, nofollow',
-        },
-      });
-    }
-  }
-
-  // Query string kontrolü (eski sistem query parametreleri)
-  const searchParams = request.nextUrl.searchParams;
-
-  // Some spam/legacy URLs come as "/?81256378285" or "/detail.php?81256378285"
-  // where the query has a numeric KEY and empty value. Catch those too.
-  const numericKeyQuery = (() => {
-    // If any query key is 10-15 digits, treat as legacy/spam
-    for (const [key, value] of searchParams.entries()) {
-      if (value === '' && /^[0-9]{10,15}$/.test(key)) return true;
-    }
-    return false;
-  })();
-
-  const hasOldQueryParams = 
-    searchParams.has('id') && /^[0-9]{10,15}$/.test(searchParams.get('id') || '') ||
-    searchParams.has('s') && /^[0-9]{10,15}$/.test(searchParams.get('s') || '') ||
-    searchParams.has('ctgItemCd') && /^[0-9]{10,15}$/.test(searchParams.get('ctgItemCd') || '') ||
-    searchParams.has('q') && /^[0-9]{10,15}$/.test(searchParams.get('q') || '') ||
-    searchParams.has('goods_id') && /^[0-9]{10,15}$/.test(searchParams.get('goods_id') || '');
-
-  if (hasOldQueryParams || numericKeyQuery) {
-    // 410 Gone - Kalıcı olarak silindi
+  const render410Gone = () => {
     const html = `<!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -241,18 +109,102 @@ export async function middleware(request: NextRequest) {
   </div>
 </body>
 </html>`;
-    
+
     return new NextResponse(html, {
       status: 410,
       statusText: 'Gone',
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'public, max-age=3600, s-maxage=3600',
-        // Strong hint for crawlers even without parsing HTML
         'X-Robots-Tag': 'noindex, nofollow',
       },
     });
+  };
+
+  // Eski URL pattern'lerini yönlendir (404 hatalarını önlemek için)
+  // Bu pattern'ler Google Search Console'daki 404 hatalarını önlemek için
+  const oldUrlPatterns = [
+    // Eski sistem path'leri
+    /^\/commodity\//,                    // /commodity/archives/lawsuits813812685264
+    /^\/content\.php/,                    // /content.php?id=81277225285
+    /^\/detail\.php/,                     // /detail.php?81277225285
+    /^\/shop\//,                          // /shop/detial/g81277225285.html
+    /^\/ctg\//,                           // /ctg/search/?ctgItemCd=81277225285
+    /^\/shopping\//,                      // /shopping/search-word/list?q=81277225285
+    /^\/products\//,                      // /products/81277225285
+    /^\/p\//,                             // /p/shoppingcart/...
+    
+    // Sayısal ID'ler (eski sistem URL'leri)
+    /^\/[0-9]{10,15}$/,                   // /81277225285 (10-15 haneli sayılar)
+    /^\/[0-9]{10,15}\.(html|htm|phtml|shtml)$/, // /81277225285.html
+    /^\/[0-9]{10,15}\.html$/,             // /81235625398.html
+    /^\/[0-9]{10,15}\.htm$/,               // /814415161419.htm
+    /^\/[0-9]{10,15}\.phtml$/,            // /81277225285.phtml
+    /^\/[0-9]{10,15}\.shtml$/,            // /81225178059.shtml
+    
+    // Query string ile sayısal ID'ler
+    /^\?[0-9]{10,15}$/,                   // ?81277225285
+    /^\?s=[0-9]{10,15}$/,                 // ?s=81277225285
+    /^\?commodity\//,                     // ?commodity/voice/concludes81193970314
+    
+    // Geçersiz karakterler
+    /^\/(\$|&)$/,                         // /$ veya /&
+    
+    // Eski sistem query parametreleri
+    /^\/shop\/goods_id=/,                 // /shop/goods_id=81277225285
+    /^\/shop\/detial\//,                  // /shop/detial/g81277225285.html
+  ];
+
+  // ÖNEMLİ: www host'u için bile legacy/spam URL'lerde direkt 410 döndür.
+  // Aksi halde www -> non-www 301 zinciri, GSC doğrulamasında "devam edilemiyor" hatasına yol açabiliyor.
+  for (const pattern of oldUrlPatterns) {
+    if (pattern.test(pathname)) {
+      return render410Gone();
+    }
   }
+
+  // Query string kontrolü (eski sistem query parametreleri)
+  const searchParams = request.nextUrl.searchParams;
+
+  // Some spam/legacy URLs come as "/?81256378285" or "/detail.php?81256378285"
+  // where the query has a numeric KEY and empty value. Catch those too.
+  const numericKeyQuery = (() => {
+    // If any query key is 10-15 digits, treat as legacy/spam
+    for (const [key, value] of searchParams.entries()) {
+      if (value === '' && /^[0-9]{10,15}$/.test(key)) return true;
+    }
+    return false;
+  })();
+
+  const hasOldQueryParams = 
+    searchParams.has('id') && /^[0-9]{10,15}$/.test(searchParams.get('id') || '') ||
+    searchParams.has('s') && /^[0-9]{10,15}$/.test(searchParams.get('s') || '') ||
+    searchParams.has('ctgItemCd') && /^[0-9]{10,15}$/.test(searchParams.get('ctgItemCd') || '') ||
+    searchParams.has('q') && /^[0-9]{10,15}$/.test(searchParams.get('q') || '') ||
+    searchParams.has('goods_id') && /^[0-9]{10,15}$/.test(searchParams.get('goods_id') || '');
+
+  if (hasOldQueryParams || numericKeyQuery) {
+    return render410Gone();
+  }
+
+  // www.alo17.tr'den alo17.tr'ye yönlendirme (SEO için)
+  // Tüm www. ile başlayan hostname'leri yakala
+  if (hostname && hostname.startsWith('www.')) {
+    const url = request.nextUrl.clone();
+    url.hostname = hostname.replace(/^www\./, '');
+    url.protocol = 'https:'; // HTTPS'e zorla
+    return NextResponse.redirect(url, 301); // 301 Permanent Redirect
+  }
+
+  // Pathname kontrolü - Eski URL'ler için 410 Gone (kalıcı olarak silindi)
+  // 410 Gone, Google'a bu URL'lerin artık mevcut olmadığını ve index'ten çıkarılması gerektiğini söyler
+  for (const pattern of oldUrlPatterns) {
+    if (pattern.test(pathname)) {
+      return render410Gone();
+    }
+  }
+
+  // Not: query-string legacy/spam kontrolü yukarıda yapılıyor.
 
   // API route'ları için rate limiting
   if (pathname.startsWith('/api/')) {
