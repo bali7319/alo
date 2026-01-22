@@ -31,49 +31,13 @@ function LoginForm() {
     // Logout parametresi kontrolü
     const logoutParam = searchParams?.get('logout');
     if (logoutParam === 'true') {
-      console.log('[LOGIN] Logout parametresi tespit edildi, tüm cookie\'ler temizleniyor...');
-      // Tüm NextAuth cookie'lerini tekrar temizle (güvenlik için)
-      const cookieNames = [
-        'next-auth.session-token',
-        '__Secure-next-auth.session-token',
-        'next-auth.csrf-token',
-        '__Secure-next-auth.csrf-token',
-        'next-auth.callback-url',
-        '__Secure-next-auth.callback-url',
-        'next-auth.pkce.code_verifier',
-        '__Secure-next-auth.pkce.code_verifier',
-      ];
-      
-      const allCookies = document.cookie.split(';');
-      const foundCookieNames = new Set<string>();
-      
-      for (let cookie of allCookies) {
-        const eqPos = cookie.indexOf('=');
-        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-        if (name.includes('next-auth') || name.includes('session') || name.includes('csrf') || name.includes('pkce')) {
-          foundCookieNames.add(name);
-        }
-      }
-      
-      cookieNames.forEach(name => foundCookieNames.add(name));
-      
-      const domains = ['', '.alo17.tr', 'alo17.tr', 'localhost', '.localhost'];
-      const paths = ['/', '/admin', '/giris'];
-      
-      foundCookieNames.forEach(cookieName => {
-        domains.forEach(domain => {
-          paths.forEach(path => {
-            const domainPart = domain ? `;domain=${domain}` : '';
-            document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};secure;SameSite=Lax`;
-            document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domainPart};SameSite=Lax`;
-          });
-        });
-      });
-      
-      // URL'den logout parametresini kaldır
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('logout');
-      window.history.replaceState({}, '', newUrl.toString());
+      // Client-side cookie silme, NextAuth credentials flow'undaki CSRF cookie'leriyle çakışıp
+      // /api/auth/callback/credentials tarafında 401 üretebiliyor.
+      // Güvenilir (HttpOnly dahil) cookie temizliği için server-side logout endpoint'ine yönlendir.
+      console.log('[LOGIN] Logout parametresi tespit edildi, /api/logout ile çıkış tamamlanıyor...');
+      const next = encodeURIComponent('/giris?loggedOut=true');
+      window.location.replace(`/api/logout?next=${next}&ts=${Date.now()}`);
+      return;
     }
     
     // URL'den gelen hata mesajını göster
@@ -106,7 +70,7 @@ function LoginForm() {
       setFormData(prev => ({ ...prev, password: savedPassword }));
     }
     setRememberMe(savedRememberMe);
-  }, [errorParam]);
+  }, [errorParam, searchParams]);
 
   // Google provider aktif mi? (NextAuth providers endpoint'inden kontrol et)
   useEffect(() => {

@@ -38,7 +38,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { role, phone } = body; // "user", "moderator", "admin", phone
+    const { role, phone, name, isActive } = body; // "user", "moderator", "admin", phone, name, isActive
 
     // Kullanıcıyı bul
     const user = await prisma.user.findUnique({
@@ -63,6 +63,24 @@ export async function PATCH(
     // Güncellenecek verileri hazırla
     const updateData: Prisma.UserUpdateInput = {};
     
+    // İsim güncelleme
+    if (name !== undefined) {
+      if (typeof name !== 'string') {
+        return NextResponse.json(
+          { error: 'Geçersiz isim formatı' },
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      const trimmed = name.trim();
+      if (trimmed.length > 100) {
+        return NextResponse.json(
+          { error: 'İsim en fazla 100 karakter olabilir' },
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      updateData.name = trimmed === '' ? null : trimmed;
+    }
+
     // Telefon numarası güncelleme
     if (phone !== undefined) {
       const { encryptPhone } = await import('@/lib/encryption');
@@ -72,6 +90,17 @@ export async function PATCH(
       } else {
         updateData.phone = null;
       }
+    }
+
+    // Aktiflik durumu güncelleme
+    if (isActive !== undefined) {
+      if (typeof isActive !== 'boolean') {
+        return NextResponse.json(
+          { error: 'Geçersiz aktiflik formatı' },
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      updateData.isActive = isActive;
     }
     
     if (role !== undefined) {

@@ -3,6 +3,7 @@ import IlanDetayClient from './IlanDetayClient';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { createSlug, extractIdFromSlug } from '@/lib/slug';
+import { getSeoSettings } from '@/lib/seo-settings';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -230,10 +231,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function IlanDetayPage({ params }: PageProps) {
   const { id: slugOrId } = await params;
+  const seo = await getSeoSettings();
   
   return (
     <Suspense fallback={<div>Yükleniyor...</div>}>
-      <IlanDetayClient id={slugOrId} />
+      <IlanDetayClient id={slugOrId} seo={seo} />
     </Suspense>
   );
 } 

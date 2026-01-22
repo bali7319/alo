@@ -46,14 +46,26 @@ export async function POST(request: NextRequest) {
 
     // Şifre sıfırlama token'ı oluştur
     const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
     const resetTokenExpiry = new Date();
     resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1); // 1 saat geçerli
 
-    // TODO: Reset token'ı veritabanına kaydet (şimdilik sadece log)
-    // Prisma schema'ya PasswordResetToken modeli eklenebilir
-    console.log('✅ Şifre sıfırlama token oluşturuldu:', {
+    // Token'ı DB'de sakla (tek kullanımlık). Eski token'ları temizle.
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt: resetTokenExpiry,
+      },
+    });
+
+    console.log('✅ Şifre sıfırlama token oluşturuldu (hash kaydedildi):', {
       email: normalizedEmail,
-      token: resetToken.substring(0, 10) + '...',
+      tokenHashPrefix: tokenHash.substring(0, 10) + '...',
       expiresAt: resetTokenExpiry,
     });
 

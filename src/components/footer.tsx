@@ -155,7 +155,7 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/ilan-ver" className="text-gray-400 hover:text-white transition-colors">
+                  <Link href="/ilan-verme-kurallari" className="text-gray-400 hover:text-white transition-colors">
                     İlan Verme Kuralları
                   </Link>
                 </li>
@@ -172,7 +172,7 @@ export default function Footer() {
               <h3 className="text-lg font-semibold mb-4">Sosyal Medya</h3>
               <div className="flex space-x-4">
                 <a 
-                  href="https://www.facebook.com/alo17tr" 
+                  href="https://www.facebook.com/profile.php?id=61584065519519" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"
@@ -181,7 +181,7 @@ export default function Footer() {
                   <Facebook className="h-6 w-6" />
                 </a>
                 <a 
-                  href="https://www.instagram.com/alo17tr" 
+                  href="https://www.instagram.com/alo.17.tr/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"

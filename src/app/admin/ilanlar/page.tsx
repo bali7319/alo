@@ -400,6 +400,20 @@ export default function AdminIlanlarPage() {
                         </Button>
                       </>
                     )}
+                    {/* Yenile butonu - sadece süresi dolmuş ilanlar için */}
+                    {listing.expiresAt && new Date(listing.expiresAt) < new Date() && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300"
+                        onClick={() => {
+                          if (!confirm('Bu ilanı 30 gün uzatıp tekrar moderatör onayına göndermek istiyor musunuz?')) return;
+                          handleAction(listing.id, 'renew');
+                        }}
+                      >
+                        Yenile (30g)
+                      </Button>
+                    )}
                     {/* Süre uzatma butonu - süresi dolmuş veya dolmak üzere olan ilanlar için */}
                     {listing.expiresAt && new Date(listing.expiresAt) <= new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000) && (
                       <Button 

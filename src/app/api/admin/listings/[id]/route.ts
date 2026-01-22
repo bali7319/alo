@@ -145,6 +145,26 @@ export async function PATCH(
         };
         break;
       
+      case 'renew': {
+        // Yenile: sadece süresi dolmuş ilanlar için (30 gün), tekrar moderatör onayına gönder
+        const now = new Date();
+        if (listing.expiresAt > now) {
+          return NextResponse.json(
+            { error: 'Bu ilan henüz süresi dolmamış. Yenileme gerekmiyor.' },
+            { status: 400 }
+          );
+        }
+
+        const newExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        updateData = {
+          ...updateData,
+          isActive: true,
+          expiresAt: newExpiresAt,
+          approvalStatus: 'pending',
+        };
+        break;
+      }
+      
       case 'premium':
         const premiumDays = days || 30;
         const premiumUntil = new Date();

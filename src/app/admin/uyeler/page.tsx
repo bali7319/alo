@@ -32,6 +32,8 @@ export default function AdminUyelerPage() {
   const [armyUsers, setArmyUsers] = useState<User[]>([]);
   const [editingPhoneUserId, setEditingPhoneUserId] = useState<string | null>(null);
   const [editingPhoneValue, setEditingPhoneValue] = useState<string>('');
+  const [editingNameUserId, setEditingNameUserId] = useState<string | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState<string>('');
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -191,6 +193,16 @@ export default function AdminUyelerPage() {
     setEditingPhoneValue('');
   };
 
+  const handleEditName = (user: User) => {
+    setEditingNameUserId(user.id);
+    setEditingNameValue(user.name || '');
+  };
+
+  const handleCancelEditName = () => {
+    setEditingNameUserId(null);
+    setEditingNameValue('');
+  };
+
   const handleSavePhone = async (userId: string) => {
     setUpdatingUserId(userId);
     setError('');
@@ -220,6 +232,51 @@ export default function AdminUyelerPage() {
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Bir hata oluştu');
       console.error('Telefon numarası güncelleme hatası:', error);
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const handleSaveName = async (userId: string) => {
+    const newName = editingNameValue.trim();
+    if (newName.length > 100) {
+      setError('İsim en fazla 100 karakter olabilir');
+      return;
+    }
+
+    setUpdatingUserId(userId);
+    setError('');
+    
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newName }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'İsim güncellenirken bir hata oluştu');
+      }
+
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, name: newName } : user
+      ));
+      
+      if (showArmy) {
+        setArmyUsers(armyUsers.map(user =>
+          user.id === userId ? { ...user, name: newName } : user
+        ));
+      }
+
+      setEditingNameUserId(null);
+      setEditingNameValue('');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Bir hata oluştu');
+      console.error('İsim güncelleme hatası:', error);
     } finally {
       setUpdatingUserId(null);
     }
@@ -361,7 +418,58 @@ export default function AdminUyelerPage() {
           <tbody>
             {users.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
-                <td className="p-3 border-b font-medium">{user.name}</td>
+                <td className="p-3 border-b font-medium">
+                  {editingNameUserId === user.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editingNameValue}
+                        onChange={(e) => setEditingNameValue(e.target.value)}
+                        className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ad Soyad"
+                        disabled={updatingUserId === user.id}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSaveName(user.id)}
+                        disabled={updatingUserId === user.id}
+                        className="text-xs px-2 py-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="Kaydet"
+                      >
+                        <Check className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelEditName}
+                        disabled={updatingUserId === user.id}
+                        className="text-xs px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="İptal"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span>{user.name || '-'}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEditName(user)}
+                        disabled={
+                          updatingUserId === user.id ||
+                          editingPhoneUserId === user.id ||
+                          user.email === 'admin@alo17.tr'
+                        }
+                        className="text-xs px-1 py-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="İsim düzenle"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </td>
                 <td className="p-3 border-b">{user.email}</td>
                 <td className="p-3 border-b">
                   {editingPhoneUserId === user.id ? (
@@ -400,7 +508,7 @@ export default function AdminUyelerPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleEditPhone(user)}
-                        disabled={updatingUserId === user.id || user.email === 'admin@alo17.tr'}
+                        disabled={updatingUserId === user.id || editingNameUserId === user.id || user.email === 'admin@alo17.tr'}
                         className="text-xs px-1 py-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         title="Düzenle"
                       >

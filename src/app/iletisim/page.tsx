@@ -6,6 +6,9 @@ import { Mail, Phone, MapPin } from 'lucide-react'
 
 export default function ContactPage() {
   const { data: session } = useSession();
+  const destination = encodeURIComponent('Cevatpaşa Mahallesi, Bayrak Sokak No:4, Çanakkale, Türkiye');
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -69,10 +72,20 @@ export default function ContactPage() {
               <MapPin className="h-6 w-6 text-blue-600" />
               <div>
                 <h3 className="font-medium">Adres</h3>
-                <p className="text-gray-600">
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                  aria-label="Haritalarda yol tarifi al"
+                  title="Haritalarda yol tarifi al"
+                >
                   Cevatpaşa Mahallesi, Bayrak Sokak No:4<br />
                   Çanakkale, Türkiye
-                </p>
+                  <span className="block text-xs text-blue-600 mt-1 underline underline-offset-4">
+                    Yol tarifi al
+                  </span>
+                </a>
               </div>
             </div>
 

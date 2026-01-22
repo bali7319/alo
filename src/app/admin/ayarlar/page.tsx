@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Star, Zap, Crown, TrendingUp, Eye, MessageSquare, Calendar, DollarSign, Sparkles } from 'lucide-react';
+import { Star, Zap, Crown, TrendingUp, Eye, MessageSquare, Calendar, DollarSign, Sparkles, Link2, MousePointerClick } from 'lucide-react';
 
 interface Settings {
   premiumPrice: number;
@@ -45,6 +45,11 @@ interface Settings {
   noneMaxTotalImages: number; // Ücretsiz plan için
   monthlyMaxTotalImages: number; // Aylık plan için
   quarterlyMaxTotalImages: number; // 3 Aylık plan için
+}
+
+interface SeoSettings {
+  internalLinking: boolean;
+  linkTracking: boolean;
 }
 
 export default function AdminAyarlarPage() {
@@ -92,8 +97,13 @@ export default function AdminAyarlarPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [seoSaving, setSeoSaving] = useState(false);
   const [lastSaveTime, setLastSaveTime] = useState<number | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [seoSettings, setSeoSettings] = useState<SeoSettings>({
+    internalLinking: true,
+    linkTracking: false,
+  });
 
   const fetchSettings = async (skipIfRecentSave = false) => {
     // Eğer yakın zamanda kaydetme yapıldıysa (120 saniye içinde), fetchSettings'i atla
@@ -198,6 +208,56 @@ export default function AdminAyarlarPage() {
     }
   };
 
+  const fetchSeoSettings = async () => {
+    try {
+      const res = await fetch(`/api/admin/seo-settings?t=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+        },
+        credentials: 'include',
+        cache: 'no-store',
+        next: { revalidate: 0 },
+      } as any);
+      const data = await res.json();
+      if (res.ok && data && typeof data === 'object' && !data.error) {
+        setSeoSettings({
+          internalLinking: !!data.internalLinking,
+          linkTracking: !!data.linkTracking,
+        });
+      }
+    } catch (e) {
+      console.error('SEO ayarları yüklenemedi:', e);
+    }
+  };
+
+  const handleSaveSeo = async () => {
+    setSeoSaving(true);
+    try {
+      const response = await fetch('/api/admin/seo-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(seoSettings),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSeoSettings({
+          internalLinking: !!data.internalLinking,
+          linkTracking: !!data.linkTracking,
+        });
+        alert('SEO ayarları kaydedildi.');
+      } else {
+        alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+      }
+    } catch (error) {
+      console.error('SEO kaydetme hatası:', error);
+      alert('SEO kaydetme sırasında hata oluştu');
+    } finally {
+      setSeoSaving(false);
+    }
+  };
+
   useEffect(() => {
     if (status === 'loading') {
       return; // Hala yükleniyor
@@ -213,6 +273,7 @@ export default function AdminAyarlarPage() {
     // Sadece ilk yüklemede fetchSettings çağır
     if (isInitialLoad) {
     fetchSettings();
+    fetchSeoSettings();
     }
     
     // Her 60 saniyede bir admin ayarlarını kontrol et (başka sekmede değişiklik yapıldıysa)
@@ -688,6 +749,60 @@ export default function AdminAyarlarPage() {
           </div>
 
           {/* Kaydet Butonu */}
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center">
+              <Link2 className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-500 mr-2" />
+              SEO Ayarları
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-600 mb-4">
+              Nofollow + Noindex + görsel alt iyileştirmeleri <strong>kalıcı açık</strong>. Buradan sadece iç linkleme ve link takip
+              özelliklerini aç/kapatabilirsiniz.
+            </p>
+
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4"
+                  checked={seoSettings.internalLinking}
+                  onChange={(e) => setSeoSettings((p) => ({ ...p, internalLinking: e.target.checked }))}
+                />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Otomatik İç Linkleme</div>
+                  <div className="text-xs text-gray-600">
+                    İlan açıklamasında geçen kategori isimlerini (örn. “Elektronik”) otomatik olarak kategori sayfasına bağlar.
+                  </div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4"
+                  checked={seoSettings.linkTracking}
+                  onChange={(e) => setSeoSettings((p) => ({ ...p, linkTracking: e.target.checked }))}
+                />
+                <div>
+                  <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                    <MousePointerClick className="h-4 w-4 text-gray-500" />
+                    Link Takip
+                  </div>
+                  <div className="text-xs text-gray-600">İlan açıklamasındaki dış link tıklamalarını sayar.</div>
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-4">
+              <Button
+                onClick={handleSaveSeo}
+                disabled={seoSaving}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-base font-medium py-2.5 sm:py-3 px-4 rounded-lg"
+              >
+                {seoSaving ? 'Kaydediliyor...' : 'SEO Ayarlarını Kaydet'}
+              </Button>
+            </div>
+          </div>
+
           <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <Button 
               onClick={handleSave}

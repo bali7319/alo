@@ -171,6 +171,12 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
     const listingIdToUse = listing?.id || id;
     if (!listingIdToUse) return;
 
+    // Ödeme bekleyen ilanlar, ödeme tamamlanmadan onaya gönderilemez
+    if (listing?.approvalStatus === 'payment_pending') {
+      alert('Ödeme tamamlanmadan ilan onaya gönderilemez. Lütfen önce ödemeyi tamamlayın.');
+      return;
+    }
+
     // Premium plan seçilmişse ve ödeme yapılmamışsa onaya gönderme
     if (hasPayment) {
       alert('Premium plan seçilmiş. Lütfen önce ödemeyi tamamlayın.');
@@ -316,6 +322,9 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
     paymentData.totalAmount > 0 && 
     (paymentData.planType !== 'none' || (paymentData.premiumFeaturesPrice && paymentData.premiumFeaturesPrice > 0));
 
+  // LocalStorage temizlenmiş olsa bile (paymentData yoksa), backend'in beklediği ödeme durumunu dikkate al
+  const requiresPayment = listing.approvalStatus === 'payment_pending' || Boolean(hasPayment);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -340,7 +349,7 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
                   İlan Önizleme
                 </h3>
                 <div className="mt-2 text-sm text-yellow-700">
-                  <p>İlanınızı kontrol edin. Her şey doğruysa, {hasPayment ? 'ödemeye geçebilir' : 'onaya gönderebilir'}siniz.</p>
+                  <p>İlanınızı kontrol edin. Her şey doğruysa, {requiresPayment ? 'ödemeye geçebilir' : 'onaya gönderebilir'}siniz.</p>
                 </div>
               </div>
             </div>
@@ -463,7 +472,7 @@ export default function IlanOnizlePageContent({ id }: IlanOnizlePageProps) {
                 Düzenle
               </Link>
 
-              {hasPayment ? (
+              {requiresPayment ? (
                 <>
                   <button
                     onClick={handleProceedToPayment}

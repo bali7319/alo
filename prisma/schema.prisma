@@ -39,6 +39,7 @@ model User {
   reports       Report[]  @relation("UserReports")
   moderatedListings Listing[] @relation("ModeratedListings")
   invoices      Invoice[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Account {
@@ -289,4 +290,19 @@ model EmailSubscription {
   isActive  Boolean  @default(true) // Abonelik aktif mi?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-} 
+}
+
+// Şifre sıfırlama token'ları (tek kullanımlık + süreli)
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}

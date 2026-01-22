@@ -143,7 +143,7 @@ export const Sidebar = () => {
 
       {/* Sidebar */}
       <nav 
-        className={`fixed md:static top-0 left-0 h-full md:h-auto w-64 bg-white p-4 border-r z-50 md:z-auto transform transition-transform duration-300 ease-in-out ${
+        className={`fixed md:static top-0 left-0 h-[100dvh] md:h-auto w-64 bg-white p-4 border-r z-50 md:z-auto transform transition-transform duration-300 ease-in-out overflow-y-auto md:overflow-visible overscroll-contain pb-24 md:pb-4 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
         aria-label="Kategoriler menüsü"

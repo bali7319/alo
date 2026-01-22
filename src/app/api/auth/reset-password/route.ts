@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hash } from 'bcryptjs';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token gereklidir'),
@@ -37,10 +38,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Token doğrulama (şimdilik basit kontrol)
-    // Gerçek uygulamada token'ı veritabanında saklayıp kontrol etmeliyiz
-    // Şimdilik token formatını kontrol ediyoruz (64 karakter hex)
+    // Token formatını kontrol et (64 karakter hex)
     if (!/^[a-f0-9]{64}$/i.test(token)) {
+      return NextResponse.json(
+        { error: 'Geçersiz veya süresi dolmuş şifre sıfırlama linki' },
+        { status: 400 }
+      );
+    }
+
+    // DB'de token doğrula (hash üzerinden)
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const now = new Date();
+
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        userId: user.id,
+        tokenHash,
+        usedAt: null,
+        expiresAt: { gt: now },
+      },
+    });
+
+    if (!resetToken) {
       return NextResponse.json(
         { error: 'Geçersiz veya süresi dolmuş şifre sıfırlama linki' },
         { status: 400 }
@@ -50,13 +69,17 @@ export async function POST(request: NextRequest) {
     // Şifreyi hashle
     const hashedPassword = await hash(password, 12);
 
-    // Kullanıcı şifresini güncelle
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-      },
-    });
+    // Atomik güncelle: şifreyi güncelle + token'ı tüket
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword },
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { usedAt: now },
+      }),
+    ]);
 
     return NextResponse.json({
       message: 'Şifreniz başarıyla güncellendi',

@@ -118,3 +118,20 @@
     }
   }
 } 
+
+/* Breadcrumb hizalama düzeltmesi (ikon + ayıraç + metin aynı baseline) */
+nav[aria-label="Breadcrumb"] ol,
+nav[aria-label="Breadcrumb"] li {
+  align-items: center;
+}
+
+nav[aria-label="Breadcrumb"] a,
+nav[aria-label="Breadcrumb"] span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+nav[aria-label="Breadcrumb"] svg {
+  display: block;
+}

@@ -164,6 +164,8 @@ export async function middleware(request: NextRequest) {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
           'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+          // Strong hint for crawlers even without parsing HTML
+          'X-Robots-Tag': 'noindex, nofollow',
         },
       });
     }
@@ -171,6 +173,17 @@ export async function middleware(request: NextRequest) {
 
   // Query string kontrolü (eski sistem query parametreleri)
   const searchParams = request.nextUrl.searchParams;
+
+  // Some spam/legacy URLs come as "/?81256378285" or "/detail.php?81256378285"
+  // where the query has a numeric KEY and empty value. Catch those too.
+  const numericKeyQuery = (() => {
+    // If any query key is 10-15 digits, treat as legacy/spam
+    for (const [key, value] of searchParams.entries()) {
+      if (value === '' && /^[0-9]{10,15}$/.test(key)) return true;
+    }
+    return false;
+  })();
+
   const hasOldQueryParams = 
     searchParams.has('id') && /^[0-9]{10,15}$/.test(searchParams.get('id') || '') ||
     searchParams.has('s') && /^[0-9]{10,15}$/.test(searchParams.get('s') || '') ||
@@ -178,7 +191,7 @@ export async function middleware(request: NextRequest) {
     searchParams.has('q') && /^[0-9]{10,15}$/.test(searchParams.get('q') || '') ||
     searchParams.has('goods_id') && /^[0-9]{10,15}$/.test(searchParams.get('goods_id') || '');
 
-  if (hasOldQueryParams) {
+  if (hasOldQueryParams || numericKeyQuery) {
     // 410 Gone - Kalıcı olarak silindi
     const html = `<!DOCTYPE html>
 <html lang="tr">
@@ -235,6 +248,8 @@ export async function middleware(request: NextRequest) {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        // Strong hint for crawlers even without parsing HTML
+        'X-Robots-Tag': 'noindex, nofollow',
       },
     });
   }
