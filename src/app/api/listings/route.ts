@@ -493,6 +493,21 @@ export async function POST(request: NextRequest) {
         }).catch((error) => {
           console.error('Database notification oluşturma hatası:', error);
         });
+
+        // WhatsApp bildirimi (Meta Cloud API) - opsiyonel, env varsa çalışır
+        const { notifyAdminNewListingWhatsApp } = await import('@/lib/whatsapp');
+        notifyAdminNewListingWhatsApp({
+          id: listing.id,
+          title: listing.title,
+          user: {
+            name: user.name || 'Kullanıcı',
+            email: user.email,
+          },
+          category: category,
+          price: price,
+        }).catch((error) => {
+          console.error('WhatsApp bildirimi gönderme hatası:', error);
+        });
       } catch (error) {
         // Bildirim hatası kritik değil, devam et
         console.error('Bildirim gönderme hatası:', error);
