@@ -259,6 +259,33 @@ export async function middleware(request: NextRequest) {
     // /giris?logout=true için devam et
   }
 
+  // Onboarding: Google ile giriş yapan ve telefon numarası eksik olan kullanıcıyı
+  // profili tamamlamaya zorla (admin/moderator hariç).
+  // Not: DB sorgusu yapmadan, JWT token'dan kontrol edilir.
+  // Allowlist: onboarding sırasında sadece profil düzenleme ve gerekli API'ler.
+  {
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    const needsPhone = (token as any)?.needsPhone === true;
+    const role = (token as any)?.role;
+
+    if (needsPhone && role !== 'admin' && role !== 'moderator') {
+      const allow =
+        pathname === '/giris' ||
+        pathname.startsWith('/api/auth/') ||
+        pathname.startsWith('/api/logout') ||
+        pathname.startsWith('/api/user/profile') ||
+        pathname.startsWith('/profil/duzenle');
+
+      if (!allow) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/profil/duzenle';
+        url.searchParams.set('onboarding', '1');
+        url.searchParams.set('callbackUrl', pathname);
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
   // Admin ve moderator route'ları için authentication kontrolü
   if (pathname.startsWith('/admin') || pathname.startsWith('/moderator')) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });

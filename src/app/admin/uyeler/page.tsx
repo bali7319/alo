@@ -9,6 +9,7 @@ interface User {
   name: string;
   email: string;
   phone: string;
+  fallbackPhone?: string | null;
   location: string;
   role: string;
   createdAt: string;
@@ -503,7 +504,12 @@ export default function AdminUyelerPage() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span>{user.phone || '-'}</span>
+                      <div className="flex flex-col leading-tight">
+                        <span>{user.phone || user.fallbackPhone || '-'}</span>
+                        {!user.phone && user.fallbackPhone && (
+                          <span className="text-[11px] text-gray-500">(son ilan)</span>
+                        )}
+                      </div>
                       <Button
                         size="sm"
                         variant="ghost"

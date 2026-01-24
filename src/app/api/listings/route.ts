@@ -303,6 +303,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Otomatik doldurma: Kullanıcı ilan verirken telefon girdiyse ve profilde telefon yoksa
+    // kullanıcı profiline bu telefonu yaz (şifreli).
+    const incomingPhone = typeof phone === 'string' ? phone.trim() : '';
+    const shouldAutofillUserPhone = Boolean(incomingPhone) && !user.phone;
+
     // Admin kontrolü - Admin kullanıcıları ilan limitinden muaf
     // Hem role hem de email kontrolü yap (daha güvenli)
     const { isAdminEmail } = await import('@/lib/admin');
@@ -427,33 +432,52 @@ export async function POST(request: NextRequest) {
     const finalApprovalStatus = requiresPayment ? 'payment_pending' : 'pending';
 
     // İlanı oluştur
-    const listing = await prisma.listing.create({
-      data: {
-        title,
-        description,
-        price: price, // Validation schema zaten number döndürüyor
-        category,
-        subCategory: subCategory || null,
-        subSubCategory: subSubCategory || null,
-        location,
-        phone: phone || null,
-        showPhone: showPhone !== false,
-        images: JSON.stringify(images || []),
-        features: JSON.stringify(features || []),
-        condition: condition || null,
-        brand: brand || null,
-        isPremium: finalIsPremium, // Ödeme yapılmadan premium olmamalı
-        premiumFeatures: premiumFeatures ? JSON.stringify({
-          ...(typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures),
-          contactOptions: (typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures)?.contactOptions || { showPhone: true, showWhatsApp: true, showMessage: true }
-        }) : null,
-        premiumUntil: null, // Ödeme yapılmadan premiumUntil null olmalı
-        expiresAt: expiresAt ? new Date(expiresAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 gün sonra
-        views: 0,
-        isActive: true,
-        approvalStatus: finalApprovalStatus,
-        userId: user.id,
-      },
+    const listing = await prisma.$transaction(async (tx) => {
+      if (shouldAutofillUserPhone) {
+        const { encryptPhone } = await import('@/lib/encryption');
+        const phoneData = encryptPhone(incomingPhone);
+        await tx.user.update({
+          where: { id: user.id },
+          data: { phone: phoneData.encrypted },
+          select: { id: true },
+        });
+      }
+
+      return tx.listing.create({
+        data: {
+          title,
+          description,
+          price: price, // Validation schema zaten number döndürüyor
+          category,
+          subCategory: subCategory || null,
+          subSubCategory: subSubCategory || null,
+          location,
+          phone: incomingPhone || null,
+          showPhone: showPhone !== false,
+          images: JSON.stringify(images || []),
+          features: JSON.stringify(features || []),
+          condition: condition || null,
+          brand: brand || null,
+          isPremium: finalIsPremium, // Ödeme yapılmadan premium olmamalı
+          premiumFeatures: premiumFeatures
+            ? JSON.stringify({
+                ...(typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures),
+                contactOptions:
+                  (typeof premiumFeatures === 'string' ? JSON.parse(premiumFeatures) : premiumFeatures)?.contactOptions || {
+                    showPhone: true,
+                    showWhatsApp: true,
+                    showMessage: true,
+                  },
+              })
+            : null,
+          premiumUntil: null, // Ödeme yapılmadan premiumUntil null olmalı
+          expiresAt: expiresAt ? new Date(expiresAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 gün sonra
+          views: 0,
+          isActive: true,
+          approvalStatus: finalApprovalStatus,
+          userId: user.id,
+        },
+      });
     });
 
     // Cache invalidation - homepage ve category cache'lerini temizle

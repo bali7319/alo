@@ -344,6 +344,9 @@ export const authOptions: NextAuthOptions = {
           // Kullanıcı bilgilerini güncelle
           user.id = dbUser.id;
           (user as User & { role?: string }).role = dbUser.role || (isAdminEmail(dbUser.email) ? 'admin' : 'user');
+          // Onboarding: Google kullanıcılarında telefon yoksa profil tamamlama zorunlu
+          (user as any).isOAuth = true;
+          (user as any).needsPhone = !dbUser.phone;
           
           console.log('Google sign in başarılı:', { userId: dbUser.id, email: dbUser.email });
         } catch (error: unknown) {
@@ -363,16 +366,47 @@ export const authOptions: NextAuthOptions = {
 
       return true;
     },
-    async jwt({ token, user }: { token: JWT; user?: User & { role?: string; phone?: string; location?: string } }) {
+    async jwt({
+      token,
+      user,
+      trigger,
+      session,
+    }: {
+      token: JWT & { phone?: string; location?: string; role?: string; needsPhone?: boolean; isOAuth?: boolean; picture?: string };
+      user?: (User & { role?: string; phone?: string; location?: string }) | (any);
+      trigger?: 'signIn' | 'update';
+      session?: Session | any;
+    }) {
+      // İlk sign-in sırasında user objesinden token'ı doldur
       if (user) {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
-        token.role = user.role;
+        token.role = (user as any).role;
         token.phone = (user as any).phone;
         token.location = (user as any).location;
         token.picture = (user as any).image;
+        token.isOAuth = Boolean((user as any).isOAuth);
+        token.needsPhone = Boolean((user as any).needsPhone);
       }
+
+      // Client tarafında session.update(...) çağrıldığında token'ı güncelle
+      if (trigger === 'update' && session?.user) {
+        token.name = session.user.name ?? token.name;
+        token.email = session.user.email ?? token.email;
+        token.picture = (session.user as any).image ?? token.picture;
+        token.phone = (session.user as any).phone ?? token.phone;
+        token.location = (session.user as any).location ?? token.location;
+        token.needsPhone = token.isOAuth ? !token.phone : false;
+      }
+
+      // Ek güvenlik: OAuth kullanıcılarında needsPhone'u token.phone'a göre normalize et
+      if (token.isOAuth) {
+        token.needsPhone = !token.phone;
+      } else {
+        token.needsPhone = false;
+      }
+
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
@@ -386,6 +420,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string;
         (session.user as Session['user'] & { phone?: string; location?: string }).phone = token.phone as string | undefined;
         (session.user as Session['user'] & { phone?: string; location?: string }).location = token.location as string | undefined;
+        (session.user as any).needsPhone = (token as any).needsPhone === true;
       }
       return session;
     },

@@ -57,6 +57,7 @@ export default function EditProfilePage() {
   const [success, setSuccess] = useState<string>('');
 
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isOnboarding, setIsOnboarding] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -65,6 +66,14 @@ export default function EditProfilePage() {
       const currentPath = window.location.pathname;
       router.push(`/giris?callbackUrl=${encodeURIComponent(currentPath)}`);
       return;
+    }
+
+    // Onboarding parametresi: Google kullanıcıları için telefon zorunlu akış
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      setIsOnboarding(sp.get('onboarding') === '1');
+    } catch {
+      setIsOnboarding(false);
     }
 
     // Sadece ilk yüklemede API'den çek
@@ -177,6 +186,13 @@ export default function EditProfilePage() {
     setSuccess('');
 
     try {
+      // Onboarding sırasında telefon zorunlu
+      if (isOnboarding && !formData.phone?.trim()) {
+        setError('Devam etmek için telefon numaranızı eklemelisiniz.');
+        setLoading(false);
+        return;
+      }
+
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
       formDataToSend.append('email', formData.email);
@@ -212,7 +228,14 @@ export default function EditProfilePage() {
         
         // Session'ı güncelle - NextAuth session'ı yenile (veritabanından güncel bilgileri çekecek)
         if (update) {
-          await update();
+          // JWT token'ı anında güncelle (middleware onboarding kontrolü için kritik)
+          await update({
+            name: data.user?.name ?? formData.name,
+            email: data.user?.email ?? formData.email,
+            image: data.user?.image ?? previewImage,
+            phone: data.user?.phone ?? formData.phone,
+            location: data.user?.location ?? formData.location,
+          } as any);
         }
         
         // Başarı mesajını göster ve kısa bir süre sonra profil sayfasına yönlendir
@@ -310,6 +333,12 @@ export default function EditProfilePage() {
         <div className="bg-white rounded-xl shadow-sm p-8">
           <h1 className="text-2xl font-bold text-alo-dark mb-8">Profili Düzenle</h1>
           
+          {isOnboarding && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg">
+              Telefon numaranız eksik. Devam etmek için lütfen telefon numaranızı ekleyip kaydedin.
+            </div>
+          )}
+
           {/* Hata ve Başarı Mesajları */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
@@ -390,7 +419,7 @@ export default function EditProfilePage() {
             {/* Telefon */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Telefon
+                Telefon{isOnboarding ? ' *' : ''}
               </label>
               <div className="relative">
                 <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -401,6 +430,7 @@ export default function EditProfilePage() {
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-alo-orange focus:border-transparent"
                   placeholder="Telefon numaranız"
+                  required={isOnboarding}
                 />
               </div>
             </div>
@@ -544,6 +574,7 @@ export default function EditProfilePage() {
               <button
                 type="button"
                 onClick={() => router.push('/profil')}
+                disabled={isOnboarding}
                 className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 İptal

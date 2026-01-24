@@ -68,6 +68,15 @@ export async function GET(request: NextRequest) {
           location: true,
           role: true,
           createdAt: true,
+          // Fallback için: son ilanın telefonunu çek
+          listings: {
+            select: {
+              phone: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
           _count: {
             select: {
               listings: true,
@@ -82,6 +91,7 @@ export async function GET(request: NextRequest) {
     // Date object'lerini ISO string'e çevir, role field'ını güvenli hale getir ve telefon numaralarını çöz
     const formattedUsers = await Promise.all(users.map(async (user) => {
       let decryptedPhone: string | null = user.phone || null;
+      const lastListingPhoneRaw = user.listings?.[0]?.phone || null;
       
       // Telefon numarasını çöz (şifrelenmişse)
       if (decryptedPhone && decryptedPhone.trim() !== '') {
@@ -143,6 +153,8 @@ export async function GET(request: NextRequest) {
       return {
         ...user,
         phone: decryptedPhone,
+        // UI'da ayrı gösterilsin diye fallback alanı
+        fallbackPhone: (!decryptedPhone && lastListingPhoneRaw && lastListingPhoneRaw.trim() !== '') ? lastListingPhoneRaw : null,
         role: user.role || 'user', // Varsayılan olarak 'user' kullan
         createdAt: user.createdAt.toISOString(),
       };
