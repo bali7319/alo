@@ -277,10 +277,11 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/profil/duzenle');
 
       if (!allow) {
+        const requestedPath = request.nextUrl.pathname + request.nextUrl.search;
         const url = request.nextUrl.clone();
         url.pathname = '/profil/duzenle';
         url.searchParams.set('onboarding', '1');
-        url.searchParams.set('callbackUrl', pathname);
+        url.searchParams.set('callbackUrl', requestedPath);
         return NextResponse.redirect(url);
       }
     }
@@ -292,7 +293,7 @@ export async function middleware(request: NextRequest) {
     
     if (!token) {
       const loginUrl = new URL('/giris', request.url);
-      loginUrl.searchParams.set('callbackUrl', pathname);
+      loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname + request.nextUrl.search);
       return NextResponse.redirect(loginUrl);
     }
 

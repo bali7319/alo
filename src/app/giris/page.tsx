@@ -9,9 +9,15 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const rawCallbackUrl = searchParams?.get('callbackUrl') || '/';
-  // URL decode işlemi
-  const callbackUrl = rawCallbackUrl ? decodeURIComponent(rawCallbackUrl) : '/';
+  const rawCallbackUrl = searchParams?.get('callbackUrl') || '';
+  // URL decode işlemi (hatalı encode durumlarına dayanıklı)
+  const callbackUrl = (() => {
+    try {
+      return rawCallbackUrl ? decodeURIComponent(rawCallbackUrl) : '';
+    } catch {
+      return rawCallbackUrl || '';
+    }
+  })();
   const errorParam = searchParams?.get('error');
   
   const [showPassword, setShowPassword] = useState(false);
@@ -23,6 +29,39 @@ function LoginForm() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const resolvePostLoginRedirect = (): string => {
+    if (typeof window === 'undefined') return '/';
+
+    const normalize = (candidate: string | null | undefined): string | null => {
+      if (!candidate) return null;
+      const v = candidate.trim();
+      if (!v) return null;
+      if (v === '/giris' || v.startsWith('/giris?')) return null;
+      // Internal path
+      if (v.startsWith('/')) return v;
+      // Absolute same-origin
+      try {
+        const u = new URL(v);
+        if (u.origin === window.location.origin) {
+          return u.pathname + u.search + u.hash;
+        }
+      } catch {
+        // ignore
+      }
+      return null;
+    };
+
+    // 1) callbackUrl (en güvenilir)
+    const fromCallback = normalize(callbackUrl);
+    if (fromCallback) return fromCallback;
+
+    // 2) referrer (aynı origin ise)
+    const ref = normalize(document.referrer || '');
+    if (ref) return ref;
+
+    return '/';
+  };
 
   // Sayfa yüklendiğinde kaydedilmiş bilgileri yükle ve hata mesajını kontrol et
   useEffect(() => {
@@ -120,8 +159,8 @@ function LoginForm() {
         // Giriş başarılı, session'ın yüklenmesi için kısa bir bekleme
         // Eğer callbackUrl varsa (korunan sayfadan geldiyse) oraya, yoksa ana sayfaya yönlendir
         setTimeout(() => {
-          const targetUrl = callbackUrl && callbackUrl !== '/giris' ? callbackUrl : '/';
-          router.push(targetUrl);
+          const targetUrl = resolvePostLoginRedirect();
+          router.replace(targetUrl);
         }, 100);
       }
     } catch (error) {
@@ -146,7 +185,7 @@ function LoginForm() {
       // OAuth provider'lar için redirect gerekli (Google'a yönlendirme yapılacak)
       // NextAuth otomatik olarak callback URL'e yönlendirecek
       await signIn(provider, { 
-        callbackUrl: callbackUrl || '/',
+        callbackUrl: resolvePostLoginRedirect(),
         redirect: true // OAuth için redirect: true olmalı
       });
       

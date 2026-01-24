@@ -58,6 +58,7 @@ export default function EditProfilePage() {
 
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isOnboarding, setIsOnboarding] = useState(false);
+  const [onboardingCallbackUrl, setOnboardingCallbackUrl] = useState<string>('');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -72,8 +73,10 @@ export default function EditProfilePage() {
     try {
       const sp = new URLSearchParams(window.location.search);
       setIsOnboarding(sp.get('onboarding') === '1');
+      setOnboardingCallbackUrl(sp.get('callbackUrl') || '');
     } catch {
       setIsOnboarding(false);
+      setOnboardingCallbackUrl('');
     }
 
     // Sadece ilk yüklemede API'den çek
@@ -240,7 +243,15 @@ export default function EditProfilePage() {
         
         // Başarı mesajını göster ve kısa bir süre sonra profil sayfasına yönlendir
         setTimeout(() => {
-          router.push('/profil');
+          const safeTarget = (() => {
+            const raw = (onboardingCallbackUrl || '').trim();
+            if (!isOnboarding || !raw) return '/profil';
+            // Sadece internal path'e izin ver
+            if (raw.startsWith('/') && !raw.startsWith('/giris')) return raw;
+            return '/';
+          })();
+
+          router.push(safeTarget);
           router.refresh(); // Sayfayı yenile
         }, 1500);
       } else {
