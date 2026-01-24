@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
+const path = require('path')
+
 const nextConfig = {
+  // Next.js bazen workspace root'u yanlış seçebiliyor (çoklu lockfile vb.).
+  // Bu ayar output file tracing'in doğru kökten yapılmasını sağlar.
+  outputFileTracingRoot: path.resolve(__dirname),
   images: {
     remotePatterns: [
       {

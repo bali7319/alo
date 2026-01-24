@@ -92,6 +92,9 @@ export const metadata: Metadata = {
   verification: {
     // Google Search Console verification code buraya eklenecek
     // google: 'your-google-verification-code',
+    other: {
+      'facebook-domain-verification': 'n7wll8y665640cgxarhhaluwpuq6lt',
+    },
   },
   alternates: {
     canonical: 'https://alo17.tr',
