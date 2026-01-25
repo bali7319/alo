@@ -274,7 +274,7 @@ export default function Header() {
             
             <Link 
               href="/" 
-              className="flex items-center space-x-2 hover:opacity-80 transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg p-1"
+              className="relative z-50 pointer-events-auto flex items-center space-x-2 hover:opacity-80 transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg p-1"
               aria-label="Ana sayfaya git"
             >
               <div className="relative h-10 w-10 flex-shrink-0 transition-transform duration-200 hover:scale-110">
