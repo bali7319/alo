@@ -753,8 +753,10 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                 <a
                   href={actionButtons.showPhone ? `tel:${actionButtons.phone.replace(/\s/g, '')}` : undefined}
                   onClick={(e) => { if (!actionButtons.showPhone) e.preventDefault(); }}
-                  className={`h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold ${
-                    actionButtons.showPhone ? 'bg-alo-red text-white' : 'bg-gray-100 text-gray-400'
+                  className={`h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-bold shadow-sm active:scale-[0.99] transition ${
+                    actionButtons.showPhone
+                      ? 'bg-alo-orange text-white shadow-md'
+                      : 'bg-white text-gray-600 border border-gray-300'
                   }`}
                   aria-disabled={!actionButtons.showPhone}
                 >
