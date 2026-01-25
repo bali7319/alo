@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Heart, Phone, Mail, Share2, Facebook, Twitter, Instagram, MessageCircle, ChevronRight, Eye, MessageSquare, AlertTriangle, User, Flag } from 'lucide-react';
+import { Heart, Phone, Mail, Share2, Facebook, Twitter, Instagram, MessageCircle, ChevronRight, Eye, MessageSquare, AlertTriangle, User, Flag, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -62,6 +62,12 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
   const [isReporting, setIsReporting] = useState(false);
+
+  // Mobil sekmeler (arabam.com benzeri)
+  const [mobileTab, setMobileTab] = useState<'info' | 'desc' | 'services'>('info');
+  const infoRef = useRef<HTMLDivElement | null>(null);
+  const descRef = useRef<HTMLDivElement | null>(null);
+  const servicesRef = useRef<HTMLDivElement | null>(null);
 
   // Telefon numarasını WhatsApp formatına çevir
   const formatPhoneForWhatsApp = (phone: string): string => {
@@ -369,6 +375,24 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
     }
   };
 
+  const scrollToMobileSection = (tab: 'info' | 'desc' | 'services') => {
+    setMobileTab(tab);
+    const el =
+      tab === 'info' ? infoRef.current :
+      tab === 'desc' ? descRef.current :
+      servicesRef.current;
+    // Sticky tab bar için biraz üst boşluk bırak
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const actionButtons = useMemo(() => {
+    const phone = listing?.seller.phone?.trim() || '';
+    const showPhone = Boolean(phone) && (listing?.contactOptions?.showPhone !== false);
+    const showWhatsApp = Boolean(phone) && (listing?.contactOptions?.showWhatsApp !== false);
+    const showMessage = (listing?.contactOptions?.showMessage !== false);
+    return { phone, showPhone, showWhatsApp, showMessage };
+  }, [listing]);
+
   const getDirectionsUrl = (address: string) => {
     const destination = encodeURIComponent(address);
     // origin verilmezse çoğu cihaz mevcut konumdan yol tarifi açar.
@@ -459,52 +483,373 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Breadcrumb */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
-          <nav aria-label="Breadcrumb" className="py-3 sm:py-4">
-            <ol className="flex flex-nowrap items-center gap-x-1 sm:gap-x-2 overflow-x-auto text-xs sm:text-sm text-gray-600 leading-4 sm:leading-none">
-              <li className="inline-flex items-center leading-none shrink-0">
-                <Link href="/" className="inline-flex items-center leading-none hover:text-alo-orange whitespace-nowrap">
-                  Ana Sayfa
-                </Link>
-              </li>
-              <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
-                <span className="text-gray-400 select-none leading-none">›</span>
-              </li>
-              <li className="inline-flex items-center leading-none shrink-0">
-                <Link href="/ilanlar" className="inline-flex items-center leading-none hover:text-alo-orange whitespace-nowrap">
-                  İlanlar
-                </Link>
-              </li>
-              <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
-                <span className="text-gray-400 select-none leading-none">›</span>
-              </li>
-              <li className="inline-flex items-center leading-none shrink-0">
-                <Link
-                  href={`/kategori/${listing.category}`}
-                  className="inline-flex items-center leading-none hover:text-alo-orange capitalize whitespace-nowrap"
-                >
-                  {listing.category.replace('-', ' ')}
-                </Link>
-              </li>
-              <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
-                <span className="text-gray-400 select-none leading-none">›</span>
-              </li>
-              <li className="inline-flex items-center leading-none text-gray-900 min-w-0">
-                <span className="inline-flex items-center leading-none truncate max-w-[60vw] sm:max-w-none">
-                  {listing.title}
-                </span>
-              </li>
-            </ol>
-          </nav>
+      {/* Mobil layout */}
+      <div className="md:hidden">
+        {/* Breadcrumb (mobil) */}
+        <div className="bg-white border-b">
+          <div className="px-3">
+            <nav aria-label="Breadcrumb" className="py-2">
+              <ol className="flex flex-nowrap items-center gap-x-2 overflow-x-auto text-[12px] text-gray-600 leading-none">
+                <li className="shrink-0">
+                  <Link href="/" className="hover:text-alo-orange whitespace-nowrap">Ana Sayfa</Link>
+                </li>
+                <li aria-hidden="true" className="shrink-0 text-gray-400">›</li>
+                <li className="shrink-0">
+                  <Link href="/ilanlar" className="hover:text-alo-orange whitespace-nowrap">İlanlar</Link>
+                </li>
+                <li aria-hidden="true" className="shrink-0 text-gray-400">›</li>
+                <li className="shrink-0">
+                  <Link href={`/kategori/${listing.category}`} className="hover:text-alo-orange capitalize whitespace-nowrap">
+                    {listing.category.replace('-', ' ')}
+                  </Link>
+                </li>
+              </ol>
+            </nav>
+          </div>
         </div>
+
+        {/* Galeri */}
+        <div className="bg-black">
+          <div className="relative w-full aspect-[4/3]">
+            {(() => {
+              const selected = listing.images?.[selectedImageIndex] || listing.images?.[0] || FALLBACK_IMAGE_SRC;
+              const src = selected || FALLBACK_IMAGE_SRC;
+              if (src.startsWith('data:image')) {
+                return (
+                  <img
+                    src={src}
+                    alt={listing.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC; }}
+                  />
+                );
+              }
+              return (
+                <Image
+                  src={src}
+                  alt={listing.title}
+                  fill
+                  sizes="100vw"
+                  className="object-cover"
+                  onError={(e) => { (e.target as unknown as HTMLImageElement).src = FALLBACK_IMAGE_SRC; }}
+                />
+              );
+            })()}
+
+            {/* Sayaç */}
+            {Array.isArray(listing.images) && listing.images.length > 0 && (
+              <div className="absolute left-3 bottom-3 rounded bg-black/60 text-white text-xs px-2 py-1">
+                {Math.min(selectedImageIndex + 1, listing.images.length)} / {listing.images.length}
+              </div>
+            )}
+          </div>
+
+          {/* Küçük thumb şeridi */}
+          {Array.isArray(listing.images) && listing.images.length > 1 && (
+            <div className="bg-white px-3 py-2">
+              <div className="flex gap-2 overflow-x-auto">
+                {listing.images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`relative h-14 w-20 shrink-0 overflow-hidden rounded border ${idx === selectedImageIndex ? 'border-alo-orange' : 'border-gray-200'}`}
+                    aria-label={`Görsel ${idx + 1}`}
+                  >
+                    {img?.startsWith('data:image') ? (
+                      <img src={img} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Image src={img || FALLBACK_IMAGE_SRC} alt="" fill sizes="80px" className="object-cover" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Başlık / Konum / Fiyat */}
+        <div className="bg-white px-3 py-3">
+          <h1 className="text-[18px] font-bold text-gray-900 leading-snug">{listing.title}</h1>
+          <div className="mt-2 flex items-start gap-2 text-sm text-gray-600">
+            <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+            <span className="truncate">{listing.location}</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="text-3xl font-extrabold text-alo-red">
+              {listing.price.toLocaleString('tr-TR')} TL
+            </div>
+            <div className="text-xs text-gray-500">
+              {new Date(listing.createdAt).toLocaleDateString('tr-TR')}
+            </div>
+          </div>
+        </div>
+
+        {/* Sekmeler */}
+        <div className="sticky top-14 z-40 bg-white border-b">
+          <div className="px-3">
+            <div className="flex gap-5 text-sm font-medium">
+              <button
+                type="button"
+                onClick={() => scrollToMobileSection('info')}
+                className={`py-3 ${mobileTab === 'info' ? 'text-alo-orange border-b-2 border-alo-orange' : 'text-gray-700'}`}
+              >
+                İlan bilgileri
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToMobileSection('desc')}
+                className={`py-3 ${mobileTab === 'desc' ? 'text-alo-orange border-b-2 border-alo-orange' : 'text-gray-700'}`}
+              >
+                Açıklama
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToMobileSection('services')}
+                className={`py-3 ${mobileTab === 'services' ? 'text-alo-orange border-b-2 border-alo-orange' : 'text-gray-700'}`}
+              >
+                Hizmetler
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* İçerik (CTA bar için alt padding) */}
+        <div className="pb-24">
+          {/* İlan bilgileri */}
+          <div ref={infoRef} className="bg-white mt-2">
+            <div className="px-3 py-3 border-b text-sm font-semibold text-gray-900">İlan bilgileri</div>
+            <div className="divide-y text-sm">
+              <div className="flex justify-between px-3 py-3">
+                <span className="text-gray-600">Kategori</span>
+                <span className="font-medium capitalize">{listing.category.replace('-', ' ')}</span>
+              </div>
+              <div className="flex justify-between px-3 py-3">
+                <span className="text-gray-600">Alt kategori</span>
+                <span className="font-medium capitalize">{listing.subcategory?.replace('-', ' ') || '-'}</span>
+              </div>
+              <div className="flex justify-between px-3 py-3">
+                <span className="text-gray-600">Durum</span>
+                <span className="font-medium">{listing.condition || '-'}</span>
+              </div>
+              <div className="flex justify-between px-3 py-3">
+                <span className="text-gray-600">Marka</span>
+                <span className="font-medium">{listing.brand || '-'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Açıklama */}
+          <div ref={descRef} className="bg-white mt-2">
+            <div className="px-3 py-3 border-b text-sm font-semibold text-gray-900">Açıklama</div>
+            <div className="px-3 py-3 text-sm text-gray-700 whitespace-pre-line">
+              <AutoLinkText
+                text={listing.description}
+                listingId={listing.id}
+                source="listing_description"
+                enableInternalLinking={seo?.internalLinking ?? true}
+                enableLinkTracking={seo?.linkTracking ?? false}
+              />
+            </div>
+          </div>
+
+          {/* Hizmetler / Özellikler */}
+          <div ref={servicesRef} className="bg-white mt-2">
+            <div className="px-3 py-3 border-b text-sm font-semibold text-gray-900">Hizmetler</div>
+            <div className="px-3 py-3">
+              {listing.features.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {listing.features.map((f, i) => (
+                    <span key={i} className="px-2 py-1 rounded-full bg-gray-100 text-gray-800 text-xs">
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-600">Bu ilan için ek özellik belirtilmemiş.</div>
+              )}
+            </div>
+
+            <div className="px-3 pb-4">
+              <button
+                type="button"
+                onClick={() => setShowReportDialog(true)}
+                className="w-full rounded-lg border border-gray-200 py-3 text-sm text-gray-800 flex items-center justify-center gap-2"
+              >
+                <Flag className="h-4 w-4" />
+                Şikayet et
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Sabit CTA bar */}
+        {(actionButtons.showPhone || actionButtons.showMessage || actionButtons.showWhatsApp) && (
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-white border-t">
+            <div className="px-3 py-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
+              <div className="grid grid-cols-3 gap-2">
+                {/* Ara */}
+                <a
+                  href={actionButtons.showPhone ? `tel:${actionButtons.phone.replace(/\s/g, '')}` : undefined}
+                  onClick={(e) => { if (!actionButtons.showPhone) e.preventDefault(); }}
+                  className={`h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold ${
+                    actionButtons.showPhone ? 'bg-alo-red text-white' : 'bg-gray-100 text-gray-400'
+                  }`}
+                  aria-disabled={!actionButtons.showPhone}
+                >
+                  <Phone className="h-4 w-4" />
+                  Ara
+                </a>
+
+                {/* Mesaj */}
+                <button
+                  type="button"
+                  onClick={() => actionButtons.showMessage && handleMessage()}
+                  disabled={!actionButtons.showMessage}
+                  className={`h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold ${
+                    actionButtons.showMessage ? 'bg-gray-100 text-gray-800' : 'bg-gray-100 text-gray-400'
+                  }`}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Mesaj gönder
+                </button>
+
+                {/* WhatsApp */}
+                <a
+                  href={
+                    actionButtons.showWhatsApp
+                      ? `https://wa.me/${formatPhoneForWhatsApp(actionButtons.phone)}?text=Merhaba, ${encodeURIComponent(listing.title)} ilanı hakkında bilgi almak istiyorum.`
+                      : undefined
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => { if (!actionButtons.showWhatsApp) e.preventDefault(); }}
+                  className={`h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold ${
+                    actionButtons.showWhatsApp ? 'bg-[#25D366] text-white' : 'bg-gray-100 text-gray-400'
+                  }`}
+                  aria-disabled={!actionButtons.showWhatsApp}
+                >
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                  </svg>
+                  WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Şikayet Dialog (mobil) */}
+        <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>İlanı Bildir</DialogTitle>
+              <DialogDescription>
+                Bu ilanı neden bildirmek istiyorsunuz? Şikayetiniz incelenecektir.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Şikayet Nedeni <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-alo-orange"
+                  required
+                >
+                  <option value="">Seçiniz...</option>
+                  <option value="spam">Spam / Gereksiz İçerik</option>
+                  <option value="inappropriate">Uygunsuz İçerik</option>
+                  <option value="fake">Sahte / Yanıltıcı İlan</option>
+                  <option value="duplicate">Tekrar Eden İlan</option>
+                  <option value="other">Diğer</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Açıklama (Opsiyonel)</label>
+                <textarea
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-alo-orange"
+                  placeholder="Şikayetiniz hakkında daha fazla bilgi verin..."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <button
+                onClick={() => {
+                  setShowReportDialog(false);
+                  setReportReason('');
+                  setReportDescription('');
+                }}
+                className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={isReporting}
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleReport}
+                disabled={isReporting || !reportReason}
+                className="px-4 py-2 text-sm text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isReporting ? 'Gönderiliyor...' : 'Gönder'}
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 md:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-          {/* Sol Kolon - İlan Detayları */}
-          <div className="lg:col-span-2 space-y-6">
+      {/* Desktop layout (mevcut) */}
+      <div className="hidden md:block">
+        {/* Breadcrumb */}
+        <div className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
+            <nav aria-label="Breadcrumb" className="py-3 sm:py-4">
+              <ol className="flex flex-nowrap items-center gap-x-1 sm:gap-x-2 overflow-x-auto text-xs sm:text-sm text-gray-600 leading-4 sm:leading-none">
+                <li className="inline-flex items-center leading-none shrink-0">
+                  <Link href="/" className="inline-flex items-center leading-none hover:text-alo-orange whitespace-nowrap">
+                    Ana Sayfa
+                  </Link>
+                </li>
+                <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
+                  <span className="text-gray-400 select-none leading-none">›</span>
+                </li>
+                <li className="inline-flex items-center leading-none shrink-0">
+                  <Link href="/ilanlar" className="inline-flex items-center leading-none hover:text-alo-orange whitespace-nowrap">
+                    İlanlar
+                  </Link>
+                </li>
+                <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
+                  <span className="text-gray-400 select-none leading-none">›</span>
+                </li>
+                <li className="inline-flex items-center leading-none shrink-0">
+                  <Link
+                    href={`/kategori/${listing.category}`}
+                    className="inline-flex items-center leading-none hover:text-alo-orange capitalize whitespace-nowrap"
+                  >
+                    {listing.category.replace('-', ' ')}
+                  </Link>
+                </li>
+                <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
+                  <span className="text-gray-400 select-none leading-none">›</span>
+                </li>
+                <li className="inline-flex items-center leading-none text-gray-900 min-w-0">
+                  <span className="inline-flex items-center leading-none truncate max-w-[60vw] sm:max-w-none">
+                    {listing.title}
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 md:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+            {/* Sol Kolon - İlan Detayları */}
+            <div className="lg:col-span-2 space-y-6">
             {/* İlan Başlığı ve Fiyat */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-start justify-between">
@@ -663,10 +1008,10 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                 </div>
               </div>
             )}
-          </div>
+            </div>
 
-          {/* Sağ Kolon - Satıcı Bilgileri ve Aksiyonlar */}
-          <div className="space-y-6">
+            {/* Sağ Kolon - Satıcı Bilgileri ve Aksiyonlar */}
+            <div className="space-y-6">
             {/* Satıcı Bilgileri */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Satıcı Bilgileri</h2>
@@ -856,6 +1201,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                   </p>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
