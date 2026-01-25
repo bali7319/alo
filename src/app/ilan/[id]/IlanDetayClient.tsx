@@ -68,6 +68,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
   const infoRef = useRef<HTMLDivElement | null>(null);
   const descRef = useRef<HTMLDivElement | null>(null);
   const servicesRef = useRef<HTMLDivElement | null>(null);
+  const mobileGalleryRef = useRef<HTMLDivElement | null>(null);
 
   // Telefon numarasını WhatsApp formatına çevir
   const formatPhoneForWhatsApp = (phone: string): string => {
@@ -385,6 +386,16 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleMobileGalleryScroll = () => {
+    const el = mobileGalleryRef.current;
+    if (!el) return;
+    const width = el.clientWidth || 1;
+    const raw = Math.round(el.scrollLeft / width);
+    const total = Array.isArray(listing?.images) ? listing!.images.length : 0;
+    const next = Math.max(0, Math.min(raw, Math.max(0, total - 1)));
+    if (next !== selectedImageIndex) setSelectedImageIndex(next);
+  };
+
   const actionButtons = useMemo(() => {
     const phone = listing?.seller.phone?.trim() || '';
     const showPhone = Boolean(phone) && (listing?.contactOptions?.showPhone !== false);
@@ -510,31 +521,41 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
 
         {/* Galeri */}
         <div className="bg-black">
-          <div className="relative w-full aspect-[4/3]">
-            {(() => {
-              const selected = listing.images?.[selectedImageIndex] || listing.images?.[0] || FALLBACK_IMAGE_SRC;
-              const src = selected || FALLBACK_IMAGE_SRC;
-              if (src.startsWith('data:image')) {
+          <div className="relative">
+            <div
+              ref={mobileGalleryRef}
+              onScroll={handleMobileGalleryScroll}
+              className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {(Array.isArray(listing.images) && listing.images.length > 0 ? listing.images : [FALLBACK_IMAGE_SRC]).map((img, idx) => {
+                const src = img || FALLBACK_IMAGE_SRC;
                 return (
-                  <img
-                    src={src}
-                    alt={listing.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC; }}
-                  />
+                  <div key={idx} className="relative w-full shrink-0 snap-center aspect-[4/3]">
+                    {src.startsWith('data:image') ? (
+                      <img
+                        src={src}
+                        alt={listing.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
+                        }}
+                      />
+                    ) : (
+                      <Image
+                        src={src}
+                        alt={listing.title}
+                        fill
+                        sizes="100vw"
+                        className="object-cover"
+                        onError={(e) => {
+                          (e.target as unknown as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
+                        }}
+                      />
+                    )}
+                  </div>
                 );
-              }
-              return (
-                <Image
-                  src={src}
-                  alt={listing.title}
-                  fill
-                  sizes="100vw"
-                  className="object-cover"
-                  onError={(e) => { (e.target as unknown as HTMLImageElement).src = FALLBACK_IMAGE_SRC; }}
-                />
-              );
-            })()}
+              })}
+            </div>
 
             {/* Sayaç */}
             {Array.isArray(listing.images) && listing.images.length > 0 && (
@@ -543,38 +564,24 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
               </div>
             )}
           </div>
-
-          {/* Küçük thumb şeridi */}
-          {Array.isArray(listing.images) && listing.images.length > 1 && (
-            <div className="bg-white px-3 py-2">
-              <div className="flex gap-2 overflow-x-auto">
-                {listing.images.map((img, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setSelectedImageIndex(idx)}
-                    className={`relative h-14 w-20 shrink-0 overflow-hidden rounded border ${idx === selectedImageIndex ? 'border-alo-orange' : 'border-gray-200'}`}
-                    aria-label={`Görsel ${idx + 1}`}
-                  >
-                    {img?.startsWith('data:image') ? (
-                      <img src={img} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <Image src={img || FALLBACK_IMAGE_SRC} alt="" fill sizes="80px" className="object-cover" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Başlık / Konum / Fiyat */}
         <div className="bg-white px-3 py-3">
           <h1 className="text-[18px] font-bold text-gray-900 leading-snug">{listing.title}</h1>
-          <div className="mt-2 flex items-start gap-2 text-sm text-gray-600">
-            <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-            <span className="truncate">{listing.location}</span>
-          </div>
+          {listing.location ? (
+            <a
+              href={getDirectionsUrlForDevice(listing.location)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 flex items-start gap-2 text-sm text-gray-600 hover:text-alo-orange min-w-0"
+              aria-label="Adrese git (yol tarifi)"
+              title="Adrese git (yol tarifi)"
+            >
+              <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+              <span className="min-w-0 flex-1 truncate underline-offset-4 hover:underline">{listing.location}</span>
+            </a>
+          ) : null}
           <div className="mt-3 flex items-center justify-between">
             <div className="text-3xl font-extrabold text-alo-red">
               {listing.price.toLocaleString('tr-TR')} TL
@@ -670,7 +677,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
               )}
             </div>
 
-            <div className="px-3 pb-4">
+            <div className="px-3 pb-4 space-y-2">
               <button
                 type="button"
                 onClick={() => setShowReportDialog(true)}
@@ -679,6 +686,60 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                 <Flag className="h-4 w-4" />
                 Şikayet et
               </button>
+
+              <button
+                type="button"
+                onClick={handleFavoriteToggle}
+                disabled={isFavoriteLoading}
+                className={`w-full rounded-lg border py-3 text-sm flex items-center justify-center gap-2 ${
+                  isFavorite ? 'border-red-200 bg-red-50 text-red-600' : 'border-gray-200 text-gray-800'
+                } ${isFavoriteLoading ? 'opacity-60' : ''}`}
+              >
+                <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                {isFavoriteLoading ? 'İşleniyor...' : isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+              </button>
+
+              <div className="grid grid-cols-3 gap-2">
+                {(() => {
+                  const href = typeof window !== 'undefined' ? window.location.href : '';
+                  const shareUrl = encodeURIComponent(href);
+                  const shareText = encodeURIComponent(`${listing.title} - ${listing.price.toLocaleString('tr-TR')} TL`);
+                  return (
+                    <>
+                      <a
+                        href={`https://wa.me/?text=${shareText}%20${shareUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-11 rounded-lg bg-[#25D366] text-white flex items-center justify-center gap-2 text-sm font-semibold"
+                        aria-label="WhatsApp ile paylaş"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        WhatsApp
+                      </a>
+                      <a
+                        href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-11 rounded-lg bg-[#1877F2] text-white flex items-center justify-center gap-2 text-sm font-semibold"
+                        aria-label="Facebook'ta paylaş"
+                      >
+                        <Facebook className="h-4 w-4" />
+                        Facebook
+                      </a>
+                      <a
+                        href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-11 rounded-lg bg-black text-white flex items-center justify-center gap-2 text-sm font-semibold"
+                        aria-label="X'te paylaş"
+                      >
+                        <Twitter className="h-4 w-4" />
+                        X
+                      </a>
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </div>
