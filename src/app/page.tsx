@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Suspense } from 'react'
@@ -11,6 +12,12 @@ import { AdvantageBand } from '@/components/home/AdvantageBand'
 import { DifferenceInline } from '@/components/home/DifferenceSidebar'
 import { CityStory } from '@/components/home/CityStory'
 import type { Listing } from '@/types/listings'
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: '/',
+  },
+}
 
 // Dynamic imports - Lazy loading için (FCP optimizasyonu)
 const Sidebar = nextDynamic(

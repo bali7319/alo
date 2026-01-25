@@ -96,9 +96,6 @@ export const metadata: Metadata = {
       'facebook-domain-verification': 'n7wll8y665640cgxarhhaluwpuq6lt',
     },
   },
-  alternates: {
-    canonical: 'https://alo17.tr',
-  },
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
