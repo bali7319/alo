@@ -8,6 +8,8 @@
     "export": "next build && next export",
     "start": "next start",
     "start:3010": "next start -p 3010",
+    "start:prod": "npm run build && npm run start",
+    "start:prod:3010": "npm run build && npm run start:3010",
     "lint": "next lint",
     "cron:test": "node -r ts-node/register src/cron/expire-listings.ts",
     "mobile:build": "npm run build && npx cap sync",
