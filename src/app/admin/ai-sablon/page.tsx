@@ -8,6 +8,7 @@ import { Copy, RotateCcw, Pencil, Save, X } from 'lucide-react';
 
 type FormState = {
   mode: 'character' | 'alo17_ad_grok';
+  outputEnglish: boolean;
   preset: 'elif' | 'ahmet' | 'can' | 'ayse' | 'custom';
   characterName: string;
   platform: 'Leonardo.ai' | 'Midjourney' | 'Stable Diffusion' | 'Other';
@@ -49,6 +50,7 @@ type FormState = {
 
 const DEFAULTS: FormState = {
   mode: 'character',
+  outputEnglish: true,
   preset: 'elif',
   characterName: 'Elara',
   platform: 'Leonardo.ai',
@@ -520,8 +522,11 @@ export default function AdminAiSablonPage() {
   const [presetOverrides, setPresetOverrides] = useState<Record<Exclude<PresetKey, 'custom'>, PresetOverrides> | null>(null);
   const [editingPreset, setEditingPreset] = useState<Exclude<PresetKey, 'custom'> | null>(null);
   const [translatedSinglePrompt, setTranslatedSinglePrompt] = useState<string>('');
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translateError, setTranslateError] = useState<string | null>(null);
+  const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
+  const [translateErrorSingle, setTranslateErrorSingle] = useState<string | null>(null);
+  const [translatedFields, setTranslatedFields] = useState<Partial<FormState>>({});
+  const [isTranslatingFields, setIsTranslatingFields] = useState(false);
+  const [translateErrorFields, setTranslateErrorFields] = useState<string | null>(null);
 
   useEffect(() => {
     setPresetOverrides(loadPresetOverrides());
@@ -555,7 +560,7 @@ export default function AdminAiSablonPage() {
     }
   }, [s.singlePromptTotalSeconds]);
 
-  const looksTurkish = useMemo(() => {
+  const looksTurkishSinglePrompt = useMemo(() => {
     const t = (s.singlePrompt || '').trim();
     if (!t) return false;
     if (/[ğüşöçıİĞÜŞÖÇ]/.test(t)) return true;
@@ -577,15 +582,15 @@ export default function AdminAiSablonPage() {
       setIsTranslating(false);
       return;
     }
-    if (!looksTurkish) {
+    if (!looksTurkishSinglePrompt) {
       setTranslatedSinglePrompt('');
-      setTranslateError(null);
-      setIsTranslating(false);
+      setTranslateErrorSingle(null);
+      setIsTranslatingSingle(false);
       return;
     }
 
-    setIsTranslating(true);
-    setTranslateError(null);
+    setIsTranslatingSingle(true);
+    setTranslateErrorSingle(null);
     const ctrl = new AbortController();
     const tmr = setTimeout(async () => {
       try {
@@ -601,9 +606,9 @@ export default function AdminAiSablonPage() {
       } catch (e: any) {
         if (e?.name === 'AbortError') return;
         setTranslatedSinglePrompt('');
-        setTranslateError(e?.message || 'Çeviri başarısız');
+        setTranslateErrorSingle(e?.message || 'Çeviri başarısız');
       } finally {
-        setIsTranslating(false);
+        setIsTranslatingSingle(false);
       }
     }, 450);
 
@@ -611,7 +616,156 @@ export default function AdminAiSablonPage() {
       clearTimeout(tmr);
       ctrl.abort();
     };
-  }, [s.mode, s.useSinglePrompt, s.singlePrompt, looksTurkish]);
+  }, [s.mode, s.useSinglePrompt, s.singlePrompt, looksTurkishSinglePrompt]);
+
+  const looksTurkishCharacter = useMemo(() => {
+    if (s.mode !== 'character' || s.useSinglePrompt === true) return false;
+    const joined = [
+      s.gender,
+      s.hair,
+      s.eyes,
+      s.facialDetails,
+      s.outfit,
+      s.pose,
+      s.scene,
+      s.action,
+      s.camera,
+      s.style,
+      s.lighting,
+      s.quality,
+      s.useCase,
+      s.voiceTone,
+      s.catchphrases,
+      s.postingPlan,
+      s.storageFolder,
+    ]
+      .filter(Boolean)
+      .join(' ');
+    if (!joined.trim()) return false;
+    if (/[ğüşöçıİĞÜŞÖÇ]/.test(joined)) return true;
+    const lower = joined.toLowerCase();
+    const hits = [' ve ', ' bir ', ' için ', ' ama ', ' gibi ', ' değil ', ' ile ', ' çünkü '].reduce(
+      (acc, w) => acc + (lower.includes(w) ? 1 : 0),
+      0
+    );
+    return hits >= 2;
+  }, [
+    s.mode,
+    s.useSinglePrompt,
+    s.gender,
+    s.hair,
+    s.eyes,
+    s.facialDetails,
+    s.outfit,
+    s.pose,
+    s.scene,
+    s.action,
+    s.camera,
+    s.style,
+    s.lighting,
+    s.quality,
+    s.useCase,
+    s.voiceTone,
+    s.catchphrases,
+    s.postingPlan,
+    s.storageFolder,
+  ]);
+
+  useEffect(() => {
+    // Auto translate all fields for right panel when enabled.
+    if (s.mode !== 'character' || s.useSinglePrompt) return;
+    if (!s.outputEnglish) {
+      setTranslatedFields({});
+      setIsTranslatingFields(false);
+      setTranslateErrorFields(null);
+      return;
+    }
+    if (!looksTurkishCharacter) {
+      setTranslatedFields({});
+      setIsTranslatingFields(false);
+      setTranslateErrorFields(null);
+      return;
+    }
+
+    const keys: Array<keyof FormState> = [
+      'gender',
+      'hair',
+      'eyes',
+      'facialDetails',
+      'outfit',
+      'pose',
+      'scene',
+      'action',
+      'camera',
+      'style',
+      'lighting',
+      'quality',
+      'useCase',
+      'voiceTone',
+      'catchphrases',
+      'postingPlan',
+      'storageFolder',
+    ];
+    const texts = keys.map((k) => (s[k] ?? '').toString());
+
+    setIsTranslatingFields(true);
+    setTranslateErrorFields(null);
+    const ctrl = new AbortController();
+    const tmr = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/admin/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts, from: 'tr', to: 'en' }),
+          signal: ctrl.signal,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Çeviri başarısız');
+        const arr = Array.isArray(data?.translatedTexts) ? data.translatedTexts : null;
+        if (!arr || arr.length !== keys.length) throw new Error('Çeviri sonucu eksik');
+        const patch: Partial<FormState> = {};
+        keys.forEach((k, idx) => {
+          const v = arr[idx];
+          if (typeof v === 'string' && v.trim()) (patch as any)[k] = v;
+        });
+        setTranslatedFields(patch);
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return;
+        setTranslatedFields({});
+        setTranslateErrorFields(e?.message || 'Çeviri başarısız');
+      } finally {
+        setIsTranslatingFields(false);
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(tmr);
+      ctrl.abort();
+    };
+  }, [
+    s.mode,
+    s.useSinglePrompt,
+    s.outputEnglish,
+    looksTurkishCharacter,
+    s.gender,
+    s.hair,
+    s.eyes,
+    s.facialDetails,
+    s.outfit,
+    s.pose,
+    s.scene,
+    s.action,
+    s.camera,
+    s.style,
+    s.lighting,
+    s.quality,
+    s.useCase,
+    s.voiceTone,
+    s.catchphrases,
+    s.postingPlan,
+    s.storageFolder,
+    s.ar,
+  ]);
 
   const applyEditablePreset = (key: Exclude<PresetKey, 'custom'>) => {
     setS((prev) => {
@@ -621,14 +775,21 @@ export default function AdminAiSablonPage() {
     });
   };
 
-  const out = useMemo(() => buildTemplate(s), [s]);
+  const sForOutput = useMemo(() => {
+    if (s.mode === 'character' && !s.useSinglePrompt && s.outputEnglish && looksTurkishCharacter) {
+      return { ...s, ...translatedFields };
+    }
+    return s;
+  }, [s, translatedFields, looksTurkishCharacter]);
+
+  const out = useMemo(() => buildTemplate(sForOutput), [sForOutput]);
 
   const singlePromptBlocks = useMemo(() => {
     const DURATION_SECONDS = 8;
     const VOICEOVER_LANG = 'Turkish (tr-TR)';
     if (s.mode !== 'character') return [];
     if (!s.useSinglePrompt) return [];
-    const raw = (looksTurkish && translatedSinglePrompt.trim() ? translatedSinglePrompt : s.singlePrompt).trim();
+    const raw = (looksTurkishSinglePrompt && translatedSinglePrompt.trim() ? translatedSinglePrompt : s.singlePrompt).trim();
     if (!raw) return [];
 
     const parseSecondsFromText = (t: string): number | null => {
@@ -696,7 +857,7 @@ export default function AdminAiSablonPage() {
     s.singlePrompt,
     s.singlePromptTotalSeconds,
     s.ar,
-    looksTurkish,
+    looksTurkishSinglePrompt,
     translatedSinglePrompt,
   ]);
 
@@ -795,6 +956,39 @@ export default function AdminAiSablonPage() {
               />
             </div>
 
+            {s.mode === 'character' && !s.useSinglePrompt && (
+              <div className="mb-4 rounded-lg border bg-white p-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">Sağ panel dili</div>
+                    <div className="text-xs text-gray-600 mt-1">
+                      Alanları Türkçe yazsan bile sağ tarafta İngilizce prompt üretir.
+                      <div className="mt-1">
+                        {looksTurkishCharacter ? (
+                          <span className="text-gray-700">
+                            Durum: <strong>TR→EN</strong>
+                            {isTranslatingFields ? <span className="text-gray-500"> • Çevriliyor…</span> : null}
+                            {translateErrorFields ? <span className="text-red-600"> • {translateErrorFields}</span> : null}
+                          </span>
+                        ) : (
+                          <span className="text-gray-600">Durum: Metin İngilizce gibi görünüyor.</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-700 select-none">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={s.outputEnglish}
+                      onChange={(e) => setS({ ...s, outputEnglish: e.target.checked })}
+                    />
+                    İngilizce üret
+                  </label>
+                </div>
+              </div>
+            )}
+
             {s.mode === 'alo17_ad_grok' ? (
               <>
                 <div className="text-sm font-semibold text-gray-900 mb-2">Alo17 Reklam — Grok sahneleri</div>
@@ -846,11 +1040,11 @@ export default function AdminAiSablonPage() {
 
                   {s.useSinglePrompt && (
                     <div className="mt-2 text-xs">
-                      {looksTurkish ? (
+                      {looksTurkishSinglePrompt ? (
                         <div className="text-gray-700">
                           Sağdaki çıktı: <strong>İngilizce</strong> (otomatik TR→EN çeviri)
-                          {isTranslating ? <span className="text-gray-500"> • Çevriliyor…</span> : null}
-                          {translateError ? <span className="text-red-600"> • {translateError}</span> : null}
+                          {isTranslatingSingle ? <span className="text-gray-500"> • Çevriliyor…</span> : null}
+                          {translateErrorSingle ? <span className="text-red-600"> • {translateErrorSingle}</span> : null}
                         </div>
                       ) : (
                         <div className="text-gray-600">Metin İngilizce görünüyor; sağ tarafta aynı metin kullanılır.</div>
