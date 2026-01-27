@@ -4,6 +4,7 @@ import './globals.css'
 import Providers from '@/components/Providers'
 import Header from '@/components/Header'
 import Footer from '@/components/footer'
+import CookieConsent from '@/components/CookieConsent'
 
 // Font optimization - Sadece Regular font yükle (220 KB → ~110 KB tasarruf)
 // Bold font'u CSS font-weight ile simüle et (font-weight: 700)
@@ -134,6 +135,7 @@ export default function RootLayout({
             </main>
             <Footer />
           </div>
+          <CookieConsent />
         </Providers>
       </body>
     </html>
