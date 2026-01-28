@@ -659,16 +659,30 @@ function saveLockedCastSelectedMap(map: Record<string, string[]>) {
   }
 }
 
-function buildLockedCastBlock(s: Pick<FormState, 'preset' | 'lockCharacters' | 'lockedCast'>): string {
-  const cast = buildLockedCastText({ preset: s.preset, lockedCast: s.lockedCast, selectedCharacters: (s as any).selectedCharacters || [] }).trim();
-  if (!s.lockCharacters || !cast) return '';
-  return `\n\nLOCKED CAST (must stay identical across all prompts & re-generations):\n${cast}\n\nConsistency rules: Keep the exact same people (faces, ages, body types, hairstyles, clothing) as the LOCKED CAST. Do not replace faces. Do not merge characters. Do not add new main characters.\n`;
+function buildCastBlock(
+  s: Pick<FormState, 'preset' | 'lockCharacters' | 'lockedCast' | 'selectedCharacters'>
+): string {
+  const cast = buildLockedCastText({
+    preset: s.preset,
+    lockedCast: s.lockedCast,
+    selectedCharacters: s.selectedCharacters || [],
+  }).trim();
+
+  if (!cast) return '';
+
+  // If "Sabitle" is enabled, enforce strict consistency.
+  if (s.lockCharacters) {
+    return `\n\nLOCKED CAST (must stay identical across all prompts & re-generations):\n${cast}\n\nConsistency rules: Keep the exact same people (faces, ages, body types, hairstyles, clothing) as the LOCKED CAST. Do not replace faces. Do not merge characters. Do not add new main characters.\n`;
+  }
+
+  // Otherwise, include the selected cast as a soft reference so the model uses them.
+  return `\n\nCAST (reference):\n${cast}\n`;
 }
 
 function buildTemplate(s: FormState) {
   const DURATION_SECONDS = 8;
   const VOICEOVER_LANG = 'Turkish (tr-TR)';
-  const lockedCastBlock = buildLockedCastBlock(s);
+  const lockedCastBlock = buildCastBlock(s);
   if (s.mode === 'alo17_ad_grok') {
     // Enforce: each prompt block = 8 seconds
     const block1 = `8-second video prompt (0-8s). Voiceover language: ${VOICEOVER_LANG}. No text, no watermark. --ar 9:16.${lockedCastBlock}\n${s.adScene1} ${s.adScene2}`;
@@ -1228,7 +1242,7 @@ export default function AdminAiSablonPage() {
     const raw = (looksTurkishSinglePrompt && translatedSinglePrompt.trim() ? translatedSinglePrompt : s.singlePrompt).trim();
     if (!raw) return [];
 
-    const lockedCastBlock = buildLockedCastBlock(s);
+    const lockedCastBlock = buildCastBlock(s);
 
     const parseSecondsFromText = (t: string): number | null => {
       // matches: "24 seconds", "24 second", "24 saniye", "24 sn"
