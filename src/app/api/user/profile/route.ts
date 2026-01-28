@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { decryptPhone, encryptPhone } from '@/lib/encryption';
-import { sanitizeEmail, sanitizeInput } from '@/lib/sanitize';
+import { sanitizeEmail, sanitizeInput, sanitizePhone } from '@/lib/sanitize';
 import { safeError, safeLog } from '@/lib/logger';
 
 // Profil bilgilerini getir
@@ -77,7 +77,8 @@ export async function PUT(request: NextRequest) {
     name = sanitizeInput(name);
     email = sanitizeEmail(email);
     if (phone) {
-      phone = sanitizeInput(phone);
+      // Phone should be digits/+, not HTML-escaped text
+      phone = sanitizePhone(phone);
     }
     if (location) {
       location = sanitizeInput(location);
@@ -177,10 +178,19 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Telefon numarasını şifrele (varsa)
+    // Telefon numarası validasyonu + şifrele (varsa)
     let encryptedPhone = null;
     if (phone?.trim()) {
-      const phoneData = encryptPhone(phone.trim());
+      const normalized = phone.trim();
+      // Accept: 10-15 digits, optionally starting with '+'
+      if (!/^\+?\d{10,15}$/.test(normalized)) {
+        return NextResponse.json(
+          { error: 'Telefon numarası geçersiz. Örn: 0541XXXXXXX veya +90541XXXXXXX' },
+          { status: 400 }
+        );
+      }
+
+      const phoneData = encryptPhone(normalized);
       encryptedPhone = phoneData.encrypted; // Sadece encrypted kısmını sakla
     }
 

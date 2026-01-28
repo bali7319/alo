@@ -425,5 +425,8 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-here-change-in-production',
-}; 
+  // IMPORTANT: In production, NEXTAUTH_SECRET MUST be set and stable.
+  // Falling back to a hardcoded secret can create cookies that later become undecryptable
+  // when the real secret is configured (causing random logout / OAuth errors).
+  secret: process.env.NEXTAUTH_SECRET,
+};
