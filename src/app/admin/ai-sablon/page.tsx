@@ -9,7 +9,7 @@ import { Copy, RotateCcw, Pencil, Save, X } from 'lucide-react';
 type FormState = {
   mode: 'character' | 'alo17_ad_grok';
   outputEnglish: boolean;
-  preset: 'elif' | 'ahmet' | 'can' | 'ayse' | 'custom';
+  preset: 'elif' | 'ahmet' | 'can' | 'ayse' | 'iyi_geceler' | 'custom';
   characterName: string;
   platform: 'Leonardo.ai' | 'Midjourney' | 'Stable Diffusion' | 'Other';
   age: string;
@@ -38,6 +38,9 @@ type FormState = {
   useSinglePrompt: boolean;
   singlePrompt: string;
   singlePromptTotalSeconds: string; // optional override
+  lockCharacters: boolean;
+  lockedCast: string; // character bible / cast sheet (plain text)
+  selectedCharacters: string[]; // selectable cast items (used when lockedCast is empty)
 
   // Alo17 ad storyboard (Grok)
   adScene1: string;
@@ -78,6 +81,9 @@ const DEFAULTS: FormState = {
   useSinglePrompt: false,
   singlePrompt: '',
   singlePromptTotalSeconds: '',
+  lockCharacters: false,
+  lockedCast: '',
+  selectedCharacters: [],
 
   adScene1:
     "Cinematic wide shot, Çanakkale Kordon at late afternoon. A stylish young woman (Elif, 28) walks past old, cluttered newspaper classifieds pinned to a worn-out board. She looks slightly frustrated, then her eyes shift to her modern smartphone. In the background, the iconic Çanakkale Clock Tower and sea. Golden hour lighting, photorealistic, 8k, detailed urban texture.",
@@ -95,6 +101,250 @@ const DEFAULTS: FormState = {
 
 type PresetKey = FormState['preset'];
 type Preset = { key: PresetKey; label: string; description: string; apply: (s: FormState) => FormState };
+
+type CharacterItem = { id: string; label: string; content: string };
+
+const DEFAULT_LOCKED_CAST_BY_PRESET: Partial<Record<PresetKey, string>> = {
+  elif: `{
+  "subject": {
+    "name": "Elif",
+    "age": 28,
+    "gender": "young woman",
+    "personality": "Modern, energetic",
+    "roles": ["buyer", "seller"],
+    "scenarios": ["private tutoring", "household items exchange"],
+    "appearance": {
+      "hair": "long wavy blonde hair falling over her shoulders, natural volume, slight tousle",
+      "face_expression": "teasing confident expression, raised eyebrows, subtle pout, looking directly at the camera",
+      "makeup_skin": "light natural makeup, luminous skin, sharp facial details, expressive eyes"
+    }
+  },
+  "style": {
+    "mood": "dynamic, confident",
+    "setting": "contemporary urban environment",
+    "attire": "casual-smart, trendy outfits",
+    "expression": "friendly, approachable"
+  },
+  "environment": {
+    "locations": ["home office", "cozy living room", "local marketplace"],
+    "lighting": "soft indoor daylight, warm tones (highlights golden hair tones and facial features)",
+    "props": ["books, laptop, household items"]
+  },
+  "camera": {
+    "shot_type": "mid-shot, candid",
+    "focus": "subject clear, background slightly blurred",
+    "angle": "eye-level"
+  },
+  "output": {
+    "format": "photo-realistic",
+    "resolution": "high",
+    "style_detail": "photorealistic, cinematic depth of field, modern lifestyle, energetic atmosphere"
+  }
+}`,
+
+  ahmet: `{
+  "prompt_type": "Portre ve Yaşam Tarzı",
+  "subject": {
+    "name": "Ahmet Usta",
+    "age": 45,
+    "profession": "Geleneksel Çanakkale esnafı (mobilyacı/tamirci)",
+    "appearance": {
+      "expression": "Güvenilir, samimi",
+      "giyim": "Tahıl tonlarında günlük, iş kıyafeti; önlük veya iş tulumu",
+      "detaylar": "El işi izleri, hafif yorgun ama dostane yüz ifadesi"
+    }
+  },
+  "environment": {
+    "setting": "Çanakkale'de geleneksel atölye veya küçük dükkan",
+    "özellikler": [
+      "Ahşap mobilyalar, tamir aletleri",
+      "Esnaf atmosferi, doğal ışık",
+      "Dükkan detayları: el yapımı ürünler, el aletleri"
+    ]
+  },
+  "style": {
+    "realism": "Yüksek gerçekçilik",
+    "atmosphere": "Sıcak, samimi, nostaljik",
+    "color_palette": "Toprak tonları, doğal ışık"
+  },
+  "camera": {
+    "angle": "Orta çekim, karşıdan",
+    "focus": "Yüz ve eller üzerine odaklı",
+    "lens": "50mm standart lens",
+    "depth_of_field": "Orta",
+    "composition": "Konuyu merkezde, ortam detayları belirgin"
+  }
+}`,
+
+  can: `CAN_22: 22-year-old Turkish male student (ÇOMÜ vibe), short textured hair, hazel eyes, youthful face, upbeat expression, casual student outfit with backpack.
+
+ELIF_28: 28-year-old Turkish woman, modern energetic vibe, shoulder-length dark brown straight hair, brown eyes, friendly smile, casual modern outfit, smartphone in hand.
+
+AYSE_HANIM_50: 50-year-old Turkish woman, warm mother/aunt vibe, kind face, gentle smile, simple comfortable clothing, consistent look.
+
+BABA_MEHMET_55: 55-year-old Turkish man, father figure, mustache, casual clothing, consistent look.
+
+AUNTIE_1: Turkish auntie ~55-65, headscarf, expressive gesture, natural wrinkles/skin texture.
+
+AHMET_USTA_45: 45-year-old Turkish man, trusted esnaf vibe, workshop clothes (apron optional).`,
+
+  ayse: `AYSE_HANIM_50: 50-year-old Turkish woman, warm mother figure, kind face, gentle smile, short dark hair, brown eyes, simple comfortable clothing, consistent look.
+
+ELIF_28: 28-year-old Turkish woman, modern energetic vibe, shoulder-length dark brown straight hair, brown eyes, friendly smile, casual modern outfit, smartphone in hand.
+
+BABA_MEHMET_55: 55-year-old Turkish man, father figure, mustache, casual clothing, consistent look.
+
+AUNTIE_1: Turkish auntie ~55-65, headscarf, expressive gesture, natural wrinkles/skin texture.
+
+AUNTIE_2: Turkish auntie ~50-60, tired eyes, consistent outfit.
+
+AHMET_USTA_45: 45-year-old Turkish man, trusted esnaf vibe, workshop clothes (apron optional).`,
+
+  iyi_geceler: `{
+  "character_lock": {
+    "character_id": "AYLIN_FIT_V1",
+    "age": 19,
+    "status": "üniversite öğrencisi",
+    "ethnicity": "akdeniz",
+    "skin_tone": "açık, pürüzsüz, doğal sıcak alt ton",
+    "face_signature": {
+      "face_shape": "yumuşak oval",
+      "eyes": "büyük badem şekilli koyu kahverengi",
+      "eyebrows": "orta kalınlıkta doğal kavisli",
+      "nose": "küçük-düz burun",
+      "lips": "orta dolgunlukta, net konturlu",
+      "jawline": "ince ve feminen",
+      "expression_default": "hafif nötr, kendinden emin"
+    },
+    "hair_signature": {
+      "color": "doğal siyah",
+      "texture": "hafif dalgalı",
+      "length": "uzun",
+      "style": "yüksek at kuyruğu, yüzü çerçeveleyen gevşek tutamlar"
+    },
+    "body_signature": {
+      "height": "ortalama",
+      "body_type": "atletik kum saati",
+      "shoulders": "orantılı",
+      "waist": "ince",
+      "hips": "belirgin",
+      "legs": "fit ve tonlu"
+    }
+  },
+  "details": {
+    "makeup": "doğal makyaj, belirgin eyeliner, uzun kirpikler, hafif kontur, parlak dudaklar",
+    "nails": "nötr ton manikür",
+    "phone": "iPhone, siyah zemin üzerine beyaz soyut desenli kılıf",
+    "pose_consistency": "her çekimde aynı duruş, aynı açı, aynı ağırlık dağılımı"
+  },
+  "lighting_and_atmosphere": "büyük pencerelerden gelen yumuşak gece ışığıyla dengeli iç mekan aydınlatması. Cilt, saç ve kumaş üzerinde doğal parlama. Kıyafetlerin canlı rengi korunur.",
+  "camera_and_tech": {
+    "camera_type": "full-frame DSLR",
+    "lens": "35mm",
+    "aperture": "f/2.8",
+    "iso": 400,
+    "shutter_speed": "1/125",
+    "focus": "yüz ve vücut keskin, arka plan hafif bokeh",
+    "resolution": "8K ultra realistic",
+    "style": "professional mirror selfie photography"
+  },
+  "consistency_settings": {
+    "seed": 742913,
+    "sampler": "DPM++ SDE Karras",
+    "steps": 35,
+    "cfg_scale": 7.5,
+    "face_restoration": false,
+    "enable_character_consistency": true
+  },
+  "supporting_cast": [
+    {
+      "character_id": "AUNTIE_1",
+      "age_range": "55-65",
+      "description": "başörtülü, TV'ye tamamen odaklı, el kol hareketleri belirgin (hafif motion blur), doğal kırışıklık"
+    },
+    {
+      "character_id": "AUNTIE_2",
+      "age_range": "50-60",
+      "description": "yorgun bakış, fısıldayan yorumlar, tutarlı kıyafet"
+    },
+    {
+      "character_id": "UNCLE_1",
+      "age_range": "55-70",
+      "description": "bıyıklı, uyukluyor (ağız hafif açık), tutarlı kıyafet"
+    },
+    {
+      "character_id": "RELATIVE_1",
+      "age_range": "60+",
+      "description": "yaşlı akraba, nötr ifade, tutarlı kıyafet"
+    },
+    {
+      "character_id": "AHMET_USTA_45",
+      "age": 45,
+      "description": "Çanakkale esnafı (mobilyacı/tamirci), güvenilir ve samimi yüz ifadesi"
+    }
+  ],
+  "negative_prompt": "bulanık, düşük çözünürlük, deformasyon, fazla uzuv, asimetrik yüz, yanlış ayna yansıması, ekranı görünen telefon, aşırı pozlama, karikatür, anime, metin, filigran, başka insanlar, doğal olmayan oranlar"
+}`,
+};
+
+const CHARACTER_LIBRARY: CharacterItem[] = [
+  { id: 'ELIF_PROFILE_V1', label: 'Elif (28) — profil', content: (DEFAULT_LOCKED_CAST_BY_PRESET.elif || '').trim() },
+  { id: 'AHMET_PROFILE_V1', label: 'Ahmet Usta (45) — profil', content: (DEFAULT_LOCKED_CAST_BY_PRESET.ahmet || '').trim() },
+  { id: 'AYLIN_FIT_V1', label: 'Aylin (19) — AYLİN_FIT_V1', content: (DEFAULT_LOCKED_CAST_BY_PRESET.iyi_geceler || '').trim() },
+  {
+    id: 'AUNTIE_1',
+    label: 'Auntie 1 (55–65)',
+    content:
+      "AUNTIE_1: Turkish auntie ~55-65, headscarf, totally focused on TV, expressive hand gesture (slight motion blur), natural wrinkles/skin texture.",
+  },
+  {
+    id: 'AUNTIE_2',
+    label: 'Auntie 2 (50–60)',
+    content: 'AUNTIE_2: Turkish auntie ~50-60, tired eyes, sometimes whispering comments, consistent outfit.',
+  },
+  {
+    id: 'UNCLE_1',
+    label: 'Uncle 1 (55–70)',
+    content: 'UNCLE_1: Turkish uncle ~55-70, mustache, dozing off with mouth slightly open, consistent outfit.',
+  },
+  {
+    id: 'RELATIVE_1',
+    label: 'Relative 1 (60+)',
+    content: 'RELATIVE_1: older Turkish relative ~60+, seated nearby, neutral expression, consistent outfit.',
+  },
+  {
+    id: 'AHMET_USTA_LINE',
+    label: 'Ahmet Usta (45) — kısa tanım',
+    content:
+      'AHMET_USTA_45: 45-year-old Turkish man, traditional Çanakkale esnaf (mobilyacı/tamirci), trusted and friendly expression, workshop clothes.',
+  },
+];
+
+const DEFAULT_SELECTED_CHARACTERS_BY_PRESET: Partial<Record<PresetKey, string[]>> = {
+  elif: ['ELIF_PROFILE_V1'],
+  ahmet: ['AHMET_PROFILE_V1'],
+  can: ['AUNTIE_1', 'AHMET_USTA_LINE'], // light default; editable by user
+  ayse: ['AUNTIE_1', 'AUNTIE_2', 'AHMET_USTA_LINE'],
+  iyi_geceler: ['AYLIN_FIT_V1', 'AUNTIE_1', 'AUNTIE_2', 'UNCLE_1', 'RELATIVE_1', 'AHMET_USTA_LINE'],
+};
+
+function buildLockedCastText(opts: Pick<FormState, 'preset' | 'lockedCast' | 'selectedCharacters'>): string {
+  const manual = (opts.lockedCast || '').trim();
+  if (manual) return manual;
+  const ids = Array.isArray(opts.selectedCharacters) ? opts.selectedCharacters : [];
+  if (ids.length) {
+    const parts = ids
+      .map((id) => CHARACTER_LIBRARY.find((c) => c.id === id)?.content)
+      .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+      .map((x) => x.trim());
+    if (parts.length) return parts.join('\n\n');
+  }
+  return getDefaultLockedCastForPreset(opts.preset);
+}
+
+function getDefaultLockedCastForPreset(preset: PresetKey): string {
+  return (DEFAULT_LOCKED_CAST_BY_PRESET[preset] || '').trim();
+}
 
 const PRESETS: Preset[] = [
   {
@@ -210,11 +460,64 @@ const PRESETS: Preset[] = [
     description: 'Kendin doldur.',
     apply: (s) => ({ ...s, preset: 'custom' }),
   },
+  {
+    key: 'iyi_geceler',
+    label: '“İyi Geceler” Ankara — Aylin & Aile (Sabit Kadro)',
+    description: 'Verdiğin Ankara salonu sahnesi + LOCKED CAST sabitleme.',
+    apply: (s) => ({
+      ...s,
+      preset: 'iyi_geceler',
+      mode: 'character',
+      outputEnglish: true,
+      platform: 'Midjourney',
+      characterName: 'Aylin',
+      age: '27',
+      gender: 'woman',
+      hair: 'blonde hair (slightly messy, shoulder-length)',
+      eyes: 'brown eyes',
+      facialDetails: 'slightly ironic expression, natural skin texture, small imperfections, no beauty retouching',
+      outfit:
+        'oversized cheap cartoon t-shirt as a nightdress (Powerpuff Girls vibe, faded print) and fluffy house slippers',
+      pose: 'half lying, half sitting on an old patterned couch, blanket over legs, phone in one hand, thumb hovering',
+      scene:
+        'Interior of a modest Ankara lower-middle-class living room at night; patterned carpet, lace curtains, wall calendar with a mosque photo, framed religious calligraphy, cheap landscape painting; blurred Ankara apartment blocks through the window with a faint Migros sign; Turkcell-branded modem blinking on a shelf; messy cozy vibe with cables and remotes visible',
+      action:
+        'She is about to post an “iyi geceler” tweet while older relatives and neighborhood aunties/uncles watch a soap opera on a slightly outdated flat-screen TV; one auntie gestures toward the TV (slight motion blur); one relative dozes off with mouth slightly open; samovar/çaydanlık on low table with many Turkish tea glasses, sugar cubes, sunflower seed shells, bowl with Ülker and Eti snack wrappers; plate with leftover börek on the coffee table',
+      camera:
+        'vertical framing like a phone snapshot (9:16), low and slightly crooked doorway angle, no studio gloss, slight digital noise in dark corners',
+      style: 'ultra-realistic Turkish TV series still, slightly comedic, natural and authentic',
+      lighting: 'warm yellow light from a single ceiling fixture and an old lamp; warm natural colors',
+      quality: 'high detail, natural skin texture, slight motion blur on gesture, realistic noise, no watermark, no text',
+      ar: '--ar 9:16',
+      useCase: 'Static still image prompt (phone-photo feeling) with consistent cast across generations.',
+      voiceTone: 'slightly ironic, cozy, comedic',
+      catchphrases: '“iyi geceler”',
+      hashtags: '#iyiGeceler',
+      lockCharacters: true,
+      // keep empty => show "silik" default as placeholder, but still used in output unless user edits
+      lockedCast: '',
+      useSinglePrompt: true,
+      singlePrompt:
+        'Ultra-realistic, slightly comedic Turkish TV series still, vertical framing like a phone snapshot. Interior of a modest Ankara living room at night. Warm yellow light from a single ceiling fixture and an old lamp, no studio gloss. In the center, a 27-year-old Turkish-looking curvy woman with blonde hair, soft chubby figure, wearing an oversized cheap cartoon t-shirt as a nightdress (Powerpuff Girls vibe) and fluffy house slippers. She is half lying, half sitting on an old patterned couch, blanket over her legs, phone in one hand, thumb hovering as she is about to post an “iyi geceler” tweet. Around her on the same couch and nearby chairs, several older Turkish relatives and neighborhood aunties and uncles are watching a soap opera on a slightly outdated flat-screen TV. Among them sits Ahmet Usta (45), a warm, trustworthy traditional esnaf (mobilyacı/tamirci) vibe as a neighbor guest. On the TV, a melodramatic scene is frozen mid-cry. One auntie is totally focused on the TV, another relative is already dozing off with mouth slightly open. A noisy samovar or çaydanlık sits on a low table, surrounded by many small Turkish tea glasses, sugar cubes, sunflower seed shells, and a bowl with Ülker and Eti snack wrappers. The living room decor is unmistakably Turkish lower-middle-class: patterned carpet on the floor, lace curtains on the window, a wall calendar with a mosque photo, a framed religious calligraphy piece and a cheap landscape painting. Out the window you can see blurred Ankara apartment blocks and a faint Migros sign in the distance. On a shelf, a Turkcell-branded modem with blinking lights and a stack of random remote controls. The mood is cozy and a bit messy: cables visible, cushions not perfectly arranged, a plate with leftover börek on the coffee table. The woman’s expression is slightly ironic, like she’s tweeting “iyi geceler” while the house is still loud. The camera angle is low and a bit crooked, as if someone took it quickly while standing in the doorway. Slight motion blur on one auntie gesturing toward the TV, natural skin texture and small imperfections on everyone, no beauty retouching. Colors are warm and natural, with visible digital noise in the darker corners to keep the phone-photo feeling.',
+      singlePromptTotalSeconds: '8',
+    }),
+  },
 ];
+
+const EDITABLE_PRESET_KEYS = ['elif', 'ahmet', 'can', 'ayse'] as const;
+type EditablePresetKey = (typeof EDITABLE_PRESET_KEYS)[number];
+function isEditablePresetKey(k: PresetKey): k is EditablePresetKey {
+  return (EDITABLE_PRESET_KEYS as readonly string[]).includes(k);
+}
 
 const PRESET_STORAGE_KEY = 'alo17_ai_sablon_presets_v1';
 const SINGLE_PROMPT_STORAGE_KEY = 'alo17_ai_sablon_single_prompt_v1';
 const SINGLE_PROMPT_SECONDS_STORAGE_KEY = 'alo17_ai_sablon_single_prompt_seconds_v1';
+const LOCKED_CAST_STORAGE_KEY = 'alo17_ai_sablon_locked_cast_v1';
+const LOCKED_CAST_ENABLED_STORAGE_KEY = 'alo17_ai_sablon_locked_cast_enabled_v1';
+const LOCKED_CAST_MAP_STORAGE_KEY = 'alo17_ai_sablon_locked_cast_map_v1';
+const LOCKED_CAST_ENABLED_MAP_STORAGE_KEY = 'alo17_ai_sablon_locked_cast_enabled_map_v1';
+const LOCKED_CAST_SELECTED_MAP_STORAGE_KEY = 'alo17_ai_sablon_locked_cast_selected_map_v1';
 type PresetOverrides = Partial<
   Pick<
     FormState,
@@ -240,7 +543,7 @@ type PresetOverrides = Partial<
   >
 >;
 
-function getDefaultPresetValues(key: Exclude<PresetKey, 'custom'>): PresetOverrides {
+function getDefaultPresetValues(key: EditablePresetKey): PresetOverrides {
   // Derive defaults from PRESETS.apply to keep single source of truth
   const base = { ...DEFAULTS, preset: 'custom' as const };
   const preset = PRESETS.find((p) => p.key === key);
@@ -270,9 +573,9 @@ function getDefaultPresetValues(key: Exclude<PresetKey, 'custom'>): PresetOverri
   return picked;
 }
 
-function loadPresetOverrides(): Record<Exclude<PresetKey, 'custom'>, PresetOverrides> {
-  const keys: Array<Exclude<PresetKey, 'custom'>> = ['elif', 'ahmet', 'can', 'ayse'];
-  const defaults: Record<Exclude<PresetKey, 'custom'>, PresetOverrides> = {
+function loadPresetOverrides(): Record<EditablePresetKey, PresetOverrides> {
+  const keys: EditablePresetKey[] = [...EDITABLE_PRESET_KEYS];
+  const defaults: Record<EditablePresetKey, PresetOverrides> = {
     elif: getDefaultPresetValues('elif'),
     ahmet: getDefaultPresetValues('ahmet'),
     can: getDefaultPresetValues('can'),
@@ -283,7 +586,7 @@ function loadPresetOverrides(): Record<Exclude<PresetKey, 'custom'>, PresetOverr
     const raw = localStorage.getItem(PRESET_STORAGE_KEY);
     if (!raw) return defaults;
     const parsed = JSON.parse(raw) as any;
-    const out = { ...defaults } as Record<Exclude<PresetKey, 'custom'>, PresetOverrides>;
+    const out = { ...defaults } as Record<EditablePresetKey, PresetOverrides>;
     for (const k of keys) {
       if (parsed && typeof parsed === 'object' && parsed[k] && typeof parsed[k] === 'object') {
         out[k] = { ...out[k], ...parsed[k] };
@@ -295,18 +598,82 @@ function loadPresetOverrides(): Record<Exclude<PresetKey, 'custom'>, PresetOverr
   }
 }
 
-function savePresetOverrides(v: Record<Exclude<PresetKey, 'custom'>, PresetOverrides>) {
+function savePresetOverrides(v: Record<EditablePresetKey, PresetOverrides>) {
   localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(v));
+}
+
+function loadLockedCastMap(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(LOCKED_CAST_MAP_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    if (parsed && typeof parsed === 'object') return parsed as Record<string, string>;
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+function saveLockedCastMap(map: Record<string, string>) {
+  try {
+    localStorage.setItem(LOCKED_CAST_MAP_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // ignore
+  }
+}
+
+function loadLockedCastEnabledMap(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(LOCKED_CAST_ENABLED_MAP_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    if (parsed && typeof parsed === 'object') return parsed as Record<string, boolean>;
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+function saveLockedCastEnabledMap(map: Record<string, boolean>) {
+  try {
+    localStorage.setItem(LOCKED_CAST_ENABLED_MAP_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // ignore
+  }
+}
+
+function loadLockedCastSelectedMap(): Record<string, string[]> {
+  try {
+    const raw = localStorage.getItem(LOCKED_CAST_SELECTED_MAP_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    if (parsed && typeof parsed === 'object') return parsed as Record<string, string[]>;
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+function saveLockedCastSelectedMap(map: Record<string, string[]>) {
+  try {
+    localStorage.setItem(LOCKED_CAST_SELECTED_MAP_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // ignore
+  }
+}
+
+function buildLockedCastBlock(s: Pick<FormState, 'preset' | 'lockCharacters' | 'lockedCast'>): string {
+  const cast = buildLockedCastText({ preset: s.preset, lockedCast: s.lockedCast, selectedCharacters: (s as any).selectedCharacters || [] }).trim();
+  if (!s.lockCharacters || !cast) return '';
+  return `\n\nLOCKED CAST (must stay identical across all prompts & re-generations):\n${cast}\n\nConsistency rules: Keep the exact same people (faces, ages, body types, hairstyles, clothing) as the LOCKED CAST. Do not replace faces. Do not merge characters. Do not add new main characters.\n`;
 }
 
 function buildTemplate(s: FormState) {
   const DURATION_SECONDS = 8;
   const VOICEOVER_LANG = 'Turkish (tr-TR)';
+  const lockedCastBlock = buildLockedCastBlock(s);
   if (s.mode === 'alo17_ad_grok') {
     // Enforce: each prompt block = 8 seconds
-    const block1 = `8-second video prompt (0-8s). Voiceover language: ${VOICEOVER_LANG}. No text, no watermark. --ar 9:16. ${s.adScene1} ${s.adScene2}`;
-    const block2 = `8-second video prompt (8-16s). Voiceover language: ${VOICEOVER_LANG}. No text, no watermark. --ar 9:16. ${s.adScene3} ${s.adScene4}`;
-    const block3 = `8-second video prompt (16-24s). Voiceover language: ${VOICEOVER_LANG}. No text, no watermark. --ar 9:16. ${s.adScene5} ${s.adScene6}`;
+    const block1 = `8-second video prompt (0-8s). Voiceover language: ${VOICEOVER_LANG}. No text, no watermark. --ar 9:16.${lockedCastBlock}\n${s.adScene1} ${s.adScene2}`;
+    const block2 = `8-second video prompt (8-16s). Voiceover language: ${VOICEOVER_LANG}. No text, no watermark. --ar 9:16.${lockedCastBlock}\n${s.adScene3} ${s.adScene4}`;
+    const block3 = `8-second video prompt (16-24s). Voiceover language: ${VOICEOVER_LANG}. No text, no watermark. --ar 9:16.${lockedCastBlock}\n${s.adScene5} ${s.adScene6}`;
 
     return `### Alo17 Reklam (Grok) — 8 saniyelik prompt blokları
 
@@ -373,12 +740,12 @@ ${block3}
 
 Kurallar (sabit): ${DURATION_SECONDS} saniye + Türkçe VO (tr-TR) + 9:16 + no text/watermark
 
-${DURATION_SECONDS}-second video prompt. Voiceover language: ${VOICEOVER_LANG}. No subtitles, no on-screen text, no watermark. ${s.ar}
+${DURATION_SECONDS}-second video prompt. Voiceover language: ${VOICEOVER_LANG}. No subtitles, no on-screen text, no watermark. ${s.ar}${lockedCastBlock}
 
 ${sp}`;
   }
 
-  const basePrompt = `${DURATION_SECONDS}-second video prompt: ${s.age} year old ${s.gender}, ${s.hair}, ${s.eyes}, ${s.facialDetails}, wearing ${s.outfit}. Location: ${s.scene}. Pose: ${s.pose}. Action: ${s.action}. Camera: ${s.camera}. Context: ${s.useCase}. Style: ${s.style}, ${s.lighting}, ${s.quality}. Constraints: duration ${DURATION_SECONDS} seconds, voiceover language ${VOICEOVER_LANG}, no text, no watermark. ${s.ar}`.trim();
+  const basePrompt = `${DURATION_SECONDS}-second video prompt: ${s.age} year old ${s.gender}, ${s.hair}, ${s.eyes}, ${s.facialDetails}, wearing ${s.outfit}. Location: ${s.scene}. Pose: ${s.pose}. Action: ${s.action}. Camera: ${s.camera}. Context: ${s.useCase}. Style: ${s.style}, ${s.lighting}, ${s.quality}. Constraints: duration ${DURATION_SECONDS} seconds, voiceover language ${VOICEOVER_LANG}, no text, no watermark. ${s.ar}${lockedCastBlock}`.trim();
 
   return `### Doldurulabilir Şablon (Silik Dolu) — Adım 4 → 15
 
@@ -429,6 +796,7 @@ Sorun: Her üretimde yüz değişir.
 
 - Seed: [--seed 1234] (örnek)
 - Referans: [--sref image_url] (Midjourney) / “Image Guidance” (Leonardo)
+${s.lockCharacters && (s.lockedCast || '').trim() ? `\n- LOCKED CAST: Açık (kadro sabit)` : ''}
 
 ---
 
@@ -519,8 +887,8 @@ export default function AdminAiSablonPage() {
 
   const [s, setS] = useState<FormState>(() => PRESETS[0].apply(DEFAULTS));
   const [copied, setCopied] = useState(false);
-  const [presetOverrides, setPresetOverrides] = useState<Record<Exclude<PresetKey, 'custom'>, PresetOverrides> | null>(null);
-  const [editingPreset, setEditingPreset] = useState<Exclude<PresetKey, 'custom'> | null>(null);
+  const [presetOverrides, setPresetOverrides] = useState<Record<EditablePresetKey, PresetOverrides> | null>(null);
+  const [editingPreset, setEditingPreset] = useState<EditablePresetKey | null>(null);
   const [translatedSinglePrompt, setTranslatedSinglePrompt] = useState<string>('');
   const [isTranslatingSingle, setIsTranslatingSingle] = useState(false);
   const [translateErrorSingle, setTranslateErrorSingle] = useState<string | null>(null);
@@ -542,6 +910,23 @@ export default function AdminAiSablonPage() {
     } catch {
       // ignore
     }
+    // Migration (v1 global -> per-preset map)
+    try {
+      const map = loadLockedCastMap();
+      const enabledMap = loadLockedCastEnabledMap();
+      const legacyCast = localStorage.getItem(LOCKED_CAST_STORAGE_KEY) || '';
+      const legacyEnabled = localStorage.getItem(LOCKED_CAST_ENABLED_STORAGE_KEY) || '';
+      if (legacyCast && !map['custom']) {
+        map['custom'] = legacyCast;
+        saveLockedCastMap(map);
+      }
+      if (legacyEnabled && enabledMap['custom'] === undefined) {
+        enabledMap['custom'] = legacyEnabled === '1';
+        saveLockedCastEnabledMap(enabledMap);
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   useEffect(() => {
@@ -559,6 +944,57 @@ export default function AdminAiSablonPage() {
       // ignore
     }
   }, [s.singlePromptTotalSeconds]);
+
+  // Persist per preset
+  useEffect(() => {
+    const key = s.preset || 'custom';
+    const map = loadLockedCastMap();
+    map[key] = s.lockedCast || '';
+    saveLockedCastMap(map);
+  }, [s.preset, s.lockedCast]);
+
+  useEffect(() => {
+    const key = s.preset || 'custom';
+    const map = loadLockedCastEnabledMap();
+    map[key] = !!s.lockCharacters;
+    saveLockedCastEnabledMap(map);
+  }, [s.preset, s.lockCharacters]);
+
+  useEffect(() => {
+    const key = s.preset || 'custom';
+    const map = loadLockedCastSelectedMap();
+    map[key] = Array.isArray(s.selectedCharacters) ? s.selectedCharacters : [];
+    saveLockedCastSelectedMap(map);
+  }, [s.preset, s.selectedCharacters]);
+
+  // Load per preset when preset changes
+  useEffect(() => {
+    const key = s.preset || 'custom';
+    const castMap = loadLockedCastMap();
+    const enabledMap = loadLockedCastEnabledMap();
+    const nextCast = typeof castMap[key] === 'string' ? castMap[key] : '';
+    const nextEnabled =
+      typeof enabledMap[key] === 'boolean'
+        ? enabledMap[key]
+        : key === 'custom'
+          ? false
+          : true; // defaults: keep cast locked for built-in presets
+    const selectedMap = loadLockedCastSelectedMap();
+    const nextSelected =
+      Array.isArray(selectedMap[key]) && selectedMap[key].length
+        ? selectedMap[key]
+        : (DEFAULT_SELECTED_CHARACTERS_BY_PRESET[key as PresetKey] || []);
+    setS((prev) => {
+      if (prev.preset !== key) return prev;
+      const same =
+        prev.lockedCast === nextCast &&
+        prev.lockCharacters === nextEnabled &&
+        JSON.stringify(prev.selectedCharacters || []) === JSON.stringify(nextSelected || []);
+      if (same) return prev;
+      return { ...prev, lockedCast: nextCast, lockCharacters: nextEnabled, selectedCharacters: nextSelected };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.preset]);
 
   const looksTurkishSinglePrompt = useMemo(() => {
     const t = (s.singlePrompt || '').trim();
@@ -578,8 +1014,8 @@ export default function AdminAiSablonPage() {
     const raw = (s.singlePrompt || '').trim();
     if (!raw) {
       setTranslatedSinglePrompt('');
-      setTranslateError(null);
-      setIsTranslating(false);
+      setTranslateErrorSingle(null);
+      setIsTranslatingSingle(false);
       return;
     }
     if (!looksTurkishSinglePrompt) {
@@ -770,7 +1206,7 @@ export default function AdminAiSablonPage() {
   const applyEditablePreset = (key: Exclude<PresetKey, 'custom'>) => {
     setS((prev) => {
       const base = PRESETS.find((p) => p.key === key)?.apply(prev) ?? prev;
-      const ov = presetOverrides?.[key] ?? {};
+      const ov = isEditablePresetKey(key) ? presetOverrides?.[key] ?? {} : {};
       return { ...base, ...ov, preset: key };
     });
   };
@@ -791,6 +1227,8 @@ export default function AdminAiSablonPage() {
     if (!s.useSinglePrompt) return [];
     const raw = (looksTurkishSinglePrompt && translatedSinglePrompt.trim() ? translatedSinglePrompt : s.singlePrompt).trim();
     if (!raw) return [];
+
+    const lockedCastBlock = buildLockedCastBlock(s);
 
     const parseSecondsFromText = (t: string): number | null => {
       // matches: "24 seconds", "24 second", "24 saniye", "24 sn"
@@ -847,7 +1285,7 @@ export default function AdminAiSablonPage() {
     const makeBlock = (idx: number, txt: string) => {
       const start = idx * DURATION_SECONDS;
       const end = start + DURATION_SECONDS;
-      return `PROMPT ${idx + 1}/${parts.length} (${start}–${end} sn)\n${DURATION_SECONDS}-second video prompt. Voiceover language: ${VOICEOVER_LANG}. No subtitles, no on-screen text, no watermark. ${s.ar}\n\n${txt}`.trim();
+      return `PROMPT ${idx + 1}/${parts.length} (${start}–${end} sn)\n${DURATION_SECONDS}-second video prompt. Voiceover language: ${VOICEOVER_LANG}. No subtitles, no on-screen text, no watermark. ${s.ar}${lockedCastBlock}\n\n${txt}`.trim();
     };
 
     return parts.map((p, i) => makeBlock(i, p));
@@ -857,6 +1295,8 @@ export default function AdminAiSablonPage() {
     s.singlePrompt,
     s.singlePromptTotalSeconds,
     s.ar,
+    s.lockCharacters,
+    s.lockedCast,
     looksTurkishSinglePrompt,
     translatedSinglePrompt,
   ]);
@@ -1009,6 +1449,93 @@ export default function AdminAiSablonPage() {
               <>
                 <div className="text-sm font-semibold text-gray-900 mb-4">Karakter / Prompt</div>
 
+                <div className="mb-5 rounded-lg border bg-gray-50 p-4">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">Karakterleri sabitle (LOCKED CAST)</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        Aktif edince şablonda her prompt’a “LOCKED CAST” eklenir. Böylece karakterler (yüz, saç, kıyafet) her üretimde daha
+                        tutarlı kalır.
+                      </div>
+                    </div>
+                    <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-700 select-none">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={s.lockCharacters}
+                        onChange={(e) => setS({ ...s, lockCharacters: e.target.checked })}
+                      />
+                      Sabitle
+                    </label>
+                  </div>
+
+                  <div className="mt-3">
+                    <TextAreaField
+                      label="LOCKED CAST (Karakter kartları)"
+                      value={s.lockedCast}
+                      placeholder={buildLockedCastText({ preset: s.preset, lockedCast: '', selectedCharacters: s.selectedCharacters })}
+                      onChange={(v) => setS({ ...s, lockedCast: v })}
+                    />
+                    <div className="mt-1 text-xs text-gray-600">
+                      Örnek:
+                      <span className="font-mono">
+                        {' '}
+                        AYLİN_27: Turkish woman, blonde hair, curvy/soft chubby, oversized cheap cartoon t-shirt nightdress, fluffy slippers
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <div className="text-xs font-semibold text-gray-800 mb-2">Karakter seç (checkbox)</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {CHARACTER_LIBRARY.map((c) => {
+                        const checked = (s.selectedCharacters || []).includes(c.id);
+                        return (
+                          <label key={c.id} className="flex items-start gap-2 text-xs text-gray-700 border rounded px-2 py-2 bg-white">
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 h-4 w-4"
+                              checked={checked}
+                              onChange={(e) => {
+                                const on = e.target.checked;
+                                const prev = s.selectedCharacters || [];
+                                const next = on ? Array.from(new Set([...prev, c.id])) : prev.filter((x) => x !== c.id);
+                                setS({ ...s, selectedCharacters: next });
+                              }}
+                            />
+                            <div className="min-w-0">
+                              <div className="font-medium text-gray-900">{c.label}</div>
+                              <div className="text-[11px] text-gray-500 truncate">
+                                {c.content ? c.content.split('\n')[0].slice(0, 120) : ''}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
+                        onClick={() => setS({ ...s, selectedCharacters: [] })}
+                      >
+                        Seçimi temizle
+                      </button>
+                      <button
+                        type="button"
+                        className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
+                        onClick={() => setS({ ...s, lockedCast: '' })}
+                        title="Elle yazdığın kadroyu temizle; seçim/varsayılan devreye girsin"
+                      >
+                        LOCKED CAST’i temizle
+                      </button>
+                    </div>
+                    <div className="mt-2 text-[11px] text-gray-600">
+                      Not: <strong>LOCKED CAST alanı boşsa</strong> ve “Sabitle” açıksa, seçtiğin karakterler prompt’a otomatik eklenir.
+                    </div>
+                  </div>
+                </div>
+
                 <div className="mb-5 rounded-lg border bg-white p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -1134,7 +1661,7 @@ export default function AdminAiSablonPage() {
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                setEditingPreset((p.key as Exclude<PresetKey, 'custom'>) ?? null);
+                                if (isEditablePresetKey(p.key)) setEditingPreset(p.key);
                               }}
                               className="shrink-0 inline-flex items-center gap-1 text-xs px-2 py-1 rounded border hover:bg-white bg-gray-50"
                               title="Profili düzenle"
@@ -1145,7 +1672,7 @@ export default function AdminAiSablonPage() {
                           </div>
                         </div>
 
-                        {editingPreset === p.key && presetOverrides && (
+                        {isEditablePresetKey(p.key) && editingPreset === p.key && presetOverrides && (
                           <div className="px-3 pb-3 pt-2 border-t bg-white">
                             <div className="flex items-center justify-between gap-2 mb-2">
                               <div className="text-xs font-semibold text-gray-700">Profil ayarları</div>
@@ -1153,7 +1680,7 @@ export default function AdminAiSablonPage() {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const k = p.key as Exclude<PresetKey, 'custom'>;
+                                    const k = p.key as EditablePresetKey;
                                     const next = { ...presetOverrides, [k]: getDefaultPresetValues(k) };
                                     setPresetOverrides(next);
                                     savePresetOverrides(next);
@@ -1178,9 +1705,9 @@ export default function AdminAiSablonPage() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <Field
                                 label="Karakter adı"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.characterName || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.characterName || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = {
                                     ...presetOverrides,
                                     [k]: { ...presetOverrides[k], characterName: v },
@@ -1191,9 +1718,9 @@ export default function AdminAiSablonPage() {
                               />
                               <Field
                                 label="Yaş"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.age || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.age || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = { ...presetOverrides, [k]: { ...presetOverrides[k], age: v } };
                                   setPresetOverrides(next);
                                   savePresetOverrides(next);
@@ -1201,9 +1728,9 @@ export default function AdminAiSablonPage() {
                               />
                               <Field
                                 label="Cinsiyet"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.gender || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.gender || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = { ...presetOverrides, [k]: { ...presetOverrides[k], gender: v } };
                                   setPresetOverrides(next);
                                   savePresetOverrides(next);
@@ -1211,9 +1738,9 @@ export default function AdminAiSablonPage() {
                               />
                               <Field
                                 label="Sahne"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.scene || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.scene || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = { ...presetOverrides, [k]: { ...presetOverrides[k], scene: v } };
                                   setPresetOverrides(next);
                                   savePresetOverrides(next);
@@ -1221,9 +1748,9 @@ export default function AdminAiSablonPage() {
                               />
                               <Field
                                 label="Aksiyon"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.action || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.action || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = { ...presetOverrides, [k]: { ...presetOverrides[k], action: v } };
                                   setPresetOverrides(next);
                                   savePresetOverrides(next);
@@ -1231,9 +1758,9 @@ export default function AdminAiSablonPage() {
                               />
                               <Field
                                 label="Kamera"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.camera || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.camera || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = { ...presetOverrides, [k]: { ...presetOverrides[k], camera: v } };
                                   setPresetOverrides(next);
                                   savePresetOverrides(next);
@@ -1241,9 +1768,9 @@ export default function AdminAiSablonPage() {
                               />
                               <Field
                                 label="Use case"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.useCase || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.useCase || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = { ...presetOverrides, [k]: { ...presetOverrides[k], useCase: v } };
                                   setPresetOverrides(next);
                                   savePresetOverrides(next);
@@ -1251,9 +1778,9 @@ export default function AdminAiSablonPage() {
                               />
                               <Field
                                 label="Voice tone"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.voiceTone || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.voiceTone || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = { ...presetOverrides, [k]: { ...presetOverrides[k], voiceTone: v } };
                                   setPresetOverrides(next);
                                   savePresetOverrides(next);
@@ -1264,9 +1791,9 @@ export default function AdminAiSablonPage() {
                             <div className="mt-3 grid grid-cols-1 gap-3">
                               <TextAreaField
                                 label="Catchphrases"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.catchphrases || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.catchphrases || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = { ...presetOverrides, [k]: { ...presetOverrides[k], catchphrases: v } };
                                   setPresetOverrides(next);
                                   savePresetOverrides(next);
@@ -1274,9 +1801,9 @@ export default function AdminAiSablonPage() {
                               />
                               <Field
                                 label="Hashtag seti"
-                                value={presetOverrides[p.key as Exclude<PresetKey, 'custom'>]?.hashtags || ''}
+                                value={presetOverrides[p.key as EditablePresetKey]?.hashtags || ''}
                                 onChange={(v) => {
-                                  const k = p.key as Exclude<PresetKey, 'custom'>;
+                                  const k = p.key as EditablePresetKey;
                                   const next = { ...presetOverrides, [k]: { ...presetOverrides[k], hashtags: v } };
                                   setPresetOverrides(next);
                                   savePresetOverrides(next);
@@ -1305,7 +1832,7 @@ export default function AdminAiSablonPage() {
               <SelectField
                 label="Profil"
                 value={s.preset}
-                options={['elif', 'ahmet', 'can', 'ayse', 'custom']}
+                options={['elif', 'ahmet', 'can', 'ayse', 'iyi_geceler', 'custom']}
                 onChange={(v) => {
                   const p = PRESETS.find((x) => x.key === (v as PresetKey));
                   if (p) setS((prev) => p.apply(prev));
@@ -1373,13 +1900,24 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
   );
 }
 
-function TextAreaField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function TextAreaField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <label className="block">
       <div className="text-xs font-medium text-gray-700 mb-1">{label}</div>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
         rows={4}
         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
       />
