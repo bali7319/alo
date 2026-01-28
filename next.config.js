@@ -16,6 +16,12 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'www.paytr.com',
         pathname: '/**',
+      },
+      // Google profile images (NextAuth / Google OAuth)
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
       }
     ],
     formats: ['image/avif', 'image/webp'],
