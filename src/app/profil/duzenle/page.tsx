@@ -251,9 +251,10 @@ export default function EditProfilePage() {
             return '/';
           })();
 
-          router.push(safeTarget);
+          // replace is more reliable for onboarding flows
+          router.replace(safeTarget);
           router.refresh(); // Sayfayı yenile
-        }, 1500);
+        }, 800);
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Profil güncellenirken bir hata oluştu');
@@ -344,7 +345,7 @@ export default function EditProfilePage() {
         <div className="bg-white rounded-xl shadow-sm p-8">
           <h1 className="text-2xl font-bold text-alo-dark mb-8">Profili Düzenle</h1>
           
-          {isOnboarding && (
+          {isOnboarding && !formData.phone?.trim() && (
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg">
               Telefon numaranız eksik. Devam etmek için lütfen telefon numaranızı ekleyip kaydedin.
             </div>
