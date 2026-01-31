@@ -2,14 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-function pickEmailProvider() {
-  const forced = (process.env.EMAIL_TRANSPORT || '').toLowerCase().trim();
-  if (forced === 'resend' || forced === 'smtp' || forced === 'simulation') return forced;
-  if (process.env.RESEND_API_KEY) return 'resend';
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) return 'smtp';
-  return 'simulation';
-}
-
 async function handleRequest(request: NextRequest) {
   try {
     // Admin kontrolü
@@ -29,10 +21,6 @@ async function handleRequest(request: NextRequest) {
     const smtpPass = process.env.SMTP_PASS;
     const smtpFrom = process.env.SMTP_FROM;
 
-    // HTTPS mail API (Resend) ayarları
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const emailFrom = process.env.EMAIL_FROM || process.env.RESEND_FROM || smtpFrom || smtpUser || null;
-
     // Ayarların durumunu kontrol et
     const hasHost = !!smtpHost;
     const hasPort = !!smtpPort;
@@ -40,42 +28,12 @@ async function handleRequest(request: NextRequest) {
     const hasPass = !!smtpPass;
     const hasFrom = !!smtpFrom;
 
-    const smtpConfigured = hasHost && hasUser && hasPass;
-    const smtpPartiallyConfigured = hasHost || hasUser || hasPass;
-    const resendConfigured = !!resendApiKey && !!emailFrom;
-
-    const provider = pickEmailProvider();
+    const allConfigured = hasHost && hasUser && hasPass;
+    const partiallyConfigured = hasHost || hasUser || hasPass;
 
     // Bağlantı testleri
     let connectionTest = null;
-    if (provider === 'resend' && resendConfigured) {
-      try {
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 7000);
-        const res = await fetch('https://api.resend.com/domains', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          signal: ctrl.signal,
-        }).finally(() => clearTimeout(t));
-
-        const body = await res.text();
-        if (!res.ok) throw new Error(`HTTP ${res.status}: ${body}`);
-
-        connectionTest = {
-          success: true,
-          message: 'Resend API bağlantısı başarılı',
-        };
-      } catch (error: any) {
-        connectionTest = {
-          success: false,
-          message: error.message || 'Resend API bağlantı hatası',
-          code: (error as any).code,
-        };
-      }
-    } else if (provider === 'smtp' && smtpConfigured) {
+    if (allConfigured) {
       try {
         const nodemailer = await import('nodemailer');
         const port = parseInt(smtpPort || '587');
@@ -114,15 +72,9 @@ async function handleRequest(request: NextRequest) {
     }
 
     return NextResponse.json({
-      provider,
-      configured: provider === 'resend' ? resendConfigured : smtpConfigured,
-      partiallyConfigured: provider === 'resend' ? !!resendApiKey : smtpPartiallyConfigured,
+      configured: allConfigured,
+      partiallyConfigured,
       settings: {
-        resend: {
-          configured: resendConfigured,
-          hasApiKey: !!resendApiKey,
-          from: emailFrom,
-        },
         host: {
           configured: hasHost,
           value: hasHost ? smtpHost : null,
@@ -148,38 +100,18 @@ async function handleRequest(request: NextRequest) {
         },
       },
       connectionTest,
-      status:
-        provider === 'resend'
-          ? resendConfigured
-            ? connectionTest?.success
-              ? 'ready'
-              : 'error'
-            : resendApiKey
-              ? 'incomplete'
-              : 'not_configured'
-          : smtpConfigured
-            ? connectionTest?.success
-              ? 'ready'
-              : 'error'
-            : smtpPartiallyConfigured
-              ? 'incomplete'
-              : 'not_configured',
-      message:
-        provider === 'resend'
-          ? resendConfigured
-            ? connectionTest?.success
-              ? 'Resend ayarları yapılandırılmış ve bağlantı başarılı'
-              : 'Resend ayarları yapılandırılmış ancak bağlantı hatası var'
-            : resendApiKey
-              ? 'Resend ayarları eksik (EMAIL_FROM/RESEND_FROM yok)'
-              : 'Resend ayarları yapılandırılmamış'
-          : smtpConfigured
-            ? connectionTest?.success
-              ? 'SMTP ayarları yapılandırılmış ve bağlantı başarılı'
-              : 'SMTP ayarları yapılandırılmış ancak bağlantı hatası var'
-            : smtpPartiallyConfigured
-              ? 'SMTP ayarları eksik - bazı ayarlar yapılandırılmamış'
-              : 'SMTP ayarları yapılandırılmamış - email simülasyon modunda çalışıyor',
+      status: allConfigured
+        ? (connectionTest?.success ? 'ready' : 'error')
+        : partiallyConfigured
+        ? 'incomplete'
+        : 'not_configured',
+      message: allConfigured
+        ? (connectionTest?.success
+          ? 'SMTP ayarları yapılandırılmış ve bağlantı başarılı'
+          : 'SMTP ayarları yapılandırılmış ancak bağlantı hatası var')
+        : partiallyConfigured
+        ? 'SMTP ayarları eksik - bazı ayarlar yapılandırılmamış'
+        : 'SMTP ayarları yapılandırılmamış - email simülasyon modunda çalışıyor',
     });
   } catch (error: any) {
     console.error('SMTP kontrol hatası:', error);

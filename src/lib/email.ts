@@ -1,8 +1,7 @@
 /**
  * Email gönderme servisi
- * - Öncelik: HTTPS Mail API (Resend)
- * - Fallback: SMTP (Nodemailer) (sunucuda SMTP portları kapalıysa çalışmaz)
- * - Son çare: simülasyon (console.log)
+ * - SMTP (Nodemailer)
+ * - SMTP yoksa: simülasyon (console.log)
  */
 
 interface EmailOptions {
@@ -10,91 +9,6 @@ interface EmailOptions {
   subject: string;
   html: string;
   text?: string;
-}
-
-type EmailTransport = 'resend' | 'smtp' | 'simulation';
-
-function getEmailTransport(): EmailTransport {
-  const forced = (process.env.EMAIL_TRANSPORT || '').toLowerCase().trim();
-  if (forced === 'resend' || forced === 'smtp' || forced === 'simulation') return forced;
-
-  // Prefer HTTPS API whenever configured
-  if (process.env.RESEND_API_KEY) return 'resend';
-
-  // Fallback to SMTP only if configured
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) return 'smtp';
-
-  return 'simulation';
-}
-
-function getEmailFrom(): string | null {
-  // For HTTPS providers, a verified sender is usually required.
-  // Keep env flexible for migration.
-  return (
-    process.env.EMAIL_FROM ||
-    process.env.RESEND_FROM ||
-    process.env.SMTP_FROM ||
-    process.env.SMTP_USER ||
-    null
-  );
-}
-
-async function sendEmailViaResend(options: EmailOptions): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.log('📧 [RESEND] RESEND_API_KEY yok; gönderim atlandı.');
-    return false;
-  }
-
-  const from = getEmailFrom();
-  if (!from) {
-    console.error('❌ [RESEND] EMAIL_FROM/RESEND_FROM ayarlanmamış; gönderim yapılamıyor.');
-    return false;
-  }
-
-  const payload = {
-    from,
-    to: options.to,
-    subject: options.subject,
-    html: options.html,
-    text: options.text || options.html.replace(/<[^>]*>/g, ''),
-  };
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const raw = await res.text();
-  let json: any = null;
-  try {
-    json = raw ? JSON.parse(raw) : null;
-  } catch {
-    // ignore JSON parse errors; we'll log raw
-  }
-
-  if (!res.ok) {
-    console.error('❌ [RESEND] Email gönderme hatası:', {
-      status: res.status,
-      body: json || raw,
-      to: options.to,
-      subject: options.subject,
-      from,
-    });
-    return false;
-  }
-
-  console.log('📧 [RESEND] Email gönderildi:', {
-    to: options.to,
-    subject: options.subject,
-    from,
-    id: json?.id,
-  });
-  return true;
 }
 
 async function sendEmailViaSmtp(options: EmailOptions): Promise<boolean> {
@@ -209,18 +123,16 @@ async function sendEmailViaSmtp(options: EmailOptions): Promise<boolean> {
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
-    const transport = getEmailTransport();
-
-    if (transport === 'simulation') {
+    const hasSmtp = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+    if (!hasSmtp) {
       console.log('📧 [EMAIL SIMULATION] Email gönderiliyor:', {
         to: options.to,
         subject: options.subject,
-        note: 'EMAIL_TRANSPORT=simulation veya email sağlayıcı ayarları yok; email simüle ediliyor',
+        note: 'SMTP ayarları yapılandırılmamış, email simüle ediliyor',
       });
       return true;
     }
 
-    if (transport === 'resend') return await sendEmailViaResend(options);
     return await sendEmailViaSmtp(options);
   } catch (error: any) {
     console.error('❌ Email gönderme hatası:', {
