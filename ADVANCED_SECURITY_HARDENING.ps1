@@ -2,6 +2,7 @@
 # Tüm güvenlik iyileştirmelerini uygular
 
 $SERVER = "root@alo17.tr"
+$SSH_PORT = 2222
 $REMOTE_PATH = "/var/www/alo17"
 
 Write-Host "==========================================" -ForegroundColor Cyan
@@ -12,7 +13,7 @@ Write-Host ""
 
 # 1. SSH Güvenliği İyileştirmeleri
 Write-Host "1. SSH güvenliği iyileştiriliyor..." -ForegroundColor Yellow
-ssh $SERVER @"
+ssh -p $SSH_PORT $SERVER @"
 # SSH config yedekle
 cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup.$(date +%Y%m%d)
 
@@ -35,7 +36,7 @@ Write-Host "   SSH servisini yeniden başlatmak için: systemctl restart sshd" -
 
 # 2. Fail2ban Yapılandırması İyileştirmeleri
 Write-Host "`n2. Fail2ban yapılandırması iyileştiriliyor..." -ForegroundColor Yellow
-ssh $SERVER @"
+ssh -p $SSH_PORT $SERVER @"
 # Fail2ban jail.local oluştur
 cat > /etc/fail2ban/jail.local << 'EOF'
 [DEFAULT]
@@ -91,7 +92,7 @@ systemctl status fail2ban --no-pager | head -5
 
 # 3. Dosya İzinleri Kontrolü ve Düzeltme
 Write-Host "`n3. Dosya izinleri kontrol ediliyor ve düzeltiliyor..." -ForegroundColor Yellow
-ssh $SERVER @"
+ssh -p $SSH_PORT $SERVER @"
 # Web dizini izinleri
 chown -R root:root $REMOTE_PATH
 find $REMOTE_PATH -type d -exec chmod 755 {} \;
@@ -110,7 +111,7 @@ chmod 600 $REMOTE_PATH/ecosystem.config.js 2>/dev/null
 
 # 4. SSL/TLS Güvenliği
 Write-Host "`n4. SSL/TLS güvenliği kontrol ediliyor..." -ForegroundColor Yellow
-ssh $SERVER @"
+ssh -p $SSH_PORT $SERVER @"
 # Nginx SSL config kontrolü
 if [ -f /etc/nginx/sites-available/alo17 ]; then
     echo '=== SSL Config Kontrolü ==='
@@ -133,7 +134,7 @@ fi
 
 # 5. Backup Stratejisi Oluşturma
 Write-Host "`n5. Backup stratejisi oluşturuluyor..." -ForegroundColor Yellow
-ssh $SERVER @"
+ssh -p $SSH_PORT $SERVER @"
 # Backup dizini oluştur
 mkdir -p /var/backups/alo17
 
@@ -166,7 +167,7 @@ echo "Backup script oluşturuldu ve cron job eklendi"
 
 # 6. Sistem Güncellemeleri Kontrolü
 Write-Host "`n6. Sistem güncellemeleri kontrol ediliyor..." -ForegroundColor Yellow
-ssh $SERVER @"
+ssh -p $SSH_PORT $SERVER @"
 apt-get update -qq
 SECURITY_UPDATES=\$(apt list --upgradable 2>/dev/null | grep -i security | wc -l)
 if [ \$SECURITY_UPDATES -gt 0 ]; then
@@ -179,7 +180,7 @@ fi
 
 # 7. Log Monitoring İyileştirmeleri
 Write-Host "`n7. Log monitoring iyileştiriliyor..." -ForegroundColor Yellow
-ssh $SERVER @"
+ssh -p $SSH_PORT $SERVER @"
 # Logrotate yapılandırması
 cat > /etc/logrotate.d/alo17 << 'EOF'
 /var/www/alo17/logs/*.log {
@@ -206,7 +207,7 @@ fi
 
 # 8. Network Güvenliği
 Write-Host "`n8. Network güvenliği kontrol ediliyor..." -ForegroundColor Yellow
-ssh $SERVER @"
+ssh -p $SSH_PORT $SERVER @"
 # SYN flood koruması
 sysctl -w net.ipv4.tcp_syncookies=1
 sysctl -w net.ipv4.tcp_max_syn_backlog=2048
@@ -229,7 +230,7 @@ echo "Network güvenlik ayarları uygulandı"
 
 # 9. Process ve Port Kontrolü
 Write-Host "`n9. Process ve port kontrolü..." -ForegroundColor Yellow
-ssh $SERVER @"
+ssh -p $SSH_PORT $SERVER @"
 echo '=== Açık Portlar ==='
 netstat -tulpn | grep LISTEN | grep -v '127.0.0.1\|::1'
 

@@ -42,7 +42,7 @@ pm2 restart alo17 --update-env
 
 Write-Host "Sunucuda calistirilacak komut:" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "ssh root@alo17.tr `"$command`"" -ForegroundColor Cyan
+Write-Host "ssh -p 2222 root@alo17.tr `"$command`"" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""

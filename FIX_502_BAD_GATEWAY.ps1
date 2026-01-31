@@ -6,23 +6,23 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Host "1. PM2 durumu kontrol ediliyor..." -ForegroundColor Yellow
-ssh root@alo17.tr "pm2 status"
+ssh -p 2222 root@alo17.tr "pm2 status"
 Write-Host ""
 
 Write-Host "2. PM2 yeniden baslatiliyor..." -ForegroundColor Yellow
-ssh root@alo17.tr "cd /var/www/alo17 && pm2 restart alo17 && pm2 save"
+ssh -p 2222 root@alo17.tr "cd /var/www/alo17 && pm2 restart alo17 && pm2 save"
 Write-Host ""
 
 Write-Host "3. Nginx yeniden yukleniyor..." -ForegroundColor Yellow
-ssh root@alo17.tr "systemctl reload nginx"
+ssh -p 2222 root@alo17.tr "systemctl reload nginx"
 Write-Host ""
 
 Write-Host "4. Port 3000 kontrol ediliyor..." -ForegroundColor Yellow
-ssh root@alo17.tr "netstat -tlnp | grep 3000"
+ssh -p 2222 root@alo17.tr "netstat -tlnp | grep 3000"
 Write-Host ""
 
 Write-Host "5. PM2 loglari kontrol ediliyor (son 20 satir)..." -ForegroundColor Yellow
-ssh root@alo17.tr "pm2 logs alo17 --lines 20 --nostream"
+ssh -p 2222 root@alo17.tr "pm2 logs alo17 --lines 20 --nostream"
 Write-Host ""
 
 Write-Host "6. Site durumu kontrol ediliyor..." -ForegroundColor Yellow
