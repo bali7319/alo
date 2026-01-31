@@ -27,6 +27,9 @@ function parseArgs(argv) {
     retries: 1,
     includeRegex: null,
     outputJson: true,
+    notifyTo: null,
+    notifyOnOk: false,
+    notifySubjectPrefix: '[Alo17]',
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -62,12 +65,107 @@ function parseArgs(argv) {
       i++;
       continue;
     }
+    if ((a === '--notify' || a === '--notifyTo') && next) {
+      out.notifyTo = String(next).trim();
+      i++;
+      continue;
+    }
+    if (a === '--notifyOnOk') {
+      out.notifyOnOk = true;
+      continue;
+    }
+    if (a === '--notifySubjectPrefix' && next) {
+      out.notifySubjectPrefix = String(next);
+      i++;
+      continue;
+    }
     if (a === '--no-json') {
       out.outputJson = false;
       continue;
     }
   }
   return out;
+}
+
+function loadDotEnvIfPresent() {
+  // Minimal .env loader for cron/CLI use (does not print secrets).
+  // Only sets keys that are not already present in process.env.
+  const envPath = path.join(process.cwd(), '.env');
+  if (!fs.existsSync(envPath)) return;
+  try {
+    const raw = fs.readFileSync(envPath, 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const s = line.trim();
+      if (!s || s.startsWith('#')) continue;
+      const eq = s.indexOf('=');
+      if (eq <= 0) continue;
+      const key = s.slice(0, eq).trim();
+      let val = s.slice(eq + 1).trim();
+      if (!key) continue;
+      if (Object.prototype.hasOwnProperty.call(process.env, key)) continue;
+      // Strip surrounding quotes
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      process.env[key] = val;
+    }
+  } catch {
+    // ignore
+  }
+}
+
+async function sendNotificationEmail({
+  to,
+  subject,
+  text,
+  html,
+}) {
+  // Load env for CLI/cron
+  loadDotEnvIfPresent();
+
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = Number(process.env.SMTP_PORT || '587');
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    console.log('[notify] SMTP not configured; skipping email.');
+    return { sent: false, reason: 'smtp_not_configured' };
+  }
+
+  const nodemailer = await import('nodemailer');
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: { user: smtpUser, pass: smtpPass },
+    tls: {
+      rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false',
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    pool: false,
+    maxConnections: 1,
+  });
+
+  await transporter.verify();
+
+  const info = await transporter.sendMail({
+    from: smtpUser, // relay-safe
+    to,
+    subject,
+    text,
+    html,
+  });
+
+  console.log('[notify] Email sent:', {
+    to,
+    messageId: info.messageId,
+    accepted: info.accepted,
+    rejected: info.rejected,
+  });
+
+  return { sent: true };
 }
 
 function withTimeout(promise, timeoutMs, label) {
@@ -293,6 +391,50 @@ async function main() {
     );
     console.log('');
     console.log(`[report] ${reportPath}`);
+  }
+
+  // Optional email notification
+  if (opts.notifyTo && (opts.notifyOnOk || soft404Count || failCount)) {
+    const stamp = new Date().toISOString();
+    const subj = `${opts.notifySubjectPrefix} Category page check ${soft404Count || failCount ? 'FAILED' : 'OK'} (soft404=${soft404Count} fail=${failCount})`;
+
+    const topBad = bad.slice(0, 50);
+    const lines = [
+      `Alo17 category page health check`,
+      ``,
+      `Time: ${stamp}`,
+      `Base: ${opts.base}`,
+      `Checked: ${results.length}`,
+      `OK: ${okCount}`,
+      `Soft-404: ${soft404Count}`,
+      `Fail: ${failCount}`,
+      ``,
+      ...(topBad.length
+        ? [
+            `Top problematic URLs (up to 50):`,
+            ...topBad.map((r) => `- ${r.url} (${r.ok ? 'soft-404' : `fail:${r.status || 0}`}${r.softNotFound ? `; ${r.softNotFound.join(', ')}` : ''}${r.error ? `; ${r.error}` : ''})`),
+          ]
+        : [`No problems detected.`]),
+      ``,
+      `This email was sent by scripts/check-category-pages.mjs`,
+    ];
+
+    const text = lines.join('\n');
+    const html = `<pre style="font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre-wrap;">${text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')}</pre>`;
+
+    try {
+      await sendNotificationEmail({
+        to: opts.notifyTo,
+        subject: subj,
+        text,
+        html,
+      });
+    } catch (e) {
+      console.error('[notify] Email send failed:', e instanceof Error ? e.message : String(e));
+    }
   }
 
   // exit code
