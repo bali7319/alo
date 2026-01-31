@@ -60,6 +60,15 @@ function getClientIP(request: NextRequest): string {
 export async function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
 
+  // getToken() pahalı olabilir; aynı request içinde tek sefer çağırıp paylaş.
+  let tokenPromise: Promise<any> | null = null;
+  const getTokenOnce = async () => {
+    if (!tokenPromise) {
+      tokenPromise = getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    }
+    return tokenPromise;
+  };
+
   const render410Gone = () => {
     const html = `<!DOCTYPE html>
 <html lang="tr">
@@ -120,6 +129,12 @@ export async function middleware(request: NextRequest) {
       },
     });
   };
+
+  // Explicitly removed routes: return 410 (Gone)
+  // Note: This ensures the page stays inaccessible even if an old build/cached route exists.
+  if (pathname === '/admin/ai-sablon' || pathname === '/admin/ai-sablon/' || pathname.startsWith('/admin/ai-sablon/')) {
+    return render410Gone();
+  }
 
   // Eski URL pattern'lerini yönlendir (404 hatalarını önlemek için)
   // Bu pattern'ler Google Search Console'daki 404 hatalarını önlemek için
@@ -196,14 +211,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 301); // 301 Permanent Redirect
   }
 
-  // Pathname kontrolü - Eski URL'ler için 410 Gone (kalıcı olarak silindi)
-  // 410 Gone, Google'a bu URL'lerin artık mevcut olmadığını ve index'ten çıkarılması gerektiğini söyler
-  for (const pattern of oldUrlPatterns) {
-    if (pattern.test(pathname)) {
-      return render410Gone();
-    }
-  }
-
   // Not: query-string legacy/spam kontrolü yukarıda yapılıyor.
 
   // API route'ları için rate limiting
@@ -217,7 +224,7 @@ export async function middleware(request: NextRequest) {
       const ip = getClientIP(request);
       
       // Token kontrolü - authenticated kullanıcılar için daha yüksek limit
-      const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+      const token = await getTokenOnce();
       const isAuthenticated = !!token;
       
       // Admin ayarları endpoint'i için daha yüksek limit (sıkça çağrılıyor)
@@ -264,7 +271,7 @@ export async function middleware(request: NextRequest) {
   // Not: DB sorgusu yapmadan, JWT token'dan kontrol edilir.
   // Allowlist: onboarding sırasında sadece profil düzenleme ve gerekli API'ler.
   {
-    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    const token = await getTokenOnce();
     const needsPhone = (token as any)?.needsPhone === true;
     const role = (token as any)?.role;
 
@@ -289,7 +296,7 @@ export async function middleware(request: NextRequest) {
 
   // Admin ve moderator route'ları için authentication kontrolü
   if (pathname.startsWith('/admin') || pathname.startsWith('/moderator')) {
-    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    const token = await getTokenOnce();
     
     if (!token) {
       const loginUrl = new URL('/giris', request.url);

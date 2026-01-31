@@ -23,7 +23,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <AdminNavLink href="/admin/kariyer" label="Kariyer" />
             <AdminNavLink href="/admin/sozlesmeler" label="Hukuki Belgeler" />
             <AdminNavLink href="/admin/aboneler" label="Aboneler" />
-            <AdminNavLink href="/admin/ai-sablon" label="AI Şablon" />
             <AdminNavLink href="/admin/ayarlar" label="Ayarlar" />
           </div>
         </nav>
