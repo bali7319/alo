@@ -19,6 +19,7 @@ export default function IlanVerPage() {
   });
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
+  const [selectedSubSubCategory, setSelectedSubSubCategory] = useState<Category | null>(null);
   const [selectedPlan, setSelectedPlan] = useState('none');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOptionalFeatures, setShowOptionalFeatures] = useState(false);
@@ -63,6 +64,7 @@ export default function IlanVerPage() {
     price: '',
     category: '',
     subCategory: '',
+    subSubCategory: '',
     location: '',
     phone: '',
     condition: 'Yeni', // 'Yeni' veya 'İkinci El'
@@ -396,6 +398,20 @@ export default function IlanVerPage() {
     }
   }, [selectedCategory]);
 
+  // selectedSubCategory yüklendikten sonra subSubCategory'yi yükle
+  useEffect(() => {
+    if (!selectedSubCategory || typeof window === 'undefined') return;
+
+    const savedSubSubCategory = localStorage.getItem('ilanFormSubSubCategory');
+    if (savedSubSubCategory) {
+      const subSub = selectedSubCategory.subcategories?.find((sub) => sub.slug === savedSubSubCategory);
+      if (subSub) {
+        setSelectedSubSubCategory(subSub);
+        setFormData((prev) => ({ ...prev, subSubCategory: subSub.slug }));
+      }
+    }
+  }, [selectedSubCategory]);
+
   // Form verilerini localStorage'a kaydet (ilk yükleme hariç)
   useEffect(() => {
     if (typeof window === 'undefined' || isInitialLoad) return;
@@ -417,6 +433,14 @@ export default function IlanVerPage() {
       }
     }
   }, [selectedSubCategory]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (selectedSubSubCategory) {
+        localStorage.setItem('ilanFormSubSubCategory', selectedSubSubCategory.slug);
+      }
+    }
+  }, [selectedSubSubCategory]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -505,13 +529,21 @@ export default function IlanVerPage() {
     const category = categories.find(cat => cat.slug === categorySlug);
     setSelectedCategory(category || null);
     setSelectedSubCategory(null);
-    setFormData(prev => ({ ...prev, category: categorySlug, subCategory: '' }));
+    setSelectedSubSubCategory(null);
+    setFormData(prev => ({ ...prev, category: categorySlug, subCategory: '', subSubCategory: '' }));
   };
 
   const handleSubCategoryChange = (subCategorySlug: string) => {
     const subCategory = selectedCategory?.subcategories?.find(sub => sub.slug === subCategorySlug);
     setSelectedSubCategory(subCategory || null);
-    setFormData(prev => ({ ...prev, subCategory: subCategorySlug }));
+    setSelectedSubSubCategory(null);
+    setFormData(prev => ({ ...prev, subCategory: subCategorySlug, subSubCategory: '' }));
+  };
+
+  const handleSubSubCategoryChange = (subSubCategorySlug: string) => {
+    const subSubCategory = selectedSubCategory?.subcategories?.find((sub) => sub.slug === subSubCategorySlug);
+    setSelectedSubSubCategory(subSubCategory || null);
+    setFormData((prev) => ({ ...prev, subSubCategory: subSubCategorySlug }));
   };
 
   const addOptionalFeature = () => {
@@ -659,6 +691,12 @@ export default function IlanVerPage() {
       const subCategoryObj = categoryObj?.subcategories?.find(sub => sub.slug === formData.subCategory);
       const subCategoryName = subCategoryObj?.name || formData.subCategory || null;
 
+      // Alt-alt kategori adını bul
+      const subSubCategoryObj = subCategoryObj?.subcategories?.find((sub) => sub.slug === formData.subSubCategory);
+      const subSubCategoryName = formData.subSubCategory
+        ? (subSubCategoryObj?.name || formData.subSubCategory)
+        : null;
+
       // Seçilen plan bilgisi
       const selectedPlanData = premiumPlans[selectedPlan as keyof typeof premiumPlans];
       
@@ -674,7 +712,7 @@ export default function IlanVerPage() {
         price: formData.price,
         category: categoryName,
         subCategory: subCategoryName,
-        subSubCategory: null,
+        subSubCategory: subSubCategoryName,
         location: formData.location,
         phone: formData.phone || null,
         showPhone: phoneVisibility === 'public',
@@ -1095,6 +1133,27 @@ export default function IlanVerPage() {
                   >
                     <option value="">Alt kategori seçin</option>
                     {selectedCategory.subcategories.map((sub) => (
+                      <option key={sub.slug} value={sub.slug}>
+                        {sub.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Sub Sub Category */}
+              {selectedSubCategory?.subcategories && selectedSubCategory.subcategories.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Alt-Alt Kategori
+                  </label>
+                  <select
+                    value={formData.subSubCategory}
+                    onChange={(e) => handleSubSubCategoryChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Alt-alt kategori seçin</option>
+                    {selectedSubCategory.subcategories.map((sub) => (
                       <option key={sub.slug} value={sub.slug}>
                         {sub.name}
                       </option>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ListingCard } from '@/components/listing-card';
 import { SearchBar } from '@/components/search-bar';
 import { Button } from '@/components/ui/button';
@@ -26,11 +26,18 @@ interface Listing {
 }
 
 function IlanlarContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
+  const pageFromUrl = (() => {
+    const raw = searchParams.get('page') || '';
+    const n = raw && /^\d+$/.test(raw) ? parseInt(raw, 10) : 1;
+    return Number.isFinite(n) ? Math.max(1, n) : 1;
+  })();
+  const [page, setPage] = useState(pageFromUrl);
   const [totalPages, setTotalPages] = useState(1);
 
   // URL'deki search parametresini al
@@ -43,6 +50,23 @@ function IlanlarContent() {
     }
   }, [searchQuery]);
 
+  // URL değiştiğinde state'i senkron tut (back/forward)
+  useEffect(() => {
+    if (pageFromUrl !== page) setPage(pageFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageFromUrl]);
+
+  // Page değişince URL'yi güncelle (shareable pagination)
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (page <= 1) params.delete('page');
+    else params.set('page', String(page));
+    // keep `search` if present
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
   useEffect(() => {
     const fetchListings = async () => {
       try {
@@ -53,9 +77,8 @@ function IlanlarContent() {
         const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
         const apiUrl = `/api/listings?page=${page}&limit=20${searchParam}`;
 
-        const response = await fetch(apiUrl, {
-          cache: 'no-store', // Her zaman fresh data
-        });
+        // Allow HTTP caching (controlled by API Cache-Control).
+        const response = await fetch(apiUrl);
 
         if (!response.ok) {
           throw new Error(`API hatası: ${response.status}`);
@@ -150,13 +173,17 @@ function IlanlarContent() {
             {/* Sayfalama */}
             {totalPages > 1 && (
               <div className="mt-8 flex justify-center gap-2">
-                <Button variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>
+                <Button variant="outline" disabled={page === 1} onClick={() => setPage(Math.max(1, page - 1))}>
                   Önceki
                 </Button>
                 <span className="px-4 py-2 flex items-center">
                   Sayfa {page} / {totalPages}
                 </span>
-                <Button variant="outline" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+                <Button
+                  variant="outline"
+                  disabled={page === totalPages}
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                >
                   Sonraki
                 </Button>
               </div>

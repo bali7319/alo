@@ -22,6 +22,9 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const DEBUG =
+      process.env.NODE_ENV !== 'production' || process.env.DEBUG_CATEGORY_API === 'true';
+
     // Rate limiting - IP bazlı (100 istek/dakika)
     const clientIP = getClientIP(request);
     const rateLimit = checkRateLimit(`category:${clientIP}`, 100, 60000);
@@ -90,6 +93,8 @@ export async function GET(
         return NextResponse.json(cached, {
           headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+            'Vary': 'Cookie',
             'X-Cache': 'HIT',
             'X-RateLimit-Limit': '100',
             'X-RateLimit-Remaining': rateLimit.remaining.toString(),
@@ -153,7 +158,7 @@ export async function GET(
       }),
       prisma.listing.count({ where: whereClause }),
     ]).catch((dbError) => {
-      console.error('Database query error:', dbError);
+      if (DEBUG) console.error('Database query error:', dbError);
       // Database bağlantı hatası kontrolü
       if (dbError.code === 'P1001' || dbError.message?.includes('connect')) {
         throw new Error('Veritabanı bağlantı hatası. Lütfen daha sonra tekrar deneyin.');
@@ -214,6 +219,7 @@ export async function GET(
       {
         headers: {
           'Content-Type': 'application/json',
+          'Vary': 'Cookie',
           'Cache-Control': !isAdmin && page === 1 && limit <= 20 
             ? 'public, s-maxage=30, stale-while-revalidate=60' 
             : 'private, no-store, no-cache, must-revalidate',

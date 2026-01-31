@@ -28,20 +28,17 @@ export default function NotFound() {
         </div>
         
         <div className="space-y-3">
-          <Link href="/">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg">
-              Ana Sayfaya Dön
-            </Button>
-          </Link>
+          <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg">
+            <Link href="/">Ana Sayfaya Dön</Link>
+          </Button>
           
-          <Link href="/ilanlar">
-            <Button
-              variant="outline"
-              className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3 px-4 rounded-lg"
-            >
-              İlanları Görüntüle
-            </Button>
-          </Link>
+          <Button
+            asChild
+            variant="outline"
+            className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3 px-4 rounded-lg"
+          >
+            <Link href="/ilanlar">İlanları Görüntüle</Link>
+          </Button>
         </div>
         
         <div className="mt-6 text-sm text-gray-500">

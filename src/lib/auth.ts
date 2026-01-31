@@ -210,6 +210,47 @@ export const authOptions: NextAuthOptions = {
         // credentials: 'include' zaten frontend'de kullanılıyor, bu yeterli
       },
     },
+
+    // Google OAuth "state cookie was missing" hatası genelde www/apex host farkından çıkar.
+    // sessionToken'a domain vermeden; SADECE oauth state/pkce çerezlerini .alo17.tr domain'ine koyuyoruz
+    // böylece www ↔ apex arasında kaybolmaz.
+    ...(process.env.NODE_ENV === 'production'
+      ? {
+          state: {
+            name: '__Secure-next-auth.state',
+            options: {
+              httpOnly: true,
+              sameSite: 'lax',
+              path: '/',
+              secure: true,
+              domain: '.alo17.tr',
+              maxAge: 15 * 60, // 15 dakika
+            },
+          },
+          pkceCodeVerifier: {
+            name: '__Secure-next-auth.pkce.code_verifier',
+            options: {
+              httpOnly: true,
+              sameSite: 'lax',
+              path: '/',
+              secure: true,
+              domain: '.alo17.tr',
+              maxAge: 15 * 60, // 15 dakika
+            },
+          },
+          nonce: {
+            name: '__Secure-next-auth.nonce',
+            options: {
+              httpOnly: true,
+              sameSite: 'lax',
+              path: '/',
+              secure: true,
+              domain: '.alo17.tr',
+              maxAge: 15 * 60, // 15 dakika
+            },
+          },
+        }
+      : {}),
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
@@ -344,9 +385,32 @@ export const authOptions: NextAuthOptions = {
           // Kullanıcı bilgilerini güncelle
           user.id = dbUser.id;
           (user as User & { role?: string }).role = dbUser.role || (isAdminEmail(dbUser.email) ? 'admin' : 'user');
-          // Onboarding: Google kullanıcılarında telefon yoksa profil tamamlama zorunlu
+          // Onboarding: Google kullanıcılarında telefon yoksa profil tamamlama zorunlu.
+          // IMPORTANT: jwt callback token.needsPhone'u token.phone'a göre normalize ediyor.
+          // Bu yüzden burada mutlaka `user.phone` (gerekirse decrypted) set edilmeli,
+          // aksi halde DB'de telefon olsa bile token.phone undefined kalıp sürekli onboarding'e atabilir.
+          let decryptedPhone: string | undefined = (dbUser.phone as string | null) || undefined;
+          if (decryptedPhone && decryptedPhone.includes(':')) {
+            const parts = decryptedPhone.split(':');
+            if (parts.length === 3) {
+              try {
+                const { decryptPhone } = await import('./encryption');
+                const decrypted = decryptPhone(decryptedPhone);
+                decryptedPhone = decrypted || undefined;
+              } catch (error) {
+                if (DEBUG_AUTH) {
+                  safeWarn('[AUTH] Phone decryption failed (google signIn)', { userId: dbUser.id }, ['email']);
+                }
+                decryptedPhone = undefined;
+              }
+            }
+          }
+
+          (user as any).phone = decryptedPhone;
+          (user as any).location = (dbUser.location as string | null) || undefined;
+          (user as any).image = (dbUser.image as string | null) || user.image;
           (user as any).isOAuth = true;
-          (user as any).needsPhone = !dbUser.phone;
+          (user as any).needsPhone = !decryptedPhone;
           
           console.log('Google sign in başarılı:', { userId: dbUser.id, email: dbUser.email });
         } catch (error: unknown) {
@@ -402,6 +466,43 @@ export const authOptions: NextAuthOptions = {
 
       // Ek güvenlik: OAuth kullanıcılarında needsPhone'u token.phone'a göre normalize et
       if (token.isOAuth) {
+        // OAuth kullanıcılarında ilk login anında user objesinde phone/location gelmeyebilir.
+        // Eğer token.phone yoksa (ve email varsa) DB'den bir kere çekip token'ı doldur.
+        if (!token.phone && token.email && !(token as any).__profileLoaded) {
+          try {
+            const dbUser = await prisma.user.findFirst({
+              where: { email: { equals: String(token.email), mode: 'insensitive' } },
+              select: { phone: true, location: true, role: true, image: true, id: true },
+            });
+
+            if (dbUser) {
+              let decryptedPhone: string | undefined = (dbUser.phone as string | null) || undefined;
+              if (decryptedPhone && decryptedPhone.includes(':')) {
+                const parts = decryptedPhone.split(':');
+                if (parts.length === 3) {
+                  try {
+                    const { decryptPhone } = await import('./encryption');
+                    const decrypted = decryptPhone(decryptedPhone);
+                    decryptedPhone = decrypted || undefined;
+                  } catch {
+                    decryptedPhone = undefined;
+                  }
+                }
+              }
+
+              token.id = (token.id as string) || (dbUser.id as string);
+              token.role = (token.role as string) || (dbUser.role as string | null) || 'user';
+              token.picture = (token.picture as string) || (dbUser.image as string | null) || undefined;
+              token.phone = decryptedPhone;
+              token.location = (dbUser.location as string | null) || undefined;
+            }
+          } catch {
+            // ignore
+          } finally {
+            (token as any).__profileLoaded = true;
+          }
+        }
+
         token.needsPhone = !token.phone;
       } else {
         token.needsPhone = false;

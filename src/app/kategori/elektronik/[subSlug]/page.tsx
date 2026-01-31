@@ -38,20 +38,8 @@ export default async function ElektronikSubPage({ params }: { params: Promise<{ 
   const elektronikCategory = categories.find(cat => cat.slug === 'elektronik');
   const subcategory = elektronikCategory?.subcategories?.find(sub => sub.slug === subSlug);
 
-  // Alt kategori slug'ını isme çevir
-  const subCategoryMap: { [key: string]: string } = {
-    'bilgisayar': 'Bilgisayar',
-    'kamera': 'Kamera',
-    'kulaklik': 'Kulaklık',
-    'network': 'Network',
-    'oyun-konsolu': 'Oyun Konsolu',
-    'tablet': 'Tablet',
-    'telefon': 'Telefon',
-    'televizyon': 'Televizyon',
-    'yazici': 'Yazıcı',
-  };
-
-  const subCategoryName = subCategoryMap[subSlug] || subcategory?.name;
+  const categoryName = elektronikCategory?.name ?? 'Elektronik';
+  const subCategoryName = subcategory?.name;
 
   // Güvenli JSON parse fonksiyonu
   const safeParseImages = (images: string | null): string[] => {
@@ -79,7 +67,7 @@ export default async function ElektronikSubPage({ params }: { params: Promise<{ 
           AND: [
             {
               OR: [
-                { category: 'Elektronik' },
+                { category: categoryName },
                 { category: 'elektronik' },
               ],
             },

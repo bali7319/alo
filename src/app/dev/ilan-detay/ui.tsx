@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { MapPin, MessageSquare, Phone, Flag } from 'lucide-react';
 
-const FALLBACK_IMAGE_SRC = '/images/placeholder.jpg';
+const FALLBACK_IMAGE_SRC = '/images/placeholder.svg';
 
 export default function DemoIlanDetayClient() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);

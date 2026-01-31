@@ -429,12 +429,12 @@ export default function ModeratorPage() {
                       <Edit className="w-4 h-4" />
                       Düzenle
                     </Button>
-                    <Link href={`/ilan/${listing.id}`} target="_blank">
-                      <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                    <Button asChild variant="outline" className="w-full flex items-center justify-center gap-2">
+                      <Link href={`/ilan/${listing.id}`} target="_blank" rel="noopener noreferrer">
                         <Eye className="w-4 h-4" />
                         Görüntüle
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               </div>

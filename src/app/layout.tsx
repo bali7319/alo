@@ -28,6 +28,8 @@ const inter = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://alo17.tr'),
+  applicationName: 'Alo17',
+  category: 'Marketplace',
   title: {
     default: 'Alo17 - Çanakkalenin En Büyük İlan Sitesi',
     template: '%s | Alo17'
@@ -105,6 +107,7 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/apple-icon.svg',
   },
+  manifest: '/manifest.webmanifest',
 }
 
 export const viewport: Viewport = {

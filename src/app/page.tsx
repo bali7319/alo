@@ -12,6 +12,7 @@ import { AdvantageBand } from '@/components/home/AdvantageBand'
 import { DifferenceInline } from '@/components/home/DifferenceSidebar'
 import { CityStory } from '@/components/home/CityStory'
 import type { Listing } from '@/types/listings'
+import SeoJsonLd from '@/components/SeoJsonLd'
 
 export const metadata: Metadata = {
   alternates: {
@@ -28,8 +29,10 @@ const Sidebar = nextDynamic(
 )
 
 // Ana sayfayı dynamic yap - Her istekte fresh data çek (tüm ilanlar için)
-export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Cache yok - Her zaman fresh data
+// NOTE:
+// Home page is not user-specific; enabling ISR improves TTFB/SEO and reduces DB load.
+// If you need "rotating" premium cards, do it daily/periodically (seed-based) rather than per-request.
+export const revalidate = 60; // 60s ISR cache (edge/server), good SEO + performance balance
 
 // Günlük rotasyon için seed'li shuffle fonksiyonu
 function seededShuffle<T>(array: T[], seed: string): T[] {
@@ -59,6 +62,24 @@ function seededShuffle<T>(array: T[], seed: string): T[] {
 export default async function Home() {
   let featuredListings: Listing[] = [];
   let latestListings: Listing[] = [];
+  const baseUrl = 'https://alo17.tr'
+  const todaySeed = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (daily rotation)
+
+  const orgJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Alo17',
+    url: baseUrl,
+    logo: `${baseUrl}/images/logo.svg`,
+    sameAs: [],
+  }
+
+  const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Alo17',
+    url: baseUrl,
+  }
 
   const makeMockListing = (id: string, overrides: Partial<Listing> = {}): Listing => ({
     id,
@@ -110,17 +131,11 @@ export default async function Home() {
 
     const { prisma } = await import('@/lib/prisma');
 
-    // Her istekte farklı rotasyon için timestamp + random seed kullan
-    const now = new Date();
-    const timestamp = now.getTime();
-    const randomSeed = Math.floor(Math.random() * 1000000);
-    const rotationSeed = `${timestamp}-${randomSeed}`;
-    
     // Not: "tüm ilanları" tek seferde çekmek üretimde timeout/performans sorunlarına yol açabilir.
     // Ana sayfada yüksek ama makul limit kullanıyoruz; tam liste için /ilanlar.
     // Premium sayısı artarsa eski premiumlar da düşmesin diye biraz yüksek tutuyoruz.
-    const PREMIUM_TAKE = 1000;
-    const LATEST_TAKE = 500;
+    const PREMIUM_TAKE = 60;
+    const LATEST_TAKE = 60;
     const nowForDb = new Date();
 
     const [premiumListingsRaw, latest] = await Promise.all([
@@ -178,10 +193,10 @@ export default async function Home() {
       }),
     ]);
     
-    // Her istekte premium ilanları farklı rotasyon ile karıştır
+    // Premium ilanları günlük rotasyon ile karıştır (cache dostu)
     // Undefined/null ilanları filtrele
     const validPremiumListings = premiumListingsRaw.filter(l => l != null);
-    const shuffledPremium = seededShuffle(validPremiumListings, rotationSeed);
+    const shuffledPremium = seededShuffle(validPremiumListings, todaySeed);
     // Tüm premium ilanları göster (rotasyon ile karıştırılmış)
     const premiumListings = shuffledPremium;
 
@@ -261,6 +276,10 @@ export default async function Home() {
   // Streaming SSR ile sayfanın ilk kısmı hemen gösterilir
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Structured data (JSON-LD) for SEO */}
+      <SeoJsonLd id="ld-org" data={orgJsonLd} />
+      <SeoJsonLd id="ld-website" data={websiteJsonLd} />
+
       {/* Search bar - Above-the-fold */}
       <section className="bg-white border-b py-4 sm:py-6">
         <div className="container mx-auto px-3 sm:px-4">
@@ -296,27 +315,29 @@ export default async function Home() {
         <div className="w-full md:w-64 flex-shrink-0">
           {/* Hukuki Belgeler ve Dilekçe Butonu */}
           <div className="mb-4">
-            <Link href="/sozlesmeler" className="block">
-              <Button 
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-semibold shadow-lg"
-                size="lg"
-              >
+            <Button
+              asChild
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-semibold shadow-lg"
+              size="lg"
+            >
+              <Link href="/sozlesmeler" className="block">
                 <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                 Hukuki Belgeler ve Dilekçe
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
           {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
           <div className="mb-4">
-            <Link href="/ilan-ver" className="block">
-              <Button 
-                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold shadow-lg"
-                size="lg"
-              >
+            <Button
+              asChild
+              className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold shadow-lg"
+              size="lg"
+            >
+              <Link href="/ilan-ver" className="block">
                 <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                 Reklam Ver
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
           <Sidebar />
         </div>
@@ -324,9 +345,11 @@ export default async function Home() {
           <FeaturedAds title="Öne Çıkan İlanlar" listings={featuredListings} limit={3} />
           <LatestAds title="Tüm İlanlar" listings={latestListings} />
           <div className="pt-2">
-            <Link href="/ilanlar" className="inline-flex">
-              <Button variant="outline">Tüm ilanları /ilanlar sayfasında gör</Button>
-            </Link>
+            <Button asChild variant="outline">
+              <Link href="/ilanlar" className="inline-flex">
+                Tüm ilanları /ilanlar sayfasında gör
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

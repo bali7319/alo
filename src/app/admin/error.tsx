@@ -38,14 +38,13 @@ export default function AdminError({
             Tekrar Dene
           </Button>
           
-          <Link href="/admin">
-            <Button
-              variant="outline"
-              className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3 px-4 rounded-lg"
-            >
-              Admin Paneline Dön
-            </Button>
-          </Link>
+          <Button
+            asChild
+            variant="outline"
+            className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3 px-4 rounded-lg"
+          >
+            <Link href="/admin">Admin Paneline Dön</Link>
+          </Button>
         </div>
         
         {process.env.NODE_ENV === 'development' && (

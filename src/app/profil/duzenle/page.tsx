@@ -229,32 +229,27 @@ export default function EditProfilePage() {
           }
         }
         
-        // Session'ı güncelle - NextAuth session'ı yenile (veritabanından güncel bilgileri çekecek)
+        // Session'ı güncelle - middleware onboarding kontrolü için kritik (needsPhone JWT'den okunuyor)
         if (update) {
-          // JWT token'ı anında güncelle (middleware onboarding kontrolü için kritik)
-          await update({
-            name: data.user?.name ?? formData.name,
-            email: data.user?.email ?? formData.email,
-            image: data.user?.image ?? previewImage,
-            phone: data.user?.phone ?? formData.phone,
-            location: data.user?.location ?? formData.location,
-          } as any);
+          try {
+            // NOTE: NextAuth `jwt` callback'te `trigger === 'update'` için `session.user` okunuyor.
+            // Bu yüzden payload'ı `user` altında göndermek gerekiyor.
+            await update({
+              user: {
+                name: data.user?.name ?? formData.name,
+                email: data.user?.email ?? formData.email,
+                image: data.user?.image ?? previewImage,
+                phone: data.user?.phone ?? formData.phone,
+                location: data.user?.location ?? formData.location,
+              },
+            } as any);
+          } catch {
+            // Session update fail olsa bile DB güncellendi; redirect denensin.
+          }
         }
-        
-        // Başarı mesajını göster ve kısa bir süre sonra profil sayfasına yönlendir
-        setTimeout(() => {
-          const safeTarget = (() => {
-            const raw = (onboardingCallbackUrl || '').trim();
-            if (!isOnboarding || !raw) return '/profil';
-            // Sadece internal path'e izin ver
-            if (raw.startsWith('/') && !raw.startsWith('/giris')) return raw;
-            return '/';
-          })();
 
-          // replace is more reliable for onboarding flows
-          router.replace(safeTarget);
-          router.refresh(); // Sayfayı yenile
-        }, 800);
+        // Profil güncelleme sonrası her zaman ana sayfaya dön (hard navigation = middleware yeni cookie ile çalışsın)
+        window.location.href = '/';
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Profil güncellenirken bir hata oluştu');
@@ -370,7 +365,7 @@ export default function EditProfilePage() {
               <div className="relative">
                 <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100">
                   <Image
-                    src={previewImage || '/images/placeholder.jpg'}
+                    src={previewImage || '/images/placeholder.svg'}
                     alt="Profil fotoğrafı"
                     width={128}
                     height={128}
@@ -585,7 +580,7 @@ export default function EditProfilePage() {
             <div className="flex space-x-4 pt-6">
               <button
                 type="button"
-                onClick={() => router.push('/profil')}
+                onClick={() => router.push('/')}
                 disabled={isOnboarding}
                 className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >

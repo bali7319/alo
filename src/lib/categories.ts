@@ -47,10 +47,110 @@ export const categories: Category[] = [
           { name: "Parmak İzi Sistemleri", icon: "👆", slug: "parmak-izi-sistemleri" }
         ]
       },
-      { name: "Nakliyat", icon: "🚚", slug: "nakliyat" },
+      {
+        name: "Tadilat & Dekorasyon",
+        icon: "🛠️",
+        slug: "tadilat-dekorasyon",
+        subcategories: [
+          { name: "Boya-badana", icon: "🎨", slug: "boya-badana" },
+          { name: "Alçıpan", icon: "🧱", slug: "alcipan" },
+          { name: "Anahtar Teslim Tadilat", icon: "🏠", slug: "anahtar-teslim-tadilat" },
+        ],
+      },
+      {
+        name: "Elektrik & Tesisat",
+        icon: "⚡",
+        slug: "elektrik-tesisat",
+        subcategories: [
+          { name: "Elektrik Arıza", icon: "💡", slug: "elektrik-ariza" },
+          { name: "Sıhhi Tesisat", icon: "🚰", slug: "sihhi-tesisat" },
+          { name: "Doğalgaz Döşeme", icon: "🔥", slug: "dogalgaz-doseme" },
+        ],
+      },
+      {
+        name: "Mobilya & Marangoz",
+        icon: "🪚",
+        slug: "mobilya-marangoz",
+        subcategories: [
+          { name: "Mobilya Montaj (IKEA vb.)", icon: "🪑", slug: "mobilya-montaj" },
+          { name: "Özel İmalat", icon: "🧰", slug: "ozel-imalat" },
+          { name: "Kapı Tamiri", icon: "🚪", slug: "kapi-tamiri" },
+        ],
+      },
+      {
+        name: "Isıtma & Soğutma",
+        icon: "🌡️",
+        slug: "isitma-sogutma-servis",
+        subcategories: [
+          { name: "Klima Servisi", icon: "❄️", slug: "klima-servisi" },
+          { name: "Kombi Bakımı", icon: "🔥", slug: "kombi-bakimi" },
+          { name: "Güneş Enerjisi Sistemleri", icon: "☀️", slug: "gunes-enerjisi-sistemleri" },
+        ],
+      },
+      {
+        name: "Temizlik",
+        icon: "🧹",
+        slug: "temizlik",
+        subcategories: [
+          { name: "Ev Temizliği", icon: "🏠", slug: "ev-temizligi" },
+          { name: "Koltuk & Halı Yıkama", icon: "🧼", slug: "koltuk-hali-yikama" },
+          { name: "İlaçlama", icon: "🪳", slug: "ilaclama" },
+          { name: "İnşaat Sonrası Temizlik", icon: "🧽", slug: "insaat-sonrasi-temizlik" },
+        ],
+      },
+      {
+        name: "Teknik Servis",
+        icon: "🔧",
+        slug: "teknik-servis",
+        subcategories: [
+          { name: "Oto Tamir & Bakım", icon: "🚗", slug: "oto-tamir-bakim" },
+          { name: "Yol Yardım & Çekici", icon: "🛻", slug: "yol-yardim-cekici" },
+          { name: "Beyaz Eşya Servisi", icon: "🧺", slug: "beyaz-esya-servisi" },
+          { name: "Elektronik Tamiri", icon: "📱", slug: "elektronik-tamiri" },
+        ],
+      },
+      {
+        name: "Nakliyat",
+        icon: "🚚",
+        slug: "nakliyat",
+        subcategories: [
+          { name: "Evden Eve Nakliyat", icon: "📦", slug: "evden-eve-nakliyat" },
+          { name: "Asansörlü Nakliyat", icon: "🏗️", slug: "asansorlu-nakliyat" },
+          { name: "Parça Eşya Taşıma", icon: "🛻", slug: "parca-esya-tasima" },
+        ],
+      },
+      {
+        name: "Özel Ders ve Eğitim",
+        icon: "📚",
+        slug: "ozel-ders-egitim",
+        subcategories: [
+          { name: "Sınavlara Hazırlık", icon: "📝", slug: "sinavlara-hazirlik" },
+          { name: "Dil Kursları", icon: "🌍", slug: "dil-kurslari" },
+          { name: "Enstrüman & Sanat", icon: "🎸", slug: "enstruman-sanat" },
+          { name: "Direksiyon Dersi", icon: "🚘", slug: "direksiyon-dersi" },
+        ],
+      },
+      {
+        name: "Sağlık, Bakım ve Güzellik",
+        icon: "💆",
+        slug: "saglik-bakim-guzellik",
+        subcategories: [
+          { name: "Hasta & Yaşlı Bakımı", icon: "🧑‍⚕️", slug: "hasta-yasli-bakimi" },
+          { name: "Evcil Hayvan Hizmetleri", icon: "🐾", slug: "evcil-hayvan-hizmetleri" },
+          { name: "Güzellik Hizmetleri", icon: "💄", slug: "guzellik-hizmetleri" },
+        ],
+      },
+      {
+        name: "Profesyonel ve Organizasyon Hizmetleri",
+        icon: "🎉",
+        slug: "profesyonel-organizasyon",
+        subcategories: [
+          { name: "Düğün & Etkinlik", icon: "📸", slug: "dugun-etkinlik" },
+          { name: "Hukuk & Muhasebe", icon: "⚖️", slug: "hukuk-muhasebe" },
+          { name: "Gayrimenkul Danışmanlığı", icon: "🏢", slug: "gayrimenkul-danismanligi" },
+        ],
+      },
       { name: "Tasarım", icon: "🎨", slug: "tasarim" },
-      { name: "Teknik Servis", icon: "🔧", slug: "teknik-servis" },
-      { name: "Temizlik", icon: "🧹", slug: "temizlik" }
     ]
   },
   {

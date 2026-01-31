@@ -22,6 +22,9 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
+    // NOTE: Production server CPU cannot load sharp (linux-x64 v2 requirement),
+    // which breaks `/_next/image` with 500. Disable optimization globally.
+    unoptimized: process.env.NODE_ENV === 'production',
   },
   
   // Experimental features for performance
@@ -121,6 +124,22 @@ const nextConfig = {
             value: '</fonts/Inter-Regular.woff2>; rel=preload; as=font; type=font/woff2; crossorigin'
           },
         ],
+      },
+    ];
+  },
+
+  async redirects() {
+    return [
+      // Legacy/broken placeholder.jpg paths -> SVG placeholder
+      {
+        source: '/images/placeholder.jpg',
+        destination: '/images/placeholder.svg',
+        permanent: false,
+      },
+      {
+        source: '/images/listings/placeholder.jpg',
+        destination: '/images/placeholder.svg',
+        permanent: false,
       },
     ];
   },

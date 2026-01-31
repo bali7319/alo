@@ -27,8 +27,9 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Base64 resimler için unoptimized kullanılacak
-    unoptimized: false, // Component seviyesinde kontrol edilecek
+    // Production server CPU cannot load sharp (linux-x64 v2 requirement),
+    // which breaks `/_next/image` with 500. Disable optimization globally.
+    unoptimized: process.env.NODE_ENV === 'production',
   },
   // Backup klasörlerini hariç tut
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
@@ -41,6 +42,10 @@ const nextConfig = {
   compress: true,
   // Production optimizations
   poweredByHeader: false,
+  compiler: {
+    // Production build'de console.* çağrılarını kaldır (error/warn kalsın)
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
   reactStrictMode: true,
   // TypeScript type checking'i build sırasında atla (geçici - production'da düzeltilmeli)
   typescript: {
@@ -71,7 +76,63 @@ const nextConfig = {
   // Legacy/spam URL'ler için yönlendirme yapma.
   // Bu URL'ler `src/middleware.ts` içinde 410 Gone döndürülerek Google'ın daha hızlı düşürmesi sağlanır.
   async redirects() {
-    return [];
+    return [
+      // Broken/legacy placeholder.jpg paths -> SVG placeholder.
+      // (These redirects work only if the .jpg file doesn't exist in /public.)
+      {
+        source: '/images/placeholder.jpg',
+        destination: '/images/placeholder.svg',
+        permanent: false,
+      },
+      {
+        source: '/images/listings/placeholder.jpg',
+        destination: '/images/placeholder.svg',
+        permanent: false,
+      },
+    ];
+  },
+
+  async headers() {
+    const isProd = process.env.NODE_ENV === 'production'
+
+    // CSP: "kırmadan" başlangıç seviyesi (PayTR iframe + resizer script dahil).
+    // Zamanla tighten edilebilir (nonce/strict-dynamic vb.).
+    const csp = [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      // PayTR ödeme sayfaları için iframe + form action gerekli
+      "frame-src 'self' https://www.paytr.com",
+      "form-action 'self' https://www.paytr.com",
+      // Next + PayTR resizer
+      `script-src 'self'${isProd ? '' : " 'unsafe-eval'"} 'unsafe-inline' https://www.paytr.com`,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https:",
+      `connect-src 'self'${isProd ? ' https:' : ' https: ws: wss:'}`,
+      "upgrade-insecure-requests",
+    ].join('; ')
+
+    const securityHeaders = [
+      { key: 'Content-Security-Policy', value: csp },
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+      { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
+      { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+      { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
+      { key: 'Origin-Agent-Cluster', value: '?1' },
+      ...(isProd ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }] : []),
+    ]
+
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+    ]
   },
 }
 

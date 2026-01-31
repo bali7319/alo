@@ -84,6 +84,10 @@ export default async function SubSubCategoryPage({ params }: { params: Promise<{
   // Veritabanından ilanları çek
   let listings: any[] = [];
   try {
+    const categoryName = foundCategory.name;
+    const subCategoryName = foundSubcategory.name;
+    const subSubCategoryName = foundSubSubcategory.name;
+
     listings = await withTimeout(
       prisma.listing.findMany({
         where: {
@@ -91,14 +95,32 @@ export default async function SubSubCategoryPage({ params }: { params: Promise<{
             {
               OR: [
                 { category: slug },
-                { category: foundCategory.name },
+                { category: categoryName },
               ],
             },
             {
               OR: [
-                { subCategory: subSlug },
-                { subCategory: foundSubcategory.name },
-                { subCategory: foundSubSubcategory.name },
+                // Legacy: some records may store the deepest selection in subCategory
+                { subCategory: subSubSlug },
+                { subCategory: subSubCategoryName },
+
+                // Preferred: subCategory is parent, subSubCategory is deepest
+                {
+                  AND: [
+                    {
+                      OR: [
+                        { subCategory: subSlug },
+                        { subCategory: subCategoryName },
+                      ],
+                    },
+                    {
+                      OR: [
+                        { subSubCategory: subSubSlug },
+                        { subSubCategory: subSubCategoryName },
+                      ],
+                    },
+                  ],
+                },
               ],
             },
             {
@@ -117,6 +139,7 @@ export default async function SubSubCategoryPage({ params }: { params: Promise<{
           location: true,
           category: true,
           subCategory: true,
+          subSubCategory: true,
           description: true,
           images: true,
           createdAt: true,
@@ -226,7 +249,7 @@ export default async function SubSubCategoryPage({ params }: { params: Promise<{
                 {foundSubSubcategory.name} Hizmetleri
               </h1>
               <p className="text-gray-600">
-                Profesyonel {foundSubSubcategory.name.toLowerCase()} hizmetleri ile evinizi temiz ve düzenli tutun.
+                {foundSubSubcategory.name} alanında ilanları keşfedin ve size uygun hizmeti kolayca bulun.
               </p>
             </div>
 

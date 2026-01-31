@@ -376,32 +376,40 @@ export default function Header() {
 
             {/* Favorilerim Butonu - Sadece giriş yapılmışsa göster */}
             {session && (
-              <Link href="/favorilerim" aria-label="Favorilerim">
-                <Button variant="outline" className="hidden sm:flex items-center border-gray-300 hover:border-red-500 hover:text-red-500 transition-all duration-200">
+              <Button
+                asChild
+                variant="outline"
+                className="hidden sm:flex items-center border-gray-300 hover:border-red-500 hover:text-red-500 transition-all duration-200"
+              >
+                <Link href="/favorilerim" aria-label="Favorilerim">
                   <Heart className="h-4 w-4 mr-1" />
                   <span className="hidden lg:inline">Favorilerim</span>
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
 
             {/* Mesajlarım Butonu - Sadece giriş yapılmışsa göster */}
             {session && (
-              <Link href="/mesajlar" aria-label="Mesajlarım">
-                <Button variant="outline" className="hidden sm:flex items-center border-gray-300 hover:border-blue-500 hover:text-blue-500 transition-all duration-200">
+              <Button
+                asChild
+                variant="outline"
+                className="hidden sm:flex items-center border-gray-300 hover:border-blue-500 hover:text-blue-500 transition-all duration-200"
+              >
+                <Link href="/mesajlar" aria-label="Mesajlarım">
                   <MessageCircle className="h-4 w-4 mr-1" />
                   <span className="hidden lg:inline">Mesajlarım</span>
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
 
             {/* Kullanıcı Menüsü */}
             {status === 'loading' ? (
-              <Link href={createLoginUrl(pathname || '/')}>
-                <Button variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600">
+              <Button asChild variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600">
+                <Link href={createLoginUrl(pathname || '/')}>
                   <User className="h-4 w-4 lg:mr-2" />
                   <span className="hidden lg:inline">Giriş Yap</span>
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             ) : session ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -481,12 +489,16 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link href={createLoginUrl(pathname || '/')}>
-                <Button variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600 transition-all duration-200">
+              <Button
+                asChild
+                variant="outline"
+                className="border-gray-300 hover:border-blue-600 hover:text-blue-600 transition-all duration-200"
+              >
+                <Link href={createLoginUrl(pathname || '/')}>
                   <User className="h-4 w-4 lg:mr-2" />
                   <span className="hidden lg:inline">Giriş Yap</span>
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </div>
         </div>

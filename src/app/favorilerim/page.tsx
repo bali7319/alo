@@ -141,7 +141,7 @@ export default function FavorilerimPage() {
               }
             };
             const images = safeParseImages(listing.images);
-            const mainImage = images[0] || '/images/placeholder.jpg';
+            const mainImage = images[0] || '/images/placeholder.svg';
             
             return (
               <div key={listing.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">

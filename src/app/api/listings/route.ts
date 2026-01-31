@@ -9,7 +9,12 @@ import { clearCachePattern } from '@/lib/cache';
 // Tüm ilanları getir (sayfalama ile)
 export async function GET(request: NextRequest) {
   try {
-    console.log('[GET /api/listings] Request received');
+    const DEBUG =
+      process.env.NODE_ENV !== 'production' || process.env.DEBUG_LISTINGS === 'true';
+
+    if (DEBUG) {
+      console.log('[GET /api/listings] Request received');
+    }
     const session = await getServerSession(authOptions);
     const sessionEmail = session?.user?.email || null;
     const { isAdminEmail } = await import('@/lib/admin');
@@ -22,11 +27,15 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limitRaw = parseInt(searchParams.get('limit') || '20');
+    // Abuse/DoS prevention: cap limit
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 50) : 20;
     const search = searchParams.get('search') || '';
     const skip = (page - 1) * limit;
 
-    console.log(`[GET /api/listings] Fetching page ${page}, limit ${limit}, search: ${search}`);
+    if (DEBUG) {
+      console.log(`[GET /api/listings] Fetching page ${page}, limit ${limit}, search: ${search}`);
+    }
 
     // Sadece aktif ve onaylanmış ilanları getir
     // NOT: Admin ilanları da görünüyor (admin filtresi kaldırıldı)
@@ -38,24 +47,28 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // Debug: Toplam ilan sayısını kontrol et
-    const totalActiveListings = await prisma.listing.count({
-      where: {
-        isActive: true,
-        approvalStatus: 'approved',
-      }
-    });
-    const totalNonExpiredListings = await prisma.listing.count({
-      where: baseWhere
-    });
-    console.log(`[GET /api/listings] Debug - Toplam aktif ilan: ${totalActiveListings}, Süresi dolmamış: ${totalNonExpiredListings}`);
+    // Debug: Toplam ilan sayısını kontrol et (prod'da kapalı: ekstra DB load)
+    if (DEBUG) {
+      const totalActiveListings = await prisma.listing.count({
+        where: {
+          isActive: true,
+          approvalStatus: 'approved',
+        }
+      });
+      const totalNonExpiredListings = await prisma.listing.count({
+        where: baseWhere
+      });
+      console.log(`[GET /api/listings] Debug - Toplam aktif ilan: ${totalActiveListings}, Süresi dolmamış: ${totalNonExpiredListings}`);
+    }
 
     // Arama terimi varsa, arama yap
     let where: Prisma.ListingWhereInput = baseWhere;
     if (search && search.trim()) {
       // Arama varsa, admin filtresini kaldır ve arama yap
       const searchTerm = search.trim();
-      console.log(`[GET /api/listings] Arama terimi: "${searchTerm}"`);
+      if (DEBUG) {
+        console.log(`[GET /api/listings] Arama terimi: "${searchTerm}"`);
+      }
       
       // Arama koşullarını baseWhere ile birleştir (admin filtresi YOK)
       // Öncelik: title ve description (en önemli), sonra category, subCategory, location
@@ -77,11 +90,16 @@ export async function GET(request: NextRequest) {
           }
         ]
       };
-      console.log(`[GET /api/listings] Arama where koşulu (title ve description öncelikli, admin filtresi YOK):`, JSON.stringify(where, null, 2));
+      if (DEBUG) {
+        console.log(
+          `[GET /api/listings] Arama where koşulu (title ve description öncelikli, admin filtresi YOK):`,
+          JSON.stringify(where, null, 2)
+        );
+      }
     }
 
     // Debug: Arama terimi varsa, önce tüm arama terimi içeren ilanları kontrol et (filtre olmadan)
-    if (search && search.trim()) {
+    if (DEBUG && search && search.trim()) {
       const searchTerm = search.trim();
       try {
         const debugListings = await prisma.listing.findMany({
@@ -157,7 +175,9 @@ export async function GET(request: NextRequest) {
       prisma.listing.count({ where }),
     ]);
 
-    console.log(`[GET /api/listings] Found ${listings.length} listings, total: ${total}`);
+    if (DEBUG) {
+      console.log(`[GET /api/listings] Found ${listings.length} listings, total: ${total}`);
+    }
 
     // Images'ı parse et - Base64 kontrolü ile
     const formattedListings = listings.map((listing: any) => {
@@ -206,6 +226,12 @@ export async function GET(request: NextRequest) {
       return formatted;
     });
 
+    // IMPORTANT:
+    // Admin response can include `views`. Never cache that publicly, otherwise it can leak via CDN caches.
+    const cacheControl = isAdmin
+      ? 'private, no-store, no-cache, must-revalidate'
+      : 'public, s-maxage=60, stale-while-revalidate=120';
+
     return NextResponse.json({
       listings: formattedListings,
       pagination: {
@@ -216,7 +242,9 @@ export async function GET(request: NextRequest) {
       },
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120', // 60 saniye cache
+        'Cache-Control': cacheControl,
+        // In case upstream caches vary by cookie/session.
+        'Vary': 'Cookie',
       },
     });
   } catch (error) {

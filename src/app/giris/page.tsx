@@ -3,12 +3,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const rawCallbackUrl = searchParams?.get('callbackUrl') || '';
   // URL decode işlemi (hatalı encode durumlarına dayanıklı)
   const callbackUrl = (() => {
@@ -78,6 +79,15 @@ function LoginForm() {
       window.location.replace(`/api/logout?next=${next}&ts=${Date.now()}`);
       return;
     }
+
+    // Zaten giriş yaptıysa login sayfasında takılmasın.
+    // (Örn. admin sayfasından login'e yönlenip sonra session gelince hala /giris'te kalma durumu)
+    const loggedOutParam = searchParams?.get('loggedOut');
+    const forceParam = searchParams?.get('force');
+    if (status === 'authenticated' && session?.user && loggedOutParam !== 'true' && forceParam !== 'true') {
+      window.location.replace(resolvePostLoginRedirect());
+      return;
+    }
     
     // URL'den gelen hata mesajını göster
     if (errorParam) {
@@ -109,7 +119,7 @@ function LoginForm() {
       setFormData(prev => ({ ...prev, password: savedPassword }));
     }
     setRememberMe(savedRememberMe);
-  }, [errorParam, searchParams]);
+  }, [errorParam, searchParams, session?.user, status]);
 
   // Google provider aktif mi? (NextAuth providers endpoint'inden kontrol et)
   useEffect(() => {
@@ -142,9 +152,23 @@ function LoginForm() {
         redirect: false,
       });
 
-      if (result?.error) {
-        setError('Geçersiz email veya şifre');
-      } else {
+      // NextAuth can return `undefined` on network/config errors
+      if (!result) {
+        setError('Giriş yapılamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+        return;
+      }
+
+      if (result.error) {
+        // Keep user-friendly messaging but also handle non-credential errors.
+        if (result.error === 'CredentialsSignin' || result.status === 401) {
+          setError('Geçersiz email veya şifre');
+        } else {
+          setError('Giriş yapılamadı. Lütfen tekrar deneyin.');
+        }
+        return;
+      }
+
+      {
         // Giriş başarılı, bilgileri kaydet
         if (rememberMe) {
           localStorage.setItem('savedEmail', formData.email);
@@ -156,12 +180,20 @@ function LoginForm() {
           localStorage.removeItem('rememberMe');
         }
         
-        // Giriş başarılı, session'ın yüklenmesi için kısa bir bekleme
-        // Eğer callbackUrl varsa (korunan sayfadan geldiyse) oraya, yoksa ana sayfaya yönlendir
-        setTimeout(() => {
-          const targetUrl = resolvePostLoginRedirect();
-          router.replace(targetUrl);
-        }, 100);
+        // Giriş başarılı: cookie gerçekten set oldu mu kontrol et (bazı tarayıcı ayarları cookie bloklayabilir)
+        try {
+          const sres = await fetch('/api/auth/session', { cache: 'no-store' });
+          const sjson = await sres.json().catch(() => null);
+          if (!sjson?.user) {
+            setError('Giriş yapılamadı: tarayıcı çerezleri (cookie) engelliyor olabilir. Lütfen çerezlere izin verip tekrar deneyin.');
+            return;
+          }
+        } catch {
+          // ignore: yine de yönlendirelim
+        }
+
+        // Hard navigation daha güvenilir (cookie + middleware güncel state)
+        window.location.href = resolvePostLoginRedirect();
       }
     } catch (error) {
       console.error('Giriş hatası:', error);

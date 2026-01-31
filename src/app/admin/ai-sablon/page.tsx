@@ -104,6 +104,63 @@ type Preset = { key: PresetKey; label: string; description: string; apply: (s: F
 
 type CharacterItem = { id: string; label: string; content: string };
 
+const PINNED_LOCKED_CAST_BY_PRESET: Partial<Record<PresetKey, string>> = {
+  // Ahmet Usta için sabit (değiştirilemez) profil JSON'u
+  ahmet: `{
+  "analiz_metadata": {
+    "versiyon": "2.0",
+    "analiz_tarihi": "2026-01-30",
+    "kullanim_alani": "Dijital Karakter Modelleme / Kurumsal Kimlik / Reklam Stratejisi"
+  },
+  "fiziksel_ozellikler_detay": {
+    "cilt_dokusu": {
+      "tip": "Matur (Olgun)",
+      "detay": "Alın ve göz çevresinde hafif tecrübe çizgileri (mimik çizgileri), pürüzsüz ve bakımlı bir yüzey.",
+      "skala": "Açık buğday / Soğuk alt ton (Hex: #F5E1D2 civarı)"
+    },
+    "sac_sakal_morfometrisi": {
+      "stil": "Klasik kısa kesim, yanlar daha kısa.",
+      "renk_dagilimi": "Salt and Pepper (Tuz-Biber); %70 gri/beyaz, %30 koyu ton.",
+      "sakal_durumu": "Sinekkaydı tıraş (Pürüzsüz ve profesyonel görünüm)."
+    },
+    "goz_detayi": {
+      "renk": "Koyu kahve / Siyah",
+      "ifade": "Derinlikli, sakin, otoriter ama samimi.",
+      "kapak_yapisi": "Hafif düşük kapak, bilge bir ifade katan karakteristik yapı."
+    }
+  },
+  "renk_ve_isik_muhendisligi": {
+    "mevsimsel_kod": "Deep/Cool Winter",
+    "fotometrik_uyum": {
+      "isik_tipi": "Yumuşak stüdyo ışığı veya doğal pencere ışığı.",
+      "ana_kontrast": "Yüksek (High Key portreler için çok uygun).",
+      "vurgu_renkleri": ["#002366 (Royal Blue)", "#36454F (Charcoal)", "#FFFFFF (Pure White)"]
+    },
+    "materyal_tercihleri": ["Yünlü kumaşlar", "İpek kravatlar", "Mat deri", "Fırçalanmış çelik/gümüş"]
+  },
+  "yuz_geometrisi_alt_verileri": {
+    "alt_yuz_orani": "Güçlü (Alt çene mesafesi ile alın genişliği dengeli).",
+    "burun_profili": "Düz, maskülen, yüze karakter katan belirginlikte.",
+    "simetri_katsayisi": "%85+ (Yüksek güven algısı yaratır).",
+    "altin_oran_uyumu": "Yanak ve çene hattı birleşiminde belirgin karemsi geçişler."
+  },
+  "pazarlama_psikolojisi_ve_persona": {
+    "arketipler": ["Bilge (The Sage)", "Yönetici (The Ruler)"],
+    "hedef_kitle_algisi": "Dürüstlük, tecrübe, yerel sahiplenme, çözüm odaklılık.",
+    "uygun_sektorler": [
+      "Gayrimenkul (Çanakkale lüks konut pazarı)",
+      "Teknoloji/Yazılım Danışmanlığı (Alo17.tr marka yüzü)",
+      "Finansal Hizmetler",
+      "Turizm/Termal Otel Yönetimi"
+    ]
+  },
+  "yapay_zeka_prompt_parametreleri": {
+    "stable_diffusion_tags": "middle-aged charismatic turkish man, sharp jawline, salt and pepper hair, silver hair, kind eyes, highly detailed skin texture, professional studio lighting, 8k, cinematic, realistic, wearing navy blue tailor-made suit",
+    "negatif_prompt_ip uclari": "asymmetry, beard, saturated warm skin, orange tint, casual clothing, messy hair"
+  }
+}`,
+};
+
 const DEFAULT_LOCKED_CAST_BY_PRESET: Partial<Record<PresetKey, string>> = {
   elif: `{
   "subject": {
@@ -142,39 +199,8 @@ const DEFAULT_LOCKED_CAST_BY_PRESET: Partial<Record<PresetKey, string>> = {
   }
 }`,
 
-  ahmet: `{
-  "prompt_type": "Portre ve Yaşam Tarzı",
-  "subject": {
-    "name": "Ahmet Usta",
-    "age": 45,
-    "profession": "Geleneksel Çanakkale esnafı (mobilyacı/tamirci)",
-    "appearance": {
-      "expression": "Güvenilir, samimi",
-      "giyim": "Tahıl tonlarında günlük, iş kıyafeti; önlük veya iş tulumu",
-      "detaylar": "El işi izleri, hafif yorgun ama dostane yüz ifadesi"
-    }
-  },
-  "environment": {
-    "setting": "Çanakkale'de geleneksel atölye veya küçük dükkan",
-    "özellikler": [
-      "Ahşap mobilyalar, tamir aletleri",
-      "Esnaf atmosferi, doğal ışık",
-      "Dükkan detayları: el yapımı ürünler, el aletleri"
-    ]
-  },
-  "style": {
-    "realism": "Yüksek gerçekçilik",
-    "atmosphere": "Sıcak, samimi, nostaljik",
-    "color_palette": "Toprak tonları, doğal ışık"
-  },
-  "camera": {
-    "angle": "Orta çekim, karşıdan",
-    "focus": "Yüz ve eller üzerine odaklı",
-    "lens": "50mm standart lens",
-    "depth_of_field": "Orta",
-    "composition": "Konuyu merkezde, ortam detayları belirgin"
-  }
-}`,
+  // Ahmet Usta varsayılanı, PINNED_LOCKED_CAST_BY_PRESET ile sabitlenir.
+  ahmet: (PINNED_LOCKED_CAST_BY_PRESET.ahmet || '').trim(),
 
   can: `CAN_22: 22-year-old Turkish male student (ÇOMÜ vibe), short textured hair, hazel eyes, youthful face, upbeat expression, casual student outfit with backpack.
 
@@ -329,6 +355,8 @@ const DEFAULT_SELECTED_CHARACTERS_BY_PRESET: Partial<Record<PresetKey, string[]>
 };
 
 function buildLockedCastText(opts: Pick<FormState, 'preset' | 'lockedCast' | 'selectedCharacters'>): string {
+  const pinned = getPinnedLockedCastForPreset(opts.preset);
+  if (pinned) return pinned;
   const manual = (opts.lockedCast || '').trim();
   if (manual) return manual;
   const ids = Array.isArray(opts.selectedCharacters) ? opts.selectedCharacters : [];
@@ -344,6 +372,10 @@ function buildLockedCastText(opts: Pick<FormState, 'preset' | 'lockedCast' | 'se
 
 function getDefaultLockedCastForPreset(preset: PresetKey): string {
   return (DEFAULT_LOCKED_CAST_BY_PRESET[preset] || '').trim();
+}
+
+function getPinnedLockedCastForPreset(preset: PresetKey): string {
+  return (PINNED_LOCKED_CAST_BY_PRESET[preset] || '').trim();
 }
 
 const PRESETS: Preset[] = [
@@ -662,21 +694,34 @@ function saveLockedCastSelectedMap(map: Record<string, string[]>) {
 function buildCastBlock(
   s: Pick<FormState, 'preset' | 'lockCharacters' | 'lockedCast' | 'selectedCharacters'>
 ): string {
+  const manual = (s.lockedCast || '').trim();
+  const selectedIds = Array.isArray(s.selectedCharacters) ? s.selectedCharacters : [];
   const cast = buildLockedCastText({
     preset: s.preset,
     lockedCast: s.lockedCast,
-    selectedCharacters: s.selectedCharacters || [],
+    selectedCharacters: selectedIds,
   }).trim();
 
   if (!cast) return '';
 
+  // If user is selecting from the checkbox library (and not using manual cast text),
+  // explicitly disable non-selected characters even if they are mentioned in the prompt.
+  const selectionEnforced = !manual && selectedIds.length > 0;
+  const disabledCharacters = selectionEnforced
+    ? CHARACTER_LIBRARY.filter((c) => !selectedIds.includes(c.id)).map((c) => `${c.label} [${c.id}]`)
+    : [];
+  const selectionRuleBlock =
+    selectionEnforced && disabledCharacters.length
+      ? `\n\nCAST SELECTION RULES:\n- Use ONLY the selected characters in the cast block below.\n- If any other character is mentioned anywhere in the prompt, IGNORE that mention and do NOT include them.\n- Disabled characters (do not include): ${disabledCharacters.join(', ')}\n`
+      : '';
+
   // If "Sabitle" is enabled, enforce strict consistency.
   if (s.lockCharacters) {
-    return `\n\nLOCKED CAST (must stay identical across all prompts & re-generations):\n${cast}\n\nConsistency rules: Keep the exact same people (faces, ages, body types, hairstyles, clothing) as the LOCKED CAST. Do not replace faces. Do not merge characters. Do not add new main characters.\n`;
+    return `\n\nLOCKED CAST (must stay identical across all prompts & re-generations):\n${cast}${selectionRuleBlock}\nConsistency rules: Keep the exact same people (faces, ages, body types, hairstyles, clothing) as the LOCKED CAST. Do not replace faces. Do not merge characters. Do not add new main characters.\n`;
   }
 
   // Otherwise, include the selected cast as a soft reference so the model uses them.
-  return `\n\nCAST (reference):\n${cast}\n`;
+  return `\n\nCAST (reference):\n${cast}${selectionRuleBlock}\n`;
 }
 
 function buildTemplate(s: FormState) {
@@ -962,6 +1007,8 @@ export default function AdminAiSablonPage() {
   // Persist per preset
   useEffect(() => {
     const key = s.preset || 'custom';
+    // Pinli presetlerde (örn. Ahmet) localStorage ile değişiklik kaydetme.
+    if (getPinnedLockedCastForPreset(key as PresetKey)) return;
     const map = loadLockedCastMap();
     map[key] = s.lockedCast || '';
     saveLockedCastMap(map);
@@ -969,6 +1016,8 @@ export default function AdminAiSablonPage() {
 
   useEffect(() => {
     const key = s.preset || 'custom';
+    // Pinli presetlerde (örn. Ahmet) localStorage ile değişiklik kaydetme.
+    if (getPinnedLockedCastForPreset(key as PresetKey)) return;
     const map = loadLockedCastEnabledMap();
     map[key] = !!s.lockCharacters;
     saveLockedCastEnabledMap(map);
@@ -976,6 +1025,8 @@ export default function AdminAiSablonPage() {
 
   useEffect(() => {
     const key = s.preset || 'custom';
+    // Pinli presetlerde (örn. Ahmet) localStorage ile değişiklik kaydetme.
+    if (getPinnedLockedCastForPreset(key as PresetKey)) return;
     const map = loadLockedCastSelectedMap();
     map[key] = Array.isArray(s.selectedCharacters) ? s.selectedCharacters : [];
     saveLockedCastSelectedMap(map);
@@ -984,6 +1035,21 @@ export default function AdminAiSablonPage() {
   // Load per preset when preset changes
   useEffect(() => {
     const key = s.preset || 'custom';
+    const pinned = getPinnedLockedCastForPreset(key as PresetKey);
+    if (pinned) {
+      // Ahmet gibi pinli presetlerde her zaman sabit JSON + Sabitle açık + seçim sabit.
+      const nextSelected = DEFAULT_SELECTED_CHARACTERS_BY_PRESET[key as PresetKey] || [];
+      setS((prev) => {
+        if (prev.preset !== key) return prev;
+        const same =
+          prev.lockedCast === pinned &&
+          prev.lockCharacters === true &&
+          JSON.stringify(prev.selectedCharacters || []) === JSON.stringify(nextSelected || []);
+        if (same) return prev;
+        return { ...prev, lockedCast: pinned, lockCharacters: true, selectedCharacters: nextSelected };
+      });
+      return;
+    }
     const castMap = loadLockedCastMap();
     const enabledMap = loadLockedCastEnabledMap();
     const nextCast = typeof castMap[key] === 'string' ? castMap[key] : '';
@@ -1368,6 +1434,8 @@ export default function AdminAiSablonPage() {
     );
   }
 
+  const isPinnedPreset = useMemo(() => !!getPinnedLockedCastForPreset(s.preset), [s.preset]);
+
   return (
     <div className="py-4 md:py-8 px-2 sm:px-4">
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
@@ -1476,7 +1544,8 @@ export default function AdminAiSablonPage() {
                       <input
                         type="checkbox"
                         className="h-4 w-4"
-                        checked={s.lockCharacters}
+                        checked={isPinnedPreset ? true : s.lockCharacters}
+                        disabled={isPinnedPreset}
                         onChange={(e) => setS({ ...s, lockCharacters: e.target.checked })}
                       />
                       Sabitle
@@ -1486,9 +1555,10 @@ export default function AdminAiSablonPage() {
                   <div className="mt-3">
                     <TextAreaField
                       label="LOCKED CAST (Karakter kartları)"
-                      value={s.lockedCast}
+                      value={isPinnedPreset ? getPinnedLockedCastForPreset(s.preset) : s.lockedCast}
                       placeholder={buildLockedCastText({ preset: s.preset, lockedCast: '', selectedCharacters: s.selectedCharacters })}
                       onChange={(v) => setS({ ...s, lockedCast: v })}
+                      readOnly={isPinnedPreset}
                     />
                     <div className="mt-1 text-xs text-gray-600">
                       Örnek:
@@ -1510,6 +1580,7 @@ export default function AdminAiSablonPage() {
                               type="checkbox"
                               className="mt-0.5 h-4 w-4"
                               checked={checked}
+                              disabled={isPinnedPreset}
                               onChange={(e) => {
                                 const on = e.target.checked;
                                 const prev = s.selectedCharacters || [];
@@ -1531,6 +1602,7 @@ export default function AdminAiSablonPage() {
                       <button
                         type="button"
                         className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
+                        disabled={isPinnedPreset}
                         onClick={() => setS({ ...s, selectedCharacters: [] })}
                       >
                         Seçimi temizle
@@ -1538,14 +1610,21 @@ export default function AdminAiSablonPage() {
                       <button
                         type="button"
                         className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
+                        disabled={isPinnedPreset}
                         onClick={() => setS({ ...s, lockedCast: '' })}
                         title="Elle yazdığın kadroyu temizle; seçim/varsayılan devreye girsin"
                       >
                         LOCKED CAST’i temizle
                       </button>
                     </div>
+                    {isPinnedPreset && (
+                      <div className="mt-2 text-[11px] text-gray-700">
+                        Bu profil için LOCKED CAST <strong>sabitlenmiştir</strong> (Ahmet Usta). Değiştirilemez.
+                      </div>
+                    )}
                     <div className="mt-2 text-[11px] text-gray-600">
-                      Not: <strong>LOCKED CAST alanı boşsa</strong> ve “Sabitle” açıksa, seçtiğin karakterler prompt’a otomatik eklenir.
+                      Not: <strong>LOCKED CAST alanı boşsa</strong>, seçtiğin karakterler prompt’a otomatik eklenir. Ayrıca seçili olmayan
+                      karakterler prompt içinde geçse bile <strong>devre dışı</strong> bırakılır (IGNORE kuralı).
                     </div>
                   </div>
                 </div>
@@ -1918,11 +1997,13 @@ function TextAreaField({
   label,
   value,
   placeholder,
+  readOnly,
   onChange,
 }: {
   label: string;
   value: string;
   placeholder?: string;
+  readOnly?: boolean;
   onChange: (v: string) => void;
 }) {
   return (
@@ -1932,6 +2013,7 @@ function TextAreaField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        readOnly={readOnly}
         rows={4}
         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
       />

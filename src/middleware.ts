@@ -9,21 +9,21 @@ import { getToken } from 'next-auth/jwt';
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 // Eski entry'leri temizle (memory leak önleme)
-function cleanupRateLimitMap() {
+function cleanupRateLimitMap(maxToScan: number = 500) {
   const now = Date.now();
   const entries = Array.from(rateLimitMap.entries());
-  for (const [key, value] of entries) {
+  const limited = entries.slice(0, maxToScan);
+  for (const [key, value] of limited) {
     if (now > value.resetTime) {
       rateLimitMap.delete(key);
     }
   }
 }
 
-// Her 5 dakikada bir temizlik yap
-setInterval(cleanupRateLimitMap, 5 * 60 * 1000);
-
 function checkRateLimit(ip: string, maxRequests: number = 100, windowMs: number = 60000): boolean {
   const now = Date.now();
+  // Opportunistic cleanup (Edge-safe, no timers)
+  if (rateLimitMap.size > 5000) cleanupRateLimitMap(2000);
   const entry = rateLimitMap.get(ip);
 
   if (!entry || now > entry.resetTime) {
@@ -311,20 +311,16 @@ export async function middleware(request: NextRequest) {
   // Security headers ekle
   const response = NextResponse.next();
   
-  // XSS koruması
+  // Baseline security headers
   response.headers.set('X-XSS-Protection', '1; mode=block');
-  
-  // Clickjacking koruması
   response.headers.set('X-Frame-Options', 'DENY');
-  
-  // Content type sniffing koruması
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  
-  // Referrer policy
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
-  // Permissions policy
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('X-Permitted-Cross-Domain-Policies', 'none');
+  response.headers.set('Origin-Agent-Cluster', '?1');
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  response.headers.set('Cross-Origin-Resource-Policy', 'same-site');
   
   // HTTPS zorunluluğu (production'da)
   if (process.env.NODE_ENV === 'production') {
@@ -343,9 +339,6 @@ export async function middleware(request: NextRequest) {
   } else if (pathname.startsWith('/api/')) {
     // API responses için kısa cache
     response.headers.set('Cache-Control', 'no-store, must-revalidate');
-  } else {
-    // HTML sayfaları için cache
-    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
   }
   
   // Resource hints - Preload critical resources (Next.js font loader zaten yapıyor, bu ekstra)

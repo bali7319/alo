@@ -217,7 +217,7 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center">
               <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-3 sm:mb-4">
                 <Image
-                  src={user?.image || '/images/placeholder.jpg'}
+                  src={user?.image || '/images/placeholder.svg'}
                   alt={user?.name || 'Kullanıcı'}
                   fill
                   className="rounded-full object-cover"
@@ -355,7 +355,7 @@ export default function ProfilePage() {
                       <div className="flex flex-col md:flex-row">
                         <div className="relative w-full md:w-48 h-48">
                           <Image
-                            src={listing.images[0] || '/images/placeholder.jpg'}
+                            src={listing.images[0] || '/images/placeholder.svg'}
                             alt={listing.title}
                             fill
                             className="object-cover"
@@ -503,7 +503,7 @@ export default function ProfilePage() {
                       <div className="flex flex-col sm:flex-row">
                         <div className="relative w-full sm:w-48 h-48">
                           <Image
-                            src={listing.images[0] || '/images/placeholder.jpg'}
+                            src={listing.images[0] || '/images/placeholder.svg'}
                             alt={listing.title}
                             fill
                             className="object-cover"

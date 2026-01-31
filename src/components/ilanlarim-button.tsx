@@ -15,15 +15,16 @@ export default function IlanlarimButton() {
 
   return (
     <div className="mb-4">
-      <Link href="/ilanlarim" className="block">
-        <Button 
-          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg"
-          size="lg"
-        >
+      <Button
+        asChild
+        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg"
+        size="lg"
+      >
+        <Link href="/ilanlarim" className="block">
           <FileText className="h-4 w-4 md:h-5 md:w-5 mr-2" />
           İlanlarım
-        </Button>
-      </Link>
+        </Link>
+      </Button>
     </div>
   )
 }

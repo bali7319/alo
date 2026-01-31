@@ -4,10 +4,16 @@ import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { createSlug, extractIdFromSlug } from '@/lib/slug';
 import { getSeoSettings } from '@/lib/seo-settings';
+import SeoJsonLd from '@/components/SeoJsonLd'
+import { cache } from 'react'
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
+
+// İlan detayları SEO ve performans için cache'lenebilir (ISR).
+// Next, listing data update hızına göre bu değer ayarlanabilir.
+export const revalidate = 300;
 
 // Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -19,20 +25,82 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Pr
   ]);
 }
 
-// SEO Metadata
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id: slugOrId } = await params;
-  
-  try {
-    // Slug'dan ID çıkarmayı dene, yoksa slug olarak kabul et
-    const possibleId = extractIdFromSlug(slugOrId);
-    
-    let listing;
-    if (possibleId) {
-      // Eski ID formatı - direkt ID ile ara
+const getListingForSeo = cache(async (slugOrId: string) => {
+  // Slug'dan ID çıkarmayı dene, yoksa slug olarak kabul et
+  const possibleId = extractIdFromSlug(slugOrId);
+
+  let listing: any;
+  if (possibleId) {
+    listing = await withTimeout(
+      prisma.listing.findUnique({
+        where: { id: possibleId },
+        include: {
+          user: {
+            select: {
+              name: true,
+              location: true,
+            },
+          },
+        },
+      }),
+      5000
+    );
+  } else {
+    const keywords = slugOrId
+      .split('-')
+      .filter(word => word.length > 1)
+      .slice(0, 10);
+
+    if (keywords.length >= 1) {
+      const importantKeywords = keywords.slice(0, 3);
+      const candidates = await withTimeout(
+        prisma.listing.findMany({
+          where: {
+            isActive: true,
+            approvalStatus: 'approved',
+            OR: importantKeywords.map(keyword => ({
+              title: {
+                contains: keyword,
+              },
+            })),
+          },
+          select: {
+            id: true,
+            title: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 200,
+        }),
+        3000
+      );
+
+      listing = candidates.find(l => createSlug(l.title) === slugOrId);
+    }
+
+    if (!listing) {
+      const recentListings = await withTimeout(
+        prisma.listing.findMany({
+          where: {
+            isActive: true,
+            approvalStatus: 'approved'
+          },
+          select: {
+            id: true,
+            title: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 500,
+        }),
+        3000
+      );
+
+      listing = recentListings.find(l => createSlug(l.title) === slugOrId);
+    }
+
+    if (listing) {
       listing = await withTimeout(
         prisma.listing.findUnique({
-          where: { id: possibleId },
+          where: { id: listing.id },
           include: {
             user: {
               select: {
@@ -42,89 +110,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             },
           },
         }),
-        5000 // 5 saniye timeout
+        3000
       );
-    } else {
-      // Slug formatı - Daha esnek arama: En az bir kelime eşleşsin, sonra slug ile tam eşleşen ilanı bul
-      const keywords = slugOrId
-        .split('-')
-        .filter(word => word.length > 1) // 1 karakterden uzun kelimeleri al (daha esnek)
-        .slice(0, 10); // İlk 10 kelimeyi al (uzun başlıklar için)
-      
-      // En az 1 kelime varsa, title'da bu kelimelerden en az birini içeren ilanları bul (OR condition - daha esnek)
-      if (keywords.length >= 1) {
-        // En önemli kelimeleri al (ilk 3 kelime genelde en önemli)
-        const importantKeywords = keywords.slice(0, 3);
-        
-        const candidates = await withTimeout(
-          prisma.listing.findMany({
-            where: {
-              isActive: true,
-              approvalStatus: 'approved',
-              OR: importantKeywords.map(keyword => ({
-                title: {
-                  contains: keyword,
-                },
-              })),
-            },
-            select: {
-              id: true,
-              title: true,
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 200, // Daha fazla aday kontrol et
-          }),
-          3000 // 3 saniye timeout
-        );
-        
-        listing = candidates.find(l => {
-          const listingSlug = createSlug(l.title);
-          return listingSlug === slugOrId;
-        });
-      }
-      
-      // Eğer hala bulunamadıysa, son 500 ilanı çek ve slug ile eşleştir (fallback)
-      if (!listing) {
-        const recentListings = await withTimeout(
-          prisma.listing.findMany({
-            where: {
-              isActive: true,
-              approvalStatus: 'approved'
-            },
-            select: {
-              id: true,
-              title: true,
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 500, // Daha fazla ilan kontrol et
-          }),
-          3000 // 3 saniye timeout
-        );
-        
-        listing = recentListings.find(l => {
-          const listingSlug = createSlug(l.title);
-          return listingSlug === slugOrId;
-        });
-      }
-      
-      // Eğer listing bulunduysa, tam detaylarını çek
-      if (listing) {
-        listing = await withTimeout(
-          prisma.listing.findUnique({
-            where: { id: listing.id },
-            include: {
-              user: {
-                select: {
-                  name: true,
-                  location: true,
-                },
-              },
-            },
-          }),
-          3000
-        );
-      }
     }
+  }
+
+  return listing;
+});
+
+// SEO Metadata
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id: slugOrId } = await params;
+  
+  try {
+    const listing = await getListingForSeo(slugOrId);
 
     if (!listing || !listing.isActive || listing.approvalStatus !== 'approved') {
       return {
@@ -232,10 +231,87 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function IlanDetayPage({ params }: PageProps) {
   const { id: slugOrId } = await params;
   const seo = await getSeoSettings();
+  const listing = await getListingForSeo(slugOrId);
+
+  const safeParseImages = (images: string | null): string[] => {
+    if (!images) return [];
+    try {
+      if (typeof images === 'string') {
+        if (images.startsWith('data:image')) return [images];
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(images) ? images : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const jsonLd = (() => {
+    if (!listing || !listing.isActive || listing.approvalStatus !== 'approved') return null;
+    const images = safeParseImages(listing.images);
+    const firstImage = images[0] || '/images/logo.svg';
+    const listingSlug = createSlug(listing.title);
+    const url = `https://alo17.tr/ilan/${listingSlug}`;
+    const imageUrl = firstImage.startsWith('http') ? firstImage : `https://alo17.tr${firstImage}`;
+
+    const conditionUrl = (() => {
+      const c = String(listing.condition || '').toLowerCase();
+      if (!c) return undefined;
+      if (c.includes('new') || c.includes('sifir')) return 'https://schema.org/NewCondition';
+      if (c.includes('used') || c.includes('ikinci')) return 'https://schema.org/UsedCondition';
+      return undefined;
+    })();
+
+    // "Product" schema fits marketplace listings and can enable rich results.
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: listing.title,
+      description: (listing.description || '').toString().slice(0, 500),
+      image: [imageUrl],
+      url,
+      offers: {
+        '@type': 'Offer',
+        priceCurrency: 'TRY',
+        price: String(listing.price ?? ''),
+        availability: 'https://schema.org/InStock',
+        itemCondition: conditionUrl,
+        url,
+      },
+      brand: {
+        '@type': 'Brand',
+        name: 'Alo17',
+      },
+    };
+  })();
+
+  const breadcrumbJsonLd = (() => {
+    if (!listing || !listing.isActive || listing.approvalStatus !== 'approved') return null;
+    const listingSlug = createSlug(listing.title);
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Ana Sayfa', item: 'https://alo17.tr/' },
+        { '@type': 'ListItem', position: 2, name: 'İlanlar', item: 'https://alo17.tr/ilanlar' },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: listing.title,
+          item: `https://alo17.tr/ilan/${listingSlug}`,
+        },
+      ],
+    };
+  })();
   
   return (
-    <Suspense fallback={<div>Yükleniyor...</div>}>
-      <IlanDetayClient id={slugOrId} seo={seo} />
-    </Suspense>
+    <>
+      {jsonLd ? <SeoJsonLd id="ld-product" data={jsonLd} /> : null}
+      {breadcrumbJsonLd ? <SeoJsonLd id="ld-breadcrumb" data={breadcrumbJsonLd} /> : null}
+      <Suspense fallback={<div>Yükleniyor...</div>}>
+        <IlanDetayClient id={slugOrId} seo={seo} />
+      </Suspense>
+    </>
   );
 } 

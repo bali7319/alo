@@ -222,15 +222,27 @@ export default function IlanDuzenlePage() {
           return category.subcategories?.find(s => s.name === name);
         };
 
+        const findSubSubCategoryByName = (subCategory: Category, name: string): Category | undefined => {
+          return subCategory.subcategories?.find(s => s.name === name);
+        };
+
         const categoryObj = findCategoryByName(listingData.category) || 
                            categories.find(c => c.slug === listingData.category);
         const categorySlug = categoryObj?.slug || listingData.category;
 
         let subCategorySlug = listingData.subCategory || '';
+        let subSubCategorySlug = listingData.subSubCategory || '';
         if (categoryObj && listingData.subCategory) {
           const subCategoryObj = findSubCategoryByName(categoryObj, listingData.subCategory) ||
                                 categoryObj.subcategories?.find(s => s.slug === listingData.subCategory);
           subCategorySlug = subCategoryObj?.slug || listingData.subCategory;
+
+          if (subCategoryObj && listingData.subSubCategory) {
+            const subSubCategoryObj =
+              findSubSubCategoryByName(subCategoryObj, listingData.subSubCategory) ||
+              subCategoryObj.subcategories?.find((s) => s.slug === listingData.subSubCategory);
+            subSubCategorySlug = subSubCategoryObj?.slug || listingData.subSubCategory;
+          }
         }
 
         setFormData({
@@ -239,7 +251,7 @@ export default function IlanDuzenlePage() {
           price: listingData.price?.toString() || '',
           category: categorySlug,
           subCategory: subCategorySlug,
-          subSubCategory: listingData.subSubCategory || '',
+          subSubCategory: subSubCategorySlug,
           location: listingData.location || '',
           phone: listingData.phone || listingData.user?.phone || '',
           condition: listingData.condition || '',
@@ -434,6 +446,12 @@ export default function IlanDuzenlePage() {
       const subCategoryObj = categoryObj?.subcategories?.find(sub => sub.slug === formData.subCategory);
       const subCategoryName = subCategoryObj?.name || formData.subCategory || null;
 
+      // Alt-alt kategori adını bul
+      const subSubCategoryObj = subCategoryObj?.subcategories?.find((sub) => sub.slug === formData.subSubCategory);
+      const subSubCategoryName = formData.subSubCategory
+        ? (subSubCategoryObj?.name || formData.subSubCategory)
+        : null;
+
       // Seçilen plan bilgisi
       const selectedPlanData = premiumPlans[selectedPlan as keyof typeof premiumPlans];
       
@@ -448,7 +466,7 @@ export default function IlanDuzenlePage() {
         price: parseFloat(formData.price),
         category: categoryName,
         subCategory: subCategoryName,
-        subSubCategory: formData.subSubCategory || null,
+        subSubCategory: subSubCategoryName,
         location: formData.location,
         phone: formData.phone,
         condition: formData.condition || null,
@@ -657,8 +675,8 @@ export default function IlanDuzenlePage() {
               </div>
             )}
 
-            {/* Kategori ve Alt Kategori */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Kategori, Alt Kategori, Alt-Alt Kategori */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Kategori *</label>
                 <select
@@ -687,6 +705,24 @@ export default function IlanDuzenlePage() {
                 >
                   <option value="">Alt kategori seçin</option>
                   {selectedCategory?.subcategories?.map((sub) => (
+                    <option key={sub.slug} value={sub.slug}>
+                      {sub.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Alt-Alt Kategori</label>
+                <select
+                  name="subSubCategory"
+                  value={formData.subSubCategory}
+                  onChange={handleInputChange}
+                  disabled={!selectedSubCategory?.subcategories || selectedSubCategory.subcategories.length === 0}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-alo-orange disabled:bg-gray-100"
+                >
+                  <option value="">Alt-alt kategori seçin</option>
+                  {selectedSubCategory?.subcategories?.map((sub) => (
                     <option key={sub.slug} value={sub.slug}>
                       {sub.name}
                     </option>

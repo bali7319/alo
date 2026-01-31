@@ -37,20 +37,8 @@ export default async function EvVeBahceSubPage({ params }: { params: Promise<{ s
   const evVeBahceCategory = categories.find(cat => cat.slug === 'ev-ve-bahce');
   const subcategory = evVeBahceCategory?.subcategories?.find(sub => sub.slug === subSlug);
 
-  // Alt kategori slug'ını isme çevir
-  const subCategoryMap: { [key: string]: string } = {
-    'aydinlatma': 'Aydınlatma',
-    'bahce-aletleri': 'Bahçe Aletleri',
-    'beyaz-esya': 'Beyaz Eşya',
-    'dekorasyon': 'Dekorasyon',
-    'guvenlik': 'Güvenlik',
-    'isitma-sogutma': 'Isıtma/Soğutma',
-    'mobilya': 'Mobilya',
-    'mutfak-gerecleri': 'Mutfak Gereçleri',
-    'temizlik': 'Temizlik',
-  };
-
-  const subCategoryName = subCategoryMap[subSlug] || subcategory?.name;
+  const categoryName = evVeBahceCategory?.name ?? 'Ev & Bahçe';
+  const subCategoryName = subcategory?.name;
 
   // Güvenli JSON parse fonksiyonu
   const safeParseImages = (images: string | null): string[] => {
@@ -78,7 +66,7 @@ export default async function EvVeBahceSubPage({ params }: { params: Promise<{ s
           AND: [
             {
               OR: [
-                { category: 'Ev & Bahçe' },
+                { category: categoryName },
                 { category: 'ev-ve-bahce' },
               ],
             },

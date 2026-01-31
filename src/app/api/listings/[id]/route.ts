@@ -24,7 +24,12 @@ export async function GET(
 ) {
   try {
     const { id: slugOrId } = await params;
-    console.log(`[GET /api/listings/${slugOrId}] İstek alındı`);
+    const DEBUG =
+      process.env.NODE_ENV !== 'production' || process.env.DEBUG_LISTING_DETAIL_API === 'true';
+
+    if (DEBUG) {
+      console.log(`[GET /api/listings/${slugOrId}] İstek alındı`);
+    }
 
     if (!slugOrId) {
       return NextResponse.json(
@@ -316,6 +321,7 @@ export async function GET(
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+          'Vary': 'Cookie',
           'X-Cache': 'HIT',
         },
       });
@@ -442,12 +448,16 @@ export async function GET(
         'Cache-Control': !canSeeViews
           ? 'public, s-maxage=30, stale-while-revalidate=60'
           : 'private, no-store, no-cache, must-revalidate',
+        'Vary': 'Cookie',
         'X-Cache': !canSeeViews ? 'MISS' : 'BYPASS',
       },
     });
   } catch (error) {
     console.error('İlan getirme hatası:', error);
-    console.error('Hata detayı:', error instanceof Error ? error.stack : String(error));
+    // Prod'da stack spam olmasın
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Hata detayı:', error instanceof Error ? error.stack : String(error));
+    }
     
     // Timeout hatası
     if (error instanceof Error && error.message.includes('timeout')) {

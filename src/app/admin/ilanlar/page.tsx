@@ -374,14 +374,11 @@ export default function AdminIlanlarPage() {
                 </td>
                 <td className="p-3 border-b">
                   <div className="flex gap-2 flex-wrap">
-                    <Link href={`/ilan-ver/duzenle/${listing.id}`} target="_blank">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                      >
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/ilan-ver/duzenle/${listing.id}`} target="_blank" rel="noopener noreferrer">
                         Düzenle
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                     {listing.approvalStatus === 'pending' && (
                       <>
                         <Button 

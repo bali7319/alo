@@ -74,15 +74,16 @@ export default function HomePageContent() {
           <div className="w-full md:w-64 flex-shrink-0">
             {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
             <div className="mb-4">
-              <Link href="/ilan-ver" className="block">
-                <Button 
-                  className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold shadow-lg"
-                  size="lg"
-                >
+              <Button
+                asChild
+                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold shadow-lg"
+                size="lg"
+              >
+                <Link href="/ilan-ver" className="block">
                   <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                   Reklam Ver
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
             <Sidebar />
           </div>

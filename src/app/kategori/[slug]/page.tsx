@@ -6,10 +6,10 @@ import Link from 'next/link'
 import { Home, Sparkles, Star, MapPin, Users, Clock, Shield, Award } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { Metadata } from 'next'
+import SeoJsonLd from '@/components/SeoJsonLd'
 
 // Cache eklendi - performans için kritik
 export const revalidate = 300; // 5 dakika cache
-export const dynamic = 'force-dynamic'; // Her istekte fresh data (cache ile birlikte çalışır)
 export const dynamicParams = true; // Bilinmeyen slug'lar için runtime'da render et
 
 // Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
@@ -31,8 +31,17 @@ export async function generateStaticParams() {
 }
 
 // SEO Metadata
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
   const { slug } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const pageParam = typeof sp.page === 'string' ? sp.page.trim() : '';
+  const pageNum = pageParam && /^\d+$/.test(pageParam) ? Math.max(1, parseInt(pageParam, 10)) : 1;
   const foundCategory = categories.find((cat) => cat.slug === slug);
   
   if (!foundCategory) {
@@ -40,27 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: 'Kategori Bulunamadı',
     };
   }
-
-  const categoryMap: { [key: string]: string } = {
-    'is': 'İş',
-    'hizmetler': 'Hizmetler',
-    'elektronik': 'Elektronik',
-    'ev-ve-bahce': 'Ev & Bahçe',
-    'giyim': 'Giyim',
-    'moda-stil': 'Moda & Stil',
-    'sporlar-oyunlar-eglenceler': 'Sporlar, Oyunlar ve Eğlenceler',
-    'anne-bebek': 'Anne & Bebek',
-    'cocuk-dunyasi': 'Çocuk Dünyası',
-    'egitim-kurslar': 'Eğitim & Kurslar',
-    'yemek-icecek': 'Yemek & İçecek',
-    'catering-ticaret': 'Catering & Ticaret',
-    'turizm-konaklama': 'Turizm & Konaklama',
-    'saglik-guzellik': 'Sağlık & Güzellik',
-    'sanat-hobi': 'Sanat & Hobi',
-    'ucretsiz-gel-al': 'Ücretsiz Gel Al'
-  };
-
-  const categoryName = categoryMap[slug] || foundCategory.name;
+  const categoryName = foundCategory.name;
   
   // İlan sayısını al (build sırasında hata olursa 0 döndür)
   let listingCount = 0;
@@ -83,7 +72,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     console.warn('Database connection failed during build, using default count');
   }
 
-  const title = `${categoryName} İlanları - Çanakkale | Alo17`;
+  const title =
+    pageNum > 1
+      ? `${categoryName} İlanları (Sayfa ${pageNum}) - Çanakkale | Alo17`
+      : `${categoryName} İlanları - Çanakkale | Alo17`;
   const description = `Çanakkale'de ${categoryName} kategorisinde ${listingCount} aktif ilan. Ücretsiz ilan ver, ikinci el ${categoryName.toLowerCase()} al-sat. En iyi fiyatlar ve güvenilir satıcılar.`;
 
   return {
@@ -114,23 +106,40 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     alternates: {
       canonical: `https://alo17.tr/kategori/${slug}`,
     },
+    robots: pageNum > 1 ? { index: false, follow: true } : { index: true, follow: true },
   };
 }
 
-export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CategoryPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const pageParam = typeof sp.page === 'string' ? sp.page.trim() : '';
+  const currentPage = pageParam && /^\d+$/.test(pageParam) ? Math.max(1, parseInt(pageParam, 10)) : 1;
 
-  // Debug: Kategorileri ve slug'ı logla
-  console.log('CategoryPage - Slug:', slug);
-  console.log('CategoryPage - Categories count:', categories.length);
-  console.log('CategoryPage - Category slugs:', categories.map(c => c.slug));
+  const DEBUG =
+    process.env.NODE_ENV !== 'production' || process.env.DEBUG_CATEGORY_PAGE === 'true';
+
+  // Debug: Kategorileri ve slug'ı logla (prod'da kapalı)
+  if (DEBUG) {
+    console.log('CategoryPage - Slug:', slug);
+    console.log('CategoryPage - Categories count:', categories.length);
+    console.log('CategoryPage - Category slugs:', categories.map(c => c.slug));
+  }
 
   // Ana kategoriyi bul
   const foundCategory = categories.find((cat) => cat.slug === slug)
   
   if (!foundCategory) {
-    console.error('CategoryPage - Category not found for slug:', slug);
-    console.error('CategoryPage - Available slugs:', categories.map(c => c.slug));
+    if (DEBUG) {
+      console.error('CategoryPage - Category not found for slug:', slug);
+      console.error('CategoryPage - Available slugs:', categories.map(c => c.slug));
+    }
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -144,34 +153,16 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     )
   }
   
-  console.log('CategoryPage - Found category:', foundCategory.name);
-  console.log('CategoryPage - Subcategories:', foundCategory.subcategories);
-  console.log('CategoryPage - Subcategories length:', foundCategory.subcategories?.length);
+  if (DEBUG) {
+    console.log('CategoryPage - Found category:', foundCategory.name);
+    console.log('CategoryPage - Subcategories:', foundCategory.subcategories);
+    console.log('CategoryPage - Subcategories length:', foundCategory.subcategories?.length);
+  }
 
   // Diğer kategoriler
   const otherCategories = categories.filter((cat) => cat.slug !== slug)
 
-  // Kategori slug'ını kategori adına çevir
-  const categoryMap: { [key: string]: string } = {
-    'is': 'İş',
-    'hizmetler': 'Hizmetler',
-    'elektronik': 'Elektronik',
-    'ev-ve-bahce': 'Ev & Bahçe',
-    'giyim': 'Giyim',
-    'moda-stil': 'Moda & Stil',
-    'sporlar-oyunlar-eglenceler': 'Sporlar, Oyunlar ve Eğlenceler',
-    'anne-bebek': 'Anne & Bebek',
-    'cocuk-dunyasi': 'Çocuk Dünyası',
-    'egitim-kurslar': 'Eğitim & Kurslar',
-    'yemek-icecek': 'Yemek & İçecek',
-    'catering-ticaret': 'Catering & Ticaret',
-    'turizm-konaklama': 'Turizm & Konaklama',
-    'saglik-guzellik': 'Sağlık & Güzellik',
-    'sanat-hobi': 'Sanat & Hobi',
-    'ucretsiz-gel-al': 'Ücretsiz Gel Al'
-  };
-
-  const categoryName = categoryMap[slug];
+  const categoryName = foundCategory.name;
 
   // Güvenli JSON parse fonksiyonu
   const safeParseImages = (images: string | null): string[] => {
@@ -193,25 +184,49 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   // Veritabanından ilanları çek (build sırasında hata olursa boş liste)
   // Hem slug hem de tam kategori adı ile arama yap (veritabanında her ikisi de olabilir)
-  // TÜM ilanları çek (kategori sayfaları için)
+  // Kategori sayfasında sınırsız ilan çekmek performansı öldürür.
+  // SEO + UX için makul bir üst sınır uygula, daha fazlası için ileride pagination eklenebilir.
+  const PREMIUM_TAKE = 60;
+  const PAGE_SIZE = 24;
   let allListings: any[] = [];
   let premiumListings: any[] = [];
+  let totalListings = 0;
   try {
-    // Tüm ilanları çek (premium ve normal)
-    [allListings, premiumListings] = await Promise.all([
+    const now = new Date();
+    const baseWhere = {
+      OR: [
+        { category: slug },
+        { category: categoryName },
+      ],
+      isActive: true,
+      approvalStatus: 'approved',
+      expiresAt: { gt: now },
+    } as const;
+
+    const premiumWhere = {
+      ...baseWhere,
+      OR: [
+        { isPremium: true },
+        { premiumUntil: { gt: now } },
+      ],
+    } as const;
+
+    const nonPremiumWhere = {
+      ...baseWhere,
+      NOT: {
+        OR: [
+          { isPremium: true },
+          { premiumUntil: { gt: now } },
+        ],
+      },
+    } as const;
+
+    const skip = (currentPage - 1) * PAGE_SIZE;
+
+    const tasks: Array<Promise<any>> = [
       withTimeout(
         prisma.listing.findMany({
-          where: {
-            OR: [
-              { category: slug }, // Slug formatında (örn: "elektronik")
-              { category: categoryName }, // Tam kategori adı formatında (örn: "Elektronik")
-            ],
-            isActive: true,
-            approvalStatus: 'approved',
-            expiresAt: {
-              gt: new Date() // Süresi dolmamış ilanlar
-            }
-          },
+          where: nonPremiumWhere as any,
           select: {
             id: true,
             title: true,
@@ -227,67 +242,65 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             premiumUntil: true,
             expiresAt: true,
             views: true,
-            user: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
+            user: { select: { id: true, name: true } },
           },
-          orderBy: { createdAt: 'desc' }, // En yeni ilanlar önce
-        }),
-        8000 // 8 saniye timeout
-      ),
-      withTimeout(
-        prisma.listing.findMany({
-          where: {
-            OR: [
-              { category: slug },
-              { category: categoryName },
-            ],
-            isActive: true,
-            approvalStatus: 'approved',
-            expiresAt: {
-              gt: new Date()
-            },
-            isPremium: true, // Sadece premium ilanlar
-          },
-          select: {
-            id: true,
-            title: true,
-            price: true,
-            location: true,
-            category: true,
-            subCategory: true,
-            description: true,
-            images: true,
-            createdAt: true,
-            condition: true,
-            isPremium: true,
-            premiumUntil: true,
-            expiresAt: true,
-            views: true,
-            user: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-          orderBy: [
-            { premiumUntil: 'desc' }, // Premium süresi dolmamış olanlar önce
-            { createdAt: 'desc' },
-          ],
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: PAGE_SIZE,
         }),
         8000
       ),
-    ]);
+      withTimeout(
+        prisma.listing.count({ where: nonPremiumWhere as any }),
+        5000
+      ),
+    ];
+
+    // Premium only on page 1 (avoid duplicates + keep TTFB)
+    if (currentPage === 1) {
+      tasks.push(
+        withTimeout(
+          prisma.listing.findMany({
+            where: premiumWhere as any,
+            select: {
+              id: true,
+              title: true,
+              price: true,
+              location: true,
+              category: true,
+              subCategory: true,
+              description: true,
+              images: true,
+              createdAt: true,
+              condition: true,
+              isPremium: true,
+              premiumUntil: true,
+              expiresAt: true,
+              views: true,
+              user: { select: { id: true, name: true } },
+            },
+            orderBy: [{ premiumUntil: 'desc' }, { createdAt: 'desc' }],
+            take: PREMIUM_TAKE,
+          }),
+          8000
+        )
+      );
+    }
+
+    const results = await Promise.all(tasks);
+    allListings = results[0] || [];
+    totalListings = typeof results[1] === 'number' ? results[1] : 0;
+    premiumListings = currentPage === 1 ? (results[2] || []) : [];
     
-    console.log(`[Kategori ${slug}] Toplam ilan: ${allListings.length}, Premium ilan: ${premiumListings.length}`);
+    if (DEBUG) {
+      console.log(`[Kategori ${slug}] Toplam ilan: ${allListings.length}, Premium ilan: ${premiumListings.length}`);
+    }
   } catch (error) {
     // Build sırasında veritabanı bağlantısı yoksa boş liste
-    console.error('Kategori ilanları getirme hatası:', error);
-    console.warn('Database connection failed during build, using empty listings');
+    if (DEBUG) {
+      console.error('Kategori ilanları getirme hatası:', error);
+      console.warn('Database connection failed during build, using empty listings');
+    }
     allListings = [];
     premiumListings = [];
   }
@@ -382,8 +395,30 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     };
   });
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Ana Sayfa',
+        item: 'https://alo17.tr/',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: foundCategory.name,
+        item: `https://alo17.tr/kategori/${slug}`,
+      },
+    ],
+  }
+
+  const totalPages = Math.max(1, Math.ceil((totalListings || 0) / PAGE_SIZE));
+
   return (
     <main className="min-h-screen bg-gray-50">
+      <SeoJsonLd id="ld-breadcrumb" data={breadcrumbJsonLd} />
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <nav className="flex mb-8" aria-label="Breadcrumb">
@@ -432,7 +467,9 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                     {foundCategory.subcategories.map((subcategory) => {
                       const subSubcategories = subcategory.subcategories;
                       const hasSubSubcategories = subSubcategories && subSubcategories.length > 0;
-                      console.log(`Subcategory: ${subcategory.name}, hasSubSubcategories: ${hasSubSubcategories}, count: ${subSubcategories?.length || 0}`);
+                      if (DEBUG) {
+                        console.log(`Subcategory: ${subcategory.name}, hasSubSubcategories: ${hasSubSubcategories}, count: ${subSubcategories?.length || 0}`);
+                      }
                       return (
                         <div key={subcategory.slug} className="bg-white border border-gray-200 rounded-lg p-4">
                           <Link
@@ -493,7 +530,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                 title={`Öne Çıkan ${foundCategory.name}`}
                 category={foundCategory.slug} 
                 listings={formattedPremiumListings} 
-                limit={1000}
+                limit={PREMIUM_TAKE}
               />
             </section>
             
@@ -502,9 +539,36 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                 title={`Tüm ${foundCategory.name} İlanları`}
                 category={foundCategory.slug} 
                 listings={formattedListings} 
-                limit={1000}
+                limit={PAGE_SIZE}
               />
             </section>
+
+            {/* Pagination (SEO-friendly query param) */}
+            {totalPages > 1 ? (
+              <nav className="flex items-center justify-center gap-3 pt-4" aria-label="Sayfalama">
+                <Link
+                  href={currentPage <= 2 ? `/kategori/${slug}` : `/kategori/${slug}?page=${currentPage - 1}`}
+                  className={`px-4 py-2 rounded-md border text-sm ${
+                    currentPage === 1 ? 'pointer-events-none opacity-50' : 'hover:bg-gray-50'
+                  }`}
+                  aria-disabled={currentPage === 1}
+                >
+                  Önceki
+                </Link>
+                <span className="text-sm text-gray-600">
+                  Sayfa {currentPage} / {totalPages}
+                </span>
+                <Link
+                  href={`/kategori/${slug}?page=${currentPage + 1}`}
+                  className={`px-4 py-2 rounded-md border text-sm ${
+                    currentPage >= totalPages ? 'pointer-events-none opacity-50' : 'hover:bg-gray-50'
+                  }`}
+                  aria-disabled={currentPage >= totalPages}
+                >
+                  Sonraki
+                </Link>
+              </nav>
+            ) : null}
           </div>
         </div>
       </div>
