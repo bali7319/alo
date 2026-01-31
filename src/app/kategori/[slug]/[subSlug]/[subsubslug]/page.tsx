@@ -17,7 +17,14 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Pr
 }
 
 export default async function SubSubCategoryPage({ params }: { params: Promise<{ slug: string; subSlug: string; subSubSlug: string }> }) {
-  const { slug, subSlug, subSubSlug } = await params;
+  // NOTE: In App Router, dynamic param names MUST match folder names.
+  // Folder is `[subsubslug]` so the param is `subsubslug` (not `subSubSlug`).
+  const { slug, subSlug, subsubslug } = (await params) as unknown as {
+    slug: string;
+    subSlug: string;
+    subsubslug: string;
+  };
+  const subSubSlug = subsubslug;
 
   // Ana kategoriyi bul
   const foundCategory = categories.find((cat) => cat.slug === slug)
