@@ -1,7 +1,8 @@
 /**
  * Email gönderme servisi
- * Şimdilik console.log ile simüle ediliyor
- * Gerçek email servisi için (Nodemailer, SendGrid, Resend, vb.) entegre edilebilir
+ * - Öncelik: HTTPS Mail API (Resend)
+ * - Fallback: SMTP (Nodemailer) (sunucuda SMTP portları kapalıysa çalışmaz)
+ * - Son çare: simülasyon (console.log)
  */
 
 interface EmailOptions {
@@ -11,135 +12,216 @@ interface EmailOptions {
   text?: string;
 }
 
+type EmailTransport = 'resend' | 'smtp' | 'simulation';
+
+function getEmailTransport(): EmailTransport {
+  const forced = (process.env.EMAIL_TRANSPORT || '').toLowerCase().trim();
+  if (forced === 'resend' || forced === 'smtp' || forced === 'simulation') return forced;
+
+  // Prefer HTTPS API whenever configured
+  if (process.env.RESEND_API_KEY) return 'resend';
+
+  // Fallback to SMTP only if configured
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) return 'smtp';
+
+  return 'simulation';
+}
+
+function getEmailFrom(): string | null {
+  // For HTTPS providers, a verified sender is usually required.
+  // Keep env flexible for migration.
+  return (
+    process.env.EMAIL_FROM ||
+    process.env.RESEND_FROM ||
+    process.env.SMTP_FROM ||
+    process.env.SMTP_USER ||
+    null
+  );
+}
+
+async function sendEmailViaResend(options: EmailOptions): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.log('📧 [RESEND] RESEND_API_KEY yok; gönderim atlandı.');
+    return false;
+  }
+
+  const from = getEmailFrom();
+  if (!from) {
+    console.error('❌ [RESEND] EMAIL_FROM/RESEND_FROM ayarlanmamış; gönderim yapılamıyor.');
+    return false;
+  }
+
+  const payload = {
+    from,
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+    text: options.text || options.html.replace(/<[^>]*>/g, ''),
+  };
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const raw = await res.text();
+  let json: any = null;
+  try {
+    json = raw ? JSON.parse(raw) : null;
+  } catch {
+    // ignore JSON parse errors; we'll log raw
+  }
+
+  if (!res.ok) {
+    console.error('❌ [RESEND] Email gönderme hatası:', {
+      status: res.status,
+      body: json || raw,
+      to: options.to,
+      subject: options.subject,
+      from,
+    });
+    return false;
+  }
+
+  console.log('📧 [RESEND] Email gönderildi:', {
+    to: options.to,
+    subject: options.subject,
+    from,
+    id: json?.id,
+  });
+  return true;
+}
+
+async function sendEmailViaSmtp(options: EmailOptions): Promise<boolean> {
+  // SMTP ayarları kontrol et
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = process.env.SMTP_PORT;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  // From adresi SMTP_USER ile aynı olmalı (relay hatası önlemek için)
+  const smtpFrom = process.env.SMTP_FROM || smtpUser || 'noreply@alo17.tr';
+
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    console.log('📧 [SMTP] SMTP ayarları yok; gönderim atlandı.');
+    return false;
+  }
+
+  // Nodemailer ile gerçek email gönder
+  const nodemailer = await import('nodemailer');
+  const port = parseInt(smtpPort || '587');
+  const isSecure = port === 465;
+
+  // mail.kurumsaleposta.com ayarlarına göre:
+  // Port 587, SSL/TLS: Kapalı, STARTTLS: false (destek ekibi onayı)
+  // SMTP authentication zorunlu (relay hatası önlemek için)
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: port,
+    secure: isSecure, // 465 portu SSL kullanır, 587 için false
+    // SMTP authentication - ZORUNLU (relay hatası önlemek için)
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+    // TLS ayarları - mail.kurumsaleposta.com için
+    tls: {
+      rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false',
+      // Eski sunucular için uyumluluk
+      minVersion: 'TLSv1',
+      secureProtocol: 'TLSv1_2_method',
+    },
+    // Port 587 için STARTTLS kapalı (destek ekibi: starttls => false)
+    requireTLS: false, // STARTTLS kullanma
+    connectionTimeout: 15000, // 15 saniye timeout
+    greetingTimeout: 15000,
+    // Relay hatası önlemek için
+    pool: false,
+    maxConnections: 1,
+    // SMTP authentication'ı zorla
+    authMethod: 'PLAIN',
+    // Debug modu (geliştirme için)
+    debug: process.env.NODE_ENV === 'development',
+    logger: process.env.NODE_ENV === 'development',
+  });
+
+  // From adresi MUTLAKA SMTP_USER ile aynı olmalı (relay hatası önlemek için)
+  // SMTP_FROM varsa ve SMTP_USER ile farklıysa, SMTP_USER kullan (güvenlik)
+  const fromAddress = smtpUser; // Her zaman SMTP_USER kullan (relay hatası önlemek için)
+
+  console.log('📧 [SMTP] Email gönderiliyor:', {
+    from: fromAddress,
+    to: options.to,
+    subject: options.subject,
+    smtpHost: smtpHost,
+    smtpUser: smtpUser,
+    smtpFrom: smtpFrom,
+  });
+
+  // SMTP bağlantısını test et
+  try {
+    await transporter.verify();
+    console.log('✅ [SMTP] bağlantı başarılı:', { host: smtpHost, port: port, user: smtpUser });
+  } catch (verifyError: any) {
+    console.error('❌ [SMTP] bağlantı hatası:', {
+      host: smtpHost,
+      port: port,
+      user: smtpUser,
+      error: verifyError.message,
+      code: verifyError.code,
+    });
+    throw verifyError;
+  }
+
+  const info = await transporter.sendMail({
+    from: fromAddress, // SMTP_USER ile aynı kullan (display name olmadan, sadece email)
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+    text: options.text || options.html.replace(/<[^>]*>/g, ''), // HTML'den text çıkar
+  });
+
+  console.log('📧 [SMTP] Email başarıyla gönderildi:', {
+    from: fromAddress,
+    to: options.to,
+    subject: options.subject,
+    messageId: info.messageId,
+    response: info.response,
+    accepted: info.accepted,
+    rejected: info.rejected,
+  });
+
+  // Eğer email reddedildiyse uyar
+  if (info.rejected && info.rejected.length > 0) {
+    console.error('⚠️ [SMTP] Email reddedildi:', {
+      to: options.to,
+      rejected: info.rejected,
+      response: info.response,
+    });
+  }
+
+  return true;
+}
+
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
-    // SMTP ayarları kontrol et
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = process.env.SMTP_PORT;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    // From adresi SMTP_USER ile aynı olmalı (relay hatası önlemek için)
-    const smtpFrom = process.env.SMTP_FROM || smtpUser || 'noreply@alo17.tr';
+    const transport = getEmailTransport();
 
-    // Eğer SMTP ayarları yoksa, simülasyon modunda çalış
-    if (!smtpHost || !smtpUser || !smtpPass) {
+    if (transport === 'simulation') {
       console.log('📧 [EMAIL SIMULATION] Email gönderiliyor:', {
         to: options.to,
         subject: options.subject,
-        note: 'SMTP ayarları yapılandırılmamış, email simüle ediliyor',
+        note: 'EMAIL_TRANSPORT=simulation veya email sağlayıcı ayarları yok; email simüle ediliyor',
       });
       return true;
     }
 
-    // Nodemailer ile gerçek email gönder
-    const nodemailer = await import('nodemailer');
-    const port = parseInt(smtpPort || '587');
-    const isSecure = port === 465;
-    
-    // mail.kurumsaleposta.com ayarlarına göre:
-    // Port 587, SSL/TLS: Kapalı, STARTTLS: false (destek ekibi onayı)
-    // SMTP authentication zorunlu (relay hatası önlemek için)
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: port,
-      secure: isSecure, // 465 portu SSL kullanır, 587 için false
-      // SMTP authentication - ZORUNLU (relay hatası önlemek için)
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-      // TLS ayarları - mail.kurumsaleposta.com için
-      tls: {
-        rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false',
-        // Eski sunucular için uyumluluk
-        minVersion: 'TLSv1',
-        secureProtocol: 'TLSv1_2_method',
-      },
-      // Port 587 için STARTTLS kapalı (destek ekibi: starttls => false)
-      requireTLS: false, // STARTTLS kullanma
-      connectionTimeout: 15000, // 15 saniye timeout
-      greetingTimeout: 15000,
-      // Relay hatası önlemek için
-      pool: false,
-      maxConnections: 1,
-      // SMTP authentication'ı zorla
-      authMethod: 'PLAIN',
-      // Debug modu (geliştirme için)
-      debug: process.env.NODE_ENV === 'development',
-      logger: process.env.NODE_ENV === 'development',
-    });
-
-    // Email gönder
-    // From adresi MUTLAKA SMTP_USER ile aynı olmalı (relay hatası önlemek için)
-    // SMTP_FROM varsa ve SMTP_USER ile farklıysa, SMTP_USER kullan (güvenlik)
-    const fromAddress = smtpUser; // Her zaman SMTP_USER kullan (relay hatası önlemek için)
-    
-    console.log('📧 Email gönderiliyor:', {
-      from: fromAddress,
-      to: options.to,
-      subject: options.subject,
-      smtpHost: smtpHost,
-      smtpUser: smtpUser,
-      smtpFrom: smtpFrom,
-    });
-    
-    // SMTP bağlantısını test et
-    try {
-      await transporter.verify();
-      console.log('✅ SMTP bağlantısı başarılı:', { host: smtpHost, port: port, user: smtpUser });
-    } catch (verifyError: any) {
-      console.error('❌ SMTP bağlantı hatası:', {
-        host: smtpHost,
-        port: port,
-        user: smtpUser,
-        error: verifyError.message,
-        code: verifyError.code,
-      });
-      throw verifyError;
-    }
-
-    // From adresi MUTLAKA SMTP_USER ile aynı olmalı (relay hatası önlemek için)
-    // Display name olmadan sadece email adresi kullan
-    // SMTP_USER'ı kontrol et ve From adresini ayarla
-    const finalFromAddress = smtpUser; // Her zaman SMTP_USER kullan
-    
-    console.log('📧 Email gönderiliyor (detaylı):', {
-      from: finalFromAddress,
-      to: options.to,
-      subject: options.subject,
-      smtpUser: smtpUser,
-      smtpHost: smtpHost,
-      smtpPort: port,
-    });
-    
-    const info = await transporter.sendMail({
-      from: finalFromAddress, // SMTP_USER ile aynı kullan (display name olmadan, sadece email)
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-      text: options.text || options.html.replace(/<[^>]*>/g, ''), // HTML'den text çıkar
-    });
-
-    console.log('📧 Email başarıyla gönderildi:', {
-      from: finalFromAddress,
-      to: options.to,
-      subject: options.subject,
-      messageId: info.messageId,
-      response: info.response,
-      accepted: info.accepted,
-      rejected: info.rejected,
-    });
-
-    // Eğer email reddedildiyse uyar
-    if (info.rejected && info.rejected.length > 0) {
-      console.error('⚠️ Email reddedildi:', {
-        to: options.to,
-        rejected: info.rejected,
-        response: info.response,
-      });
-    }
-
-    return true;
+    if (transport === 'resend') return await sendEmailViaResend(options);
+    return await sendEmailViaSmtp(options);
   } catch (error: any) {
     console.error('❌ Email gönderme hatası:', {
       to: options.to,

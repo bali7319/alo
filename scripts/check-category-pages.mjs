@@ -123,14 +123,58 @@ async function sendNotificationEmail({
   // Load env for CLI/cron
   loadDotEnvIfPresent();
 
+  // Prefer HTTPS mail API (Resend) if configured (works over 443).
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const resendFrom = process.env.EMAIL_FROM || process.env.RESEND_FROM || null;
+  if (resendApiKey) {
+    if (!resendFrom) {
+      console.log('[notify] RESEND_API_KEY var ama EMAIL_FROM/RESEND_FROM yok; mail atlanıyor.');
+      return { sent: false, reason: 'resend_from_missing' };
+    }
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: resendFrom,
+        to,
+        subject,
+        text,
+        html,
+      }),
+    });
+
+    const raw = await res.text();
+    let json = null;
+    try {
+      json = raw ? JSON.parse(raw) : null;
+    } catch {
+      // ignore
+    }
+
+    if (!res.ok) {
+      console.error('[notify] Resend email failed:', { status: res.status, body: json || raw });
+      return { sent: false, reason: 'resend_failed' };
+    }
+
+    console.log('[notify] Resend email sent:', {
+      to,
+      id: json?.id,
+    });
+    return { sent: true, provider: 'resend' };
+  }
+
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = Number(process.env.SMTP_PORT || '587');
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
 
   if (!smtpHost || !smtpUser || !smtpPass) {
-    console.log('[notify] SMTP not configured; skipping email.');
-    return { sent: false, reason: 'smtp_not_configured' };
+    console.log('[notify] No mail provider configured; skipping email.');
+    return { sent: false, reason: 'not_configured' };
   }
 
   const nodemailer = await import('nodemailer');
@@ -165,7 +209,7 @@ async function sendNotificationEmail({
     rejected: info.rejected,
   });
 
-  return { sent: true };
+  return { sent: true, provider: 'smtp' };
 }
 
 function withTimeout(promise, timeoutMs, label) {

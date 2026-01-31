@@ -89,7 +89,7 @@ ${new Date().toLocaleString('tr-TR')}
       });
     } else {
       return NextResponse.json(
-        { error: 'Email gönderilemedi. Lütfen SMTP ayarlarını kontrol edin.' },
+        { error: 'Email gönderilemedi. Lütfen EMAIL_FROM/RESEND_API_KEY veya SMTP ayarlarını kontrol edin.' },
         { status: 500 }
       );
     }
