@@ -404,6 +404,11 @@ export async function GET(
       }
     }
 
+    // Telefon bilgisi:
+    // - Public response'ta telefon DÖNMEZ (scraper azaltma)
+    // - Owner/admin için telefon dönebilir
+    const canSeePhone = isAdmin || isOwner;
+
     const formattedListing = {
       id: listing.id,
       title: listing.title,
@@ -413,7 +418,7 @@ export async function GET(
       category: listing.category,
       subCategory: listing.subCategory,
       subSubCategory: listing.subSubCategory,
-      phone: listing.phone,
+      phone: canSeePhone ? listing.phone : null,
       showPhone: listing.showPhone,
       images: parseArray(listing.images),
       features: parseArray(listing.features),
@@ -431,7 +436,7 @@ export async function GET(
       updatedAt: listing.updatedAt?.toISOString() || new Date().toISOString(),
       user: {
         ...listing.user,
-        phone: decryptedUserPhone,
+        phone: canSeePhone ? decryptedUserPhone : null,
       },
     };
 

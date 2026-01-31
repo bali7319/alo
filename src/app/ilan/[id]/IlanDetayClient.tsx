@@ -23,11 +23,12 @@ interface Listing {
   premiumUntil: Date | null;
   features: string[];
   images: string[];
+  showPhone?: boolean;
   seller: {
     id: string;
     name: string;
     email: string;
-    phone: string;
+    phone: string | null;
   };
   createdAt: Date;
   views?: number;
@@ -62,6 +63,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
   const [isReporting, setIsReporting] = useState(false);
+  const [isRevealingPhone, setIsRevealingPhone] = useState(false);
 
   // Mobil sekmeler (arabam.com benzeri)
   const [mobileTab, setMobileTab] = useState<'info' | 'desc' | 'services'>('info');
@@ -201,11 +203,13 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
         premiumUntil: listingData.premiumUntil ? new Date(listingData.premiumUntil) : null,
         features: listingData.features || [],
         images: parseImages(listingData.images),
+        showPhone: listingData.showPhone !== false,
         seller: {
           id: listingData.user?.id || '',
           name: listingData.user?.name || 'İsimsiz',
           email: listingData.user?.email || '',
-          phone: (listingData.phone || listingData.user?.phone || '').trim() // İlan telefon numarası öncelikli
+          // Telefon bilgisi public response'ta dönmüyor; kullanıcı aksiyonu ile reveal edilir.
+          phone: (listingData.phone || listingData.user?.phone || '').trim() || null
         },
         createdAt: new Date(listingData.createdAt),
         views: typeof listingData.views === 'number' ? listingData.views : undefined,
@@ -397,12 +401,79 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
   };
 
   const actionButtons = useMemo(() => {
-    const phone = listing?.seller.phone?.trim() || '';
-    const showPhone = Boolean(phone) && (listing?.contactOptions?.showPhone !== false);
-    const showWhatsApp = Boolean(phone) && (listing?.contactOptions?.showWhatsApp !== false);
+    const phone = (listing?.seller.phone || '').trim();
+    const canRevealPhone =
+      (listing?.showPhone !== false) && (listing?.contactOptions?.showPhone !== false);
+    const canRevealWhatsApp =
+      (listing?.showPhone !== false) && (listing?.contactOptions?.showWhatsApp !== false);
+    const showPhone = Boolean(phone) && canRevealPhone;
+    const showWhatsApp = Boolean(phone) && canRevealWhatsApp;
     const showMessage = (listing?.contactOptions?.showMessage !== false);
-    return { phone, showPhone, showWhatsApp, showMessage };
+    return { phone, canRevealPhone, canRevealWhatsApp, showPhone, showWhatsApp, showMessage };
   }, [listing]);
+
+  const revealPhone = async (): Promise<string | null> => {
+    if (!listing) return null;
+    const existing = (listing.seller.phone || '').trim();
+    if (existing) return existing;
+
+    if (isRevealingPhone) return null;
+    setIsRevealingPhone(true);
+    try {
+      const res = await fetch(`/api/listings/${encodeURIComponent(listing.id)}/reveal-phone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || 'Telefon bilgisi alınamadı');
+      }
+      const data = await res.json().catch(() => null);
+      const phone = (data?.phone || '').toString().trim();
+      if (!phone) throw new Error('Telefon bilgisi alınamadı');
+
+      setListing((prev) =>
+        prev
+          ? {
+              ...prev,
+              seller: {
+                ...prev.seller,
+                phone,
+              },
+            }
+          : prev
+      );
+      return phone;
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Telefon bilgisi alınamadı');
+      return null;
+    } finally {
+      setIsRevealingPhone(false);
+    }
+  };
+
+  const handleCallClick = async (e: React.MouseEvent) => {
+    if (!listing) return;
+    if (actionButtons.phone) return; // anchor zaten tel: ile gidecek
+    e.preventDefault();
+    const phone = await revealPhone();
+    if (phone) {
+      window.location.href = `tel:${phone.replace(/\s/g, '')}`;
+    }
+  };
+
+  const handleWhatsAppClick = async (e: React.MouseEvent) => {
+    if (!listing) return;
+    if (actionButtons.phone) return; // anchor zaten WA'ya gidecek
+    e.preventDefault();
+    const phone = await revealPhone();
+    if (phone) {
+      const url = `https://wa.me/${formatPhoneForWhatsApp(phone)}?text=Merhaba, ${encodeURIComponent(
+        listing.title
+      )} ilanı hakkında bilgi almak istiyorum.`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   const getDirectionsUrl = (address: string) => {
     const destination = encodeURIComponent(address);
@@ -745,23 +816,36 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
         </div>
 
         {/* Sabit CTA bar */}
-        {(actionButtons.showPhone || actionButtons.showMessage || actionButtons.showWhatsApp) && (
+        {(actionButtons.canRevealPhone || actionButtons.showMessage || actionButtons.canRevealWhatsApp) && (
           <div className="fixed inset-x-0 bottom-0 z-50 bg-white border-t">
             <div className="px-3 py-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
               <div className="grid grid-cols-3 gap-2">
                 {/* Ara */}
                 <a
-                  href={actionButtons.showPhone ? `tel:${actionButtons.phone.replace(/\s/g, '')}` : undefined}
-                  onClick={(e) => { if (!actionButtons.showPhone) e.preventDefault(); }}
+                  href={
+                    actionButtons.phone
+                      ? `tel:${actionButtons.phone.replace(/\s/g, '')}`
+                      : '#'
+                  }
+                  onClick={(e) => {
+                    if (!actionButtons.canRevealPhone) {
+                      e.preventDefault();
+                      return;
+                    }
+                    // Phone yoksa reveal et, sonra ara
+                    if (!actionButtons.phone) {
+                      void handleCallClick(e);
+                    }
+                  }}
                   className={`h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-bold shadow-sm active:scale-[0.99] transition ${
-                    actionButtons.showPhone
+                    actionButtons.canRevealPhone
                       ? 'bg-alo-orange text-white shadow-md'
                       : 'bg-white text-gray-600 border border-gray-300'
                   }`}
-                  aria-disabled={!actionButtons.showPhone}
+                  aria-disabled={!actionButtons.canRevealPhone}
                 >
                   <Phone className="h-4 w-4" />
-                  Ara
+                  {actionButtons.phone ? 'Ara' : isRevealingPhone ? 'Yükleniyor...' : 'Telefonu göster'}
                 </a>
 
                 {/* Mesaj */}
@@ -780,17 +864,27 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                 {/* WhatsApp */}
                 <a
                   href={
-                    actionButtons.showWhatsApp
-                      ? `https://wa.me/${formatPhoneForWhatsApp(actionButtons.phone)}?text=Merhaba, ${encodeURIComponent(listing.title)} ilanı hakkında bilgi almak istiyorum.`
-                      : undefined
+                    actionButtons.phone
+                      ? `https://wa.me/${formatPhoneForWhatsApp(actionButtons.phone)}?text=Merhaba, ${encodeURIComponent(
+                          listing.title
+                        )} ilanı hakkında bilgi almak istiyorum.`
+                      : '#'
                   }
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => { if (!actionButtons.showWhatsApp) e.preventDefault(); }}
+                  onClick={(e) => {
+                    if (!actionButtons.canRevealWhatsApp) {
+                      e.preventDefault();
+                      return;
+                    }
+                    if (!actionButtons.phone) {
+                      void handleWhatsAppClick(e);
+                    }
+                  }}
                   className={`h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold ${
-                    actionButtons.showWhatsApp ? 'bg-[#25D366] text-white' : 'bg-gray-100 text-gray-400'
+                    actionButtons.canRevealWhatsApp ? 'bg-[#25D366] text-white' : 'bg-gray-100 text-gray-400'
                   }`}
-                  aria-disabled={!actionButtons.showWhatsApp}
+                  aria-disabled={!actionButtons.canRevealWhatsApp}
                 >
                   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
@@ -1115,22 +1209,30 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
               
               <div className="space-y-2">
                 {/* Telefon butonu - telefon numarası varsa ve showPhone false değilse göster */}
-                {listing.seller.phone && (listing.contactOptions?.showPhone !== false) && (
+                {(listing.showPhone !== false) && (listing.contactOptions?.showPhone !== false) && (
                   <a
-                    href={`tel:${listing.seller.phone.replace(/\s/g, '')}`}
+                    href={listing.seller.phone ? `tel:${listing.seller.phone.replace(/\s/g, '')}` : '#'}
+                    onClick={handleCallClick}
                     className="w-full flex items-center justify-center px-2 py-1 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                   >
                     <Phone className="h-3 w-3 mr-1.5" />
-                    {listing.seller.phone}
+                    {listing.seller.phone ? listing.seller.phone : isRevealingPhone ? 'Yükleniyor...' : 'Telefonu göster'}
                   </a>
                 )}
                 
                 {/* WhatsApp butonu - telefon numarası varsa göster (varsayılan: göster) */}
-                {listing.seller.phone && listing.seller.phone.trim() !== '' && (listing.contactOptions?.showWhatsApp !== false) && (
+                {(listing.showPhone !== false) && (listing.contactOptions?.showWhatsApp !== false) && (
                   <a
-                    href={`https://wa.me/${formatPhoneForWhatsApp(listing.seller.phone)}?text=Merhaba, ${encodeURIComponent(listing.title)} ilanı hakkında bilgi almak istiyorum.`}
+                    href={
+                      listing.seller.phone
+                        ? `https://wa.me/${formatPhoneForWhatsApp(listing.seller.phone)}?text=Merhaba, ${encodeURIComponent(
+                            listing.title
+                          )} ilanı hakkında bilgi almak istiyorum.`
+                        : '#'
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={handleWhatsAppClick}
                     className="w-full flex items-center justify-center px-2 py-1 text-xs bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] transition-colors"
                   >
                     <svg className="h-3 w-3 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
