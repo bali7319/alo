@@ -8,6 +8,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AutoLinkText } from '@/components/seo/AutoLinkText';
+import { categories } from '@/lib/categories';
 
 const FALLBACK_IMAGE_SRC = '/images/logo.svg';
 
@@ -64,6 +65,20 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
   const [reportDescription, setReportDescription] = useState('');
   const [isReporting, setIsReporting] = useState(false);
   const [isRevealingPhone, setIsRevealingPhone] = useState(false);
+
+  const categoryHref = useMemo(() => {
+    const raw = listing?.category;
+    if (!raw) return '/kategoriler';
+
+    const match = categories.find(
+      (c) =>
+        c.slug === raw ||
+        c.name.toLocaleLowerCase('tr-TR') === raw.toLocaleLowerCase('tr-TR')
+    );
+
+    const slug = match?.slug ?? encodeURIComponent(raw);
+    return `/kategori/${slug}`;
+  }, [listing?.category]);
 
   // Mobil sekmeler (arabam.com benzeri)
   const [mobileTab, setMobileTab] = useState<'info' | 'desc' | 'services'>('info');
@@ -581,8 +596,8 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                 </li>
                 <li aria-hidden="true" className="shrink-0 text-gray-400">›</li>
                 <li className="shrink-0">
-                  <Link href={`/kategori/${listing.category}`} className="hover:text-alo-orange capitalize whitespace-nowrap">
-                    {listing.category.replace('-', ' ')}
+                  <Link href={categoryHref} className="hover:text-alo-orange capitalize whitespace-nowrap">
+                    {listing.category}
                   </Link>
                 </li>
               </ol>
@@ -984,10 +999,10 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                 </li>
                 <li className="inline-flex items-center leading-none shrink-0">
                   <Link
-                    href={`/kategori/${listing.category}`}
+                    href={categoryHref}
                     className="inline-flex items-center leading-none hover:text-alo-orange capitalize whitespace-nowrap"
                   >
-                    {listing.category.replace('-', ' ')}
+                    {listing.category}
                   </Link>
                 </li>
                 <li aria-hidden="true" className="inline-flex items-center leading-none shrink-0">
