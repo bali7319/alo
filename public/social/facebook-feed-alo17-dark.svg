@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#fb923c"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="22" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+    <style>
+      .h1 { font: 900 76px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; letter-spacing: -1px; }
+      .h2 { font: 600 34px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .mini { font: 600 26px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .cta { font: 800 34px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="960" cy="170" r="260" fill="#60a5fa" opacity="0.10"/>
+  <circle cx="160" cy="280" r="240" fill="#fb923c" opacity="0.10"/>
+  <circle cx="860" cy="1060" r="340" fill="#60a5fa" opacity="0.08"/>
+
+  <!-- brand bar -->
+  <g transform="translate(80 70)" filter="url(#shadow)">
+    <rect x="0" y="0" width="920" height="140" rx="26" fill="#0b1220" opacity="0.72" stroke="#1f2937"/>
+  </g>
+  <g transform="translate(110 105)">
+    <image href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+DQogIDxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiByeD0iMjAiIGZpbGw9IiNGRjZCMzUiLz4NCiAgPHRleHQgeD0iNjAiIHk9Ijc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QTE3PC90ZXh0Pg0KPC9zdmc+DQoNCg==" x="0" y="0" width="88" height="88" preserveAspectRatio="xMidYMid meet"/>
+    <text x="108" y="54" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="34" font-weight="800">
+      <tspan fill="#e5e7eb">alo</tspan><tspan fill="#60a5fa">17</tspan><tspan fill="#fb923c">.tr</tspan>
+    </text>
+    <text x="108" y="92" class="mini" fill="#cbd5e1">Çanakkale’nin ilan sitesi</text>
+  </g>
+
+  <!-- headline -->
+  <g transform="translate(80 300)">
+    <text x="0" y="0" class="h1" fill="#f8fafc">Al • Sat • Keşfet</text>
+    <rect x="0" y="26" width="620" height="12" rx="6" fill="url(#accent)" opacity="0.95"/>
+    <text x="0" y="90" class="h2" fill="#cbd5e1">Ücretsiz ilan ver • Güvenle mesajlaş</text>
+  </g>
+
+  <!-- cards -->
+  <g transform="translate(80 470)" filter="url(#shadow)">
+    <rect x="0" y="0" width="920" height="520" rx="28" fill="#0b1220" opacity="0.74" stroke="#1f2937"/>
+    <g transform="translate(48 60)">
+      <rect x="0" y="0" width="824" height="120" rx="22" fill="#111827" stroke="#1f2937"/>
+      <circle cx="70" cy="60" r="34" fill="#60a5fa" opacity="0.95"/>
+      <text x="140" y="70" class="h2" fill="#f8fafc">Binlerce ilan tek yerde</text>
+    </g>
+    <g transform="translate(48 210)">
+      <rect x="0" y="0" width="824" height="120" rx="22" fill="#111827" stroke="#1f2937"/>
+      <circle cx="70" cy="60" r="34" fill="#fb923c" opacity="0.95"/>
+      <text x="140" y="70" class="h2" fill="#f8fafc">Hızlı mesajlaş, kolay iletişim</text>
+    </g>
+    <g transform="translate(48 360)">
+      <rect x="0" y="0" width="824" height="120" rx="22" fill="#111827" stroke="#1f2937"/>
+      <circle cx="70" cy="60" r="34" fill="#60a5fa" opacity="0.95"/>
+      <text x="140" y="70" class="h2" fill="#f8fafc">Çanakkale’ye özel ilanlar</text>
+    </g>
+  </g>
+
+  <!-- CTA -->
+  <g transform="translate(80 1140)" filter="url(#shadow)">
+    <rect x="0" y="0" width="920" height="120" rx="28" fill="url(#accent)"/>
+    <text x="460" y="76" text-anchor="middle" class="cta" fill="#0b1220">Şimdi keşfet: alo17.tr</text>
+  </g>
+</svg>
+

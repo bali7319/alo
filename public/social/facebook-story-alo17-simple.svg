@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f8fafc"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <style>
+      .h1 { font: 900 92px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; letter-spacing: -1.2px; }
+      .h2 { font: 600 36px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .mini { font: 600 26px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .cta { font: 800 36px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect width="1080" height="1920" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1080" height="540" fill="#eff6ff"/>
+  <rect x="0" y="540" width="1080" height="80" fill="url(#accent)" opacity="0.15"/>
+
+  <!-- brand pill -->
+  <g transform="translate(90 120)" filter="url(#shadow)">
+    <rect x="0" y="0" width="900" height="150" rx="30" fill="#ffffff"/>
+  </g>
+  <g transform="translate(120 155)">
+    <image href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+DQogIDxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiByeD0iMjAiIGZpbGw9IiNGRjZCMzUiLz4NCiAgPHRleHQgeD0iNjAiIHk9Ijc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QTE3PC90ZXh0Pg0KPC9zdmc+DQoNCg==" x="0" y="0" width="92" height="92" preserveAspectRatio="xMidYMid meet"/>
+    <text x="112" y="56" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="34" font-weight="800">
+      <tspan fill="#0f172a">alo</tspan><tspan fill="#2563eb">17</tspan><tspan fill="#f97316">.tr</tspan>
+    </text>
+    <text x="112" y="92" class="mini" fill="#334155">Çanakkale’nin ilan sitesi</text>
+  </g>
+
+  <!-- headline -->
+  <g transform="translate(90 420)">
+    <text x="0" y="0" class="h1" fill="#0f172a">İlan ver.</text>
+    <text x="0" y="110" class="h1" fill="#0f172a">Hızlı sat.</text>
+    <rect x="0" y="150" width="520" height="14" rx="7" fill="url(#accent)"/>
+    <text x="0" y="230" class="h2" fill="#334155">Keşfet • Mesajlaş • Paylaş</text>
+  </g>
+
+  <!-- bullets -->
+  <g transform="translate(90 820)" filter="url(#shadow)">
+    <rect x="0" y="0" width="900" height="380" rx="28" fill="#ffffff"/>
+    <g transform="translate(40 56)">
+      <circle cx="18" cy="18" r="18" fill="#2563eb"/>
+      <text x="60" y="28" class="h2" fill="#0f172a">Ücretsiz ilan</text>
+      <text x="60" y="64" class="mini" fill="#475569">Kolayca yayınla</text>
+    </g>
+    <g transform="translate(40 150)">
+      <circle cx="18" cy="18" r="18" fill="#f97316"/>
+      <text x="60" y="28" class="h2" fill="#0f172a">Hızlı iletişim</text>
+      <text x="60" y="64" class="mini" fill="#475569">Mesajlaş / WhatsApp</text>
+    </g>
+    <g transform="translate(40 244)">
+      <circle cx="18" cy="18" r="18" fill="#2563eb"/>
+      <text x="60" y="28" class="h2" fill="#0f172a">Çanakkale odaklı</text>
+      <text x="60" y="64" class="mini" fill="#475569">Yakınında ilanları gör</text>
+    </g>
+  </g>
+
+  <!-- CTA -->
+  <g transform="translate(90 1400)" filter="url(#shadow)">
+    <rect x="0" y="0" width="900" height="130" rx="28" fill="url(#accent)"/>
+    <text x="450" y="82" text-anchor="middle" class="cta" fill="#ffffff">alo17.tr</text>
+  </g>
+</svg>
+

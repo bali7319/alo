@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#eff6ff"/>
+      <stop offset="1" stop-color="#fff7ed"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.15"/>
+    </filter>
+    <style>
+      .brandBlue { fill:#2563eb; }
+      .brandOrange { fill:#f97316; }
+      .muted { fill:#334155; }
+      .muted2 { fill:#475569; }
+      .pillText { font: 600 28px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; letter-spacing: .2px; }
+      .h1 { font: 800 76px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; letter-spacing: -1px; }
+      .h2 { font: 600 34px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .cta { font: 800 36px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; letter-spacing: .2px; }
+      .small { font: 600 26px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bg)"/>
+
+  <!-- Soft blobs -->
+  <circle cx="980" cy="220" r="260" fill="#dbeafe" opacity="0.75"/>
+  <circle cx="120" cy="420" r="220" fill="#ffedd5" opacity="0.75"/>
+  <circle cx="880" cy="1480" r="340" fill="#e0e7ff" opacity="0.55"/>
+  <circle cx="260" cy="1600" r="260" fill="#ffedd5" opacity="0.55"/>
+
+  <!-- Top brand -->
+  <g transform="translate(90 110)" filter="url(#shadow)">
+    <rect x="0" y="0" width="900" height="150" rx="28" fill="#ffffff" opacity="0.92"/>
+  </g>
+  <g transform="translate(120 145)">
+    <!-- Logo (relative path inside /public) -->
+    <image href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+DQogIDxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiByeD0iMjAiIGZpbGw9IiNGRjZCMzUiLz4NCiAgPHRleHQgeD0iNjAiIHk9Ijc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QTE3PC90ZXh0Pg0KPC9zdmc+DQoNCg==" x="0" y="0" width="92" height="92" preserveAspectRatio="xMidYMid meet"/>
+    <text x="112" y="56" class="pillText">
+      <tspan class="muted">alo</tspan><tspan class="brandBlue">17</tspan><tspan class="brandOrange">.tr</tspan>
+    </text>
+    <text x="112" y="92" class="small muted2">Çanakkale’nin ilan sitesi</text>
+  </g>
+
+  <!-- Main headline -->
+  <g transform="translate(90 420)">
+    <text x="0" y="0" class="h1 muted">Al • Sat • Keşfet</text>
+    <rect x="0" y="26" width="640" height="12" rx="6" fill="url(#accent)" opacity="0.85"/>
+    <text x="0" y="90" class="h2 muted2">Ücretsiz ilan ver, güvenle mesajlaş.</text>
+  </g>
+
+  <!-- Feature icons row -->
+  <g transform="translate(90 610)" opacity="0.95">
+    <!-- Tag -->
+    <g transform="translate(0 0)">
+      <rect x="0" y="0" width="300" height="120" rx="20" fill="#ffffff" filter="url(#shadow)"/>
+      <path d="M78 38h72l20 20-58 58-34-34z" fill="#2563eb" opacity="0.9"/>
+      <circle cx="128" cy="58" r="6" fill="#ffffff"/>
+      <text x="170" y="72" class="small muted">İlan Ver</text>
+    </g>
+    <!-- Chat -->
+    <g transform="translate(330 0)">
+      <rect x="0" y="0" width="300" height="120" rx="20" fill="#ffffff" filter="url(#shadow)"/>
+      <path d="M70 40c0-12 10-22 22-22h56c12 0 22 10 22 22v28c0 12-10 22-22 22H112l-22 18v-18H92c-12 0-22-10-22-22z" fill="#f97316" opacity="0.95"/>
+      <rect x="108" y="52" width="46" height="8" rx="4" fill="#fff" opacity="0.9"/>
+      <rect x="108" y="68" width="62" height="8" rx="4" fill="#fff" opacity="0.9"/>
+      <text x="170" y="72" class="small muted">Mesajlaş</text>
+    </g>
+    <!-- Pin -->
+    <g transform="translate(660 0)">
+      <rect x="0" y="0" width="300" height="120" rx="20" fill="#ffffff" filter="url(#shadow)"/>
+      <path d="M120 26c-20 0-36 16-36 36 0 30 36 74 36 74s36-44 36-74c0-20-16-36-36-36z" fill="#2563eb" opacity="0.9"/>
+      <circle cx="120" cy="62" r="12" fill="#fff"/>
+      <text x="170" y="72" class="small muted">Yakınında</text>
+    </g>
+  </g>
+
+  <!-- CTA button (safe from bottom overlays) -->
+  <g transform="translate(90 1380)" filter="url(#shadow)">
+    <rect x="0" y="0" width="900" height="130" rx="28" fill="url(#accent)"/>
+    <text x="450" y="82" text-anchor="middle" class="cta" fill="#ffffff">Hemen ilan ver</text>
+  </g>
+
+  <!-- Footer note -->
+  <text x="540" y="1620" text-anchor="middle" class="small muted2">alo17.tr</text>
+  <text x="540" y="1660" text-anchor="middle" class="small muted2">Çanakkale • Türkiye</text>
+</svg>
+
