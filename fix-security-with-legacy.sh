@@ -1,16 +1,16 @@
 #!/bin/bash
-# Güvenlik düzeltmeleri --legacy-peer-deps ile
+# Güvenlik düzeltmeleri (deterministic install önerilir)
 
 echo "📦 Nodemailer güncelleniyor..."
-npm install nodemailer@^7.0.12 --legacy-peer-deps
+npm install nodemailer@^7.0.12
 
 echo ""
 echo "🔒 Güvenlik açıkları düzeltiliyor..."
-npm audit fix --legacy-peer-deps
+npm audit fix
 
 echo ""
 echo "📦 Next.js güncelleniyor..."
-npm install next@latest --legacy-peer-deps
+npm install next@latest
 
 echo ""
 echo "🔧 Prisma Client generate ediliyor..."

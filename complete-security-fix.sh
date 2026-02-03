@@ -2,11 +2,11 @@
 # Kalan güvenlik düzeltmelerini tamamla
 
 echo "🔒 Kalan güvenlik açıkları düzeltiliyor..."
-npm audit fix --legacy-peer-deps
+npm audit fix
 
 echo ""
 echo "📦 Next.js güncelleniyor..."
-npm install next@latest --legacy-peer-deps
+npm install next@latest
 
 echo ""
 echo "🔧 Prisma Client generate ediliyor..."

@@ -1,10 +1,11 @@
 import { MetadataRoute } from 'next'
 import { categories } from '@/lib/categories'
 import { prisma } from '@/lib/prisma'
-import { createSlug } from '@/lib/slug'
+import { createListingSlug } from '@/lib/slug'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://alo17.tr'
+  const DEBUG = process.env.NODE_ENV !== 'production' || process.env.DEBUG_SITEMAP === 'true'
   
   // Statik sayfalar
   const staticPages: MetadataRoute.Sitemap = [
@@ -88,13 +89,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
 
     listingPages = listings.map((listing) => ({
-      url: `${baseUrl}/ilan/${createSlug(listing.title)}`,
+      // Canonical listing URL includes stable ID to avoid duplicates.
+      url: `${baseUrl}/ilan/${createListingSlug(listing.title, listing.id)}`,
       lastModified: listing.updatedAt || listing.createdAt,
       changeFrequency: 'weekly' as const,
       priority: 0.6,
     }))
   } catch (error) {
-    console.error('Sitemap listing error:', error)
+    if (DEBUG) {
+      console.error('Sitemap listing error:', error)
+    } else {
+      console.warn('[sitemap] listing query failed; returning without listing URLs')
+    }
     // Hata durumunda boş array döndür, sitemap bozulmasın
   }
 

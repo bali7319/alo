@@ -10,6 +10,7 @@ interface CacheEntry<T> {
 
 // In-memory cache store
 const cacheStore = new Map<string, CacheEntry<unknown>>();
+const CACHE_MAX_ENTRIES = 1000;
 
 /**
  * Cache'den veri alır
@@ -27,6 +28,10 @@ export function getCache<T>(key: string): T | null {
     return null;
   }
 
+  // LRU-ish: access refreshes insertion order
+  cacheStore.delete(key);
+  cacheStore.set(key, entry);
+
   return entry.data as T;
 }
 
@@ -35,17 +40,22 @@ export function getCache<T>(key: string): T | null {
  */
 export function setCache<T>(key: string, data: T, ttlMs: number = 60000): void {
   const expiresAt = Date.now() + ttlMs;
+  // refresh order
+  if (cacheStore.has(key)) cacheStore.delete(key);
   cacheStore.set(key, { data, expiresAt });
 
-  // Memory leak önleme - çok fazla entry varsa eski olanları temizle
-  if (cacheStore.size > 1000) {
+  // Memory boundedness: evict expired, then oldest
+  if (cacheStore.size > CACHE_MAX_ENTRIES) {
     const now = Date.now();
-    const entries = Array.from(cacheStore.entries());
-    for (const [k, v] of entries) {
-      if (now > v.expiresAt) {
-        cacheStore.delete(k);
-      }
+    for (const [k, v] of cacheStore.entries()) {
+      if (now > v.expiresAt) cacheStore.delete(k);
+      if (cacheStore.size <= CACHE_MAX_ENTRIES) break;
     }
+  }
+  while (cacheStore.size > CACHE_MAX_ENTRIES) {
+    const oldestKey = cacheStore.keys().next().value as string | undefined;
+    if (!oldestKey) break;
+    cacheStore.delete(oldestKey);
   }
 }
 

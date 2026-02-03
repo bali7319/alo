@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { HeartIcon, EyeIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { createSlug } from '@/lib/slug';
+import { createListingSlug } from '@/lib/slug';
 
 interface FavoriteListing {
   id: string;
@@ -194,7 +194,7 @@ export default function FavorilerimPage() {
                   
                   <div className="flex justify-between items-center">
                     <Link
-                      href={`/ilan/${createSlug(listing.title)}`}
+                      href={`/ilan/${createListingSlug(listing.title, listing.id)}`}
                       className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                     >
                       <EyeIcon className="w-4 h-4 mr-1" />

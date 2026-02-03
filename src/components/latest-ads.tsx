@@ -44,7 +44,7 @@ export function LatestAds({ category, subcategory, subSubcategory, limit, title,
         <h2 id="latest-ads-title" className="text-2xl font-bold">{title || "En Son İlanlar"}</h2>
         {category && subcategory && subSubcategory && (
           <Link 
-            href={`/kategori/${category.toLowerCase()}/${subcategory.toLowerCase()}/${subSubcategory.toLowerCase()}`} 
+            href={`/kategori/${createSlug(category)}/${createSlug(subcategory)}/${createSlug(subSubcategory)}`} 
             className="text-blue-600 hover:text-blue-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
             aria-label={`${subSubcategory} kategorisindeki tüm ilanları görüntüle`}
           >
@@ -53,7 +53,7 @@ export function LatestAds({ category, subcategory, subSubcategory, limit, title,
         )}
         {category && subcategory && !subSubcategory && (
           <Link 
-            href={`/kategori/${category.toLowerCase()}/${subcategory.toLowerCase()}`} 
+            href={`/kategori/${createSlug(category)}/${createSlug(subcategory)}`} 
             className="text-blue-600 hover:text-blue-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
             aria-label={`${subcategory} kategorisindeki tüm ilanları görüntüle`}
           >

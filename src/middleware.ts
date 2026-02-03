@@ -7,6 +7,7 @@ import { getToken } from 'next-auth/jwt';
  * Production için Redis kullanılmalı
  */
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_HARD_CAP = 20000;
 
 // Eski entry'leri temizle (memory leak önleme)
 function cleanupRateLimitMap(maxToScan: number = 500) {
@@ -24,6 +25,17 @@ function checkRateLimit(ip: string, maxRequests: number = 100, windowMs: number 
   const now = Date.now();
   // Opportunistic cleanup (Edge-safe, no timers)
   if (rateLimitMap.size > 5000) cleanupRateLimitMap(2000);
+  // Hard cap: if attacked with huge unique IPs, drop oldest entries.
+  // Map preserves insertion order, so deleting from the start removes oldest.
+  if (rateLimitMap.size > RATE_LIMIT_HARD_CAP) {
+    const toDelete = rateLimitMap.size - 10000; // keep last 10k
+    let i = 0;
+    for (const key of rateLimitMap.keys()) {
+      rateLimitMap.delete(key);
+      i++;
+      if (i >= toDelete) break;
+    }
+  }
   const entry = rateLimitMap.get(ip);
 
   if (!entry || now > entry.resetTime) {
@@ -43,15 +55,34 @@ function checkRateLimit(ip: string, maxRequests: number = 100, windowMs: number 
 }
 
 function getClientIP(request: NextRequest): string {
+  const realIP = request.headers.get('x-real-ip');
   const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
+
+  const isValidIp = (ip: string) => {
+    // IPv4
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return true;
+    // IPv6 (simple check; good enough for rate limiting keys)
+    if (/^[0-9a-fA-F:]+$/.test(ip) && ip.includes(':')) return true;
+    return false;
+  };
+
+  // Prefer x-real-ip (usually set/overwritten by reverse proxy).
+  if (realIP && isValidIp(realIP.trim())) {
+    return realIP.trim();
   }
 
-  const realIP = request.headers.get('x-real-ip');
-  if (realIP) {
-    return realIP;
+  // Spoof-resistance heuristic:
+  // Many reverse proxies append the real client IP to an existing XFF chain.
+  // Taking the *last* entry makes it harder to bypass by sending a fake header.
+  if (forwarded) {
+    const parts = forwarded.split(',').map((p) => p.trim()).filter(Boolean);
+    const candidate = parts.length ? parts[parts.length - 1] : '';
+    if (candidate && isValidIp(candidate)) return candidate;
   }
+
+  // NextRequest may expose a direct IP in some runtimes.
+  const direct = (request as any)?.ip as string | undefined;
+  if (direct && isValidIp(direct.trim())) return direct.trim();
 
   // NextRequest'te ip property yok, fallback olarak 'unknown' döndür
   return 'unknown';

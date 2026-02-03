@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Star, Crown, Image as ImageIcon, Eye } from "lucide-react"
 import { Listing } from '@/types/listings'
-import { createSlug } from '@/lib/slug'
+import { createListingSlug } from '@/lib/slug'
 import { LazyImage } from '@/components/ui/lazy-image'
 
 interface ListingCardProps {
@@ -30,7 +30,7 @@ export function ListingCard({ listing, showViews = false }: ListingCardProps) {
   const hasImage = imageUrl !== null;
   const isBase64 = hasImage && typeof imageUrl === 'string' && imageUrl.startsWith('data:image');
 
-  const listingSlug = createSlug(listing.title);
+  const listingSlug = createListingSlug(listing.title, listing.id);
   
   return (
     <Link 

@@ -26,16 +26,36 @@ export function createSlug(title: string): string {
 }
 
 /**
+ * İlan detay sayfası için canonical path segment üretir.
+ * Örn: "/ilan/iphone-14-pro-max-cmjk...".
+ */
+export function createListingSlug(title: string, id: string): string {
+  const slug = createSlug(title);
+  return `${slug}-${id}`;
+}
+
+/**
  * Slug'dan ilan ID'sini çıkarır (geriye dönük uyumluluk için)
- * Artık slug formatında URL kullanıyoruz: "/ilan/kiralik-mobil-jenerator"
- * Eski ID formatı desteği: "/ilan/cmjkhx5h60001bf7lsliv4tvy"
+ * Desteklenen formatlar:
+ * - "/ilan/<id>" (salt ID)
+ * - "/ilan/<slug>-<id>" (canonical)
+ * - "/ilan/<slug>" (eski; ID çıkarılamaz)
  */
 export function extractIdFromSlug(slug: string): string | null {
-  // Eski format: sadece ID (20+ karakter alfanumerik) - geriye dönük uyumluluk
-  if (slug.length >= 20 && /^[a-z0-9]+$/i.test(slug)) {
-    return slug;
-  }
-  // Yeni format: slug - null döndür, API route slug'dan arama yapacak
+  const s = (slug || '').trim();
+  if (!s) return null;
+
+  // Prisma cuid() genelde "c" ile başlar ve yalnızca [a-z0-9] içerir.
+  const looksLikeCuid = (v: string) => /^c[a-z0-9]{19,}$/i.test(v);
+
+  // 1) Salt ID
+  if (looksLikeCuid(s)) return s;
+
+  // 2) slug-id: son parçayı ID olarak kabul et
+  const last = s.includes('-') ? s.split('-').pop() : null;
+  if (last && looksLikeCuid(last)) return last;
+
+  // 3) slug-only: ID çıkarılamaz
   return null;
 }
 

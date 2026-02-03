@@ -4,24 +4,25 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
+    "build:with-prisma": "prisma generate && next build",
     "export": "next build && next export",
     "start": "next start",
     "start:3010": "next start -p 3010",
     "start:prod": "npm run build && npm run start",
     "start:prod:3010": "npm run build && npm run start:3010",
     "lint": "next lint",
+    "android:icons": "node scripts/generate-android-icons.mjs",
     "cron:test": "node -r ts-node/register src/cron/expire-listings.ts",
     "mobile:build": "npm run build && npx cap sync",
     "mobile:android": "npx cap open android",
     "mobile:ios": "npx cap open ios",
     "mobile:sync": "npx cap sync",
     "mobile:apk": "npx cap sync && npx cap open android",
-    "mobile:test": "powershell -ExecutionPolicy Bypass -File test-apk.ps1"
+    "mobile:test": "powershell -ExecutionPolicy Bypass -File test-apk.ps1",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@auth/core": "^0.41.1",
-    "@auth/prisma-adapter": "^2.9.1",
     "@capacitor/android": "^8.0.0",
     "@capacitor/app": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
@@ -71,8 +72,12 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",
-    "eslint-config-next": "14.1.0",
+    "eslint-config-next": "^15.3.3",
     "prisma": "^6.10.1",
+    "sharp": "^0.34.5",
     "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=18.18.0 <23.0.0"
   }
 }

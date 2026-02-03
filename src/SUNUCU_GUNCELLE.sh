@@ -4,16 +4,15 @@
 cd /var/www/alo17
 
 echo "📥 Git pull yapılıyor..."
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
+git clean -fd -e public/uploads -e public/images/listings
 
 echo "📦 NPM paketleri yükleniyor..."
-npm install --legacy-peer-deps
-
-echo "🔧 Schema dosyası kontrol ediliyor..."
-if grep -q 'provider = "sqlite"' prisma/schema.prisma; then
-    echo "⚠️  Schema dosyası sqlite olarak görünüyor, postgresql'e çevriliyor..."
-    sed -i 's/provider = "sqlite"/provider = "postgresql"/g' prisma/schema.prisma
-    echo "✅ Schema dosyası güncellendi"
+if [ -f package-lock.json ]; then
+    npm ci --production=false
+else
+    npm install --include=dev
 fi
 
 echo "🔄 Prisma client generate ediliyor..."

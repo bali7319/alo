@@ -5,6 +5,10 @@ import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
 import { Home } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+import { notFound } from 'next/navigation'
+
+export const revalidate = 300; // 5 dakika cache
+export const dynamicParams = true;
 
 // Timeout wrapper
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -28,48 +32,15 @@ export default async function SubSubCategoryPage({ params }: { params: Promise<{
 
   // Ana kategoriyi bul
   const foundCategory = categories.find((cat) => cat.slug === slug)
-  if (!foundCategory) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
-          <Link href="/" className="text-blue-600 hover:text-blue-800">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  if (!foundCategory) notFound();
 
   // Alt kategoriyi bul
   const foundSubcategory = foundCategory.subcategories?.find((sub) => sub.slug === subSlug)
-  if (!foundSubcategory) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Alt kategori bulunamadı</h1>
-          <Link href="/" className="text-blue-600 hover:text-blue-800">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  if (!foundSubcategory) notFound();
 
   // Alt-alt kategoriyi bul
   const foundSubSubcategory = foundSubcategory.subcategories?.find((subsub) => subsub.slug === subSubSlug)
-  if (!foundSubSubcategory) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Alt-alt kategori bulunamadı</h1>
-          <Link href="/" className="text-blue-600 hover:text-blue-800">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  if (!foundSubSubcategory) notFound();
 
   // Güvenli JSON parse fonksiyonu
   const safeParseImages = (images: string | null): string[] => {

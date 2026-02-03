@@ -2,10 +2,11 @@ import { Suspense } from 'react';
 import IlanDetayClient from './IlanDetayClient';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
-import { createSlug, extractIdFromSlug } from '@/lib/slug';
+import { createSlug, createListingSlug, extractIdFromSlug } from '@/lib/slug';
 import { getSeoSettings } from '@/lib/seo-settings';
 import SeoJsonLd from '@/components/SeoJsonLd'
 import { cache } from 'react'
+import { notFound, permanentRedirect } from 'next/navigation'
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -129,6 +130,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       return {
         title: 'İlan Bulunamadı',
         description: 'Aradığınız ilan bulunamadı veya yayından kaldırılmış olabilir.',
+        robots: { index: false, follow: false },
       };
     }
 
@@ -156,7 +158,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       currency: 'TRY',
     }).format(listing.price);
 
-    const listingSlug = createSlug(listing.title);
+    const canonicalSegment = createListingSlug(listing.title, listing.id);
     
     // SEO optimized title - İlan başlığı otomatik kullanılıyor
     const title = `${listing.title} - ${price} | ${listing.category} | Alo17 Çanakkale`;
@@ -168,7 +170,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const description = `${descriptionText}... ${listing.location}, Çanakkale. Fiyat: ${price}. Alo17'de güvenli alışveriş.`;
     
     // SEO-friendly URL - İlan başlığından slug oluştur (sadece slug)
-    const canonicalUrl = `https://alo17.tr/ilan/${listingSlug}`;
+    const canonicalUrl = `https://alo17.tr/ilan/${canonicalSegment}`;
 
     // Keywords array'ini oluştur - undefined değerleri ekleme
     const keywords: string[] = [
@@ -224,6 +226,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title: 'İlan Detayı',
       description: 'İlan detay sayfası',
+      robots: { index: false, follow: false },
     };
   }
 }
@@ -232,6 +235,17 @@ export default async function IlanDetayPage({ params }: PageProps) {
   const { id: slugOrId } = await params;
   const seo = await getSeoSettings();
   const listing = await getListingForSeo(slugOrId);
+
+  if (!listing) {
+    notFound();
+  }
+
+  const canonicalSegment = createListingSlug(listing.title, listing.id);
+
+  // Consolidate all variants (id-only, slug-only, wrong slug) into a single canonical URL.
+  if (slugOrId !== canonicalSegment) {
+    permanentRedirect(`/ilan/${canonicalSegment}`);
+  }
 
   const safeParseImages = (images: string | null): string[] => {
     if (!images) return [];
@@ -251,8 +265,7 @@ export default async function IlanDetayPage({ params }: PageProps) {
     if (!listing || !listing.isActive || listing.approvalStatus !== 'approved') return null;
     const images = safeParseImages(listing.images);
     const firstImage = images[0] || '/images/logo.svg';
-    const listingSlug = createSlug(listing.title);
-    const url = `https://alo17.tr/ilan/${listingSlug}`;
+    const url = `https://alo17.tr/ilan/${canonicalSegment}`;
     const imageUrl = firstImage.startsWith('http') ? firstImage : `https://alo17.tr${firstImage}`;
 
     const conditionUrl = (() => {
@@ -288,7 +301,6 @@ export default async function IlanDetayPage({ params }: PageProps) {
 
   const breadcrumbJsonLd = (() => {
     if (!listing || !listing.isActive || listing.approvalStatus !== 'approved') return null;
-    const listingSlug = createSlug(listing.title);
     return {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
@@ -299,7 +311,7 @@ export default async function IlanDetayPage({ params }: PageProps) {
           '@type': 'ListItem',
           position: 3,
           name: listing.title,
-          item: `https://alo17.tr/ilan/${listingSlug}`,
+          item: `https://alo17.tr/ilan/${canonicalSegment}`,
         },
       ],
     };

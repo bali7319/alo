@@ -2,6 +2,34 @@ import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = global as unknown as { prisma?: PrismaClient; prismaUrl?: string };
 
+function addDefaultPoolParamsToPgUrl(rawUrl: string): string {
+  // Adds safe defaults only if caller didn't specify them.
+  // Prisma reads these from DATABASE_URL query params.
+  // Example: ...?connection_limit=10&pool_timeout=20
+  try {
+    // URL can parse postgres URLs in Node.
+    const u = new URL(rawUrl);
+    const sp = u.searchParams;
+
+    if (!sp.has('connection_limit') && process.env.PRISMA_CONNECTION_LIMIT) {
+      sp.set('connection_limit', String(process.env.PRISMA_CONNECTION_LIMIT));
+    }
+    if (!sp.has('pool_timeout') && process.env.PRISMA_POOL_TIMEOUT) {
+      sp.set('pool_timeout', String(process.env.PRISMA_POOL_TIMEOUT));
+    }
+
+    // Reasonable production defaults if not set anywhere.
+    // Keep these conservative to avoid exhausting DB connections.
+    if (!sp.has('connection_limit')) sp.set('connection_limit', '10');
+    if (!sp.has('pool_timeout')) sp.set('pool_timeout', '20');
+
+    u.search = sp.toString();
+    return u.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 function getSafeDatabaseUrl() {
   const raw = process.env.DATABASE_URL || '';
   const isPg = raw.startsWith('postgresql://') || raw.startsWith('postgres://');
@@ -26,7 +54,8 @@ function getSafeDatabaseUrl() {
     return 'postgresql://invalid:invalid@127.0.0.1:5432/invalid';
   }
 
-  return raw;
+  // Add safe pooling defaults (unless already provided)
+  return addDefaultPoolParamsToPgUrl(raw);
 }
 
 const prismaUrl = getSafeDatabaseUrl();

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Eye, Edit, Trash, Plus, EyeOff, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { createSlug } from '@/lib/slug';
+import { createListingSlug } from '@/lib/slug';
 
 interface MyListing {
   id: string;
@@ -263,7 +263,7 @@ export default function IlanlarimPage() {
                   <div className="flex justify-between items-center">
                     <div className="flex space-x-2">
                       <Link
-                        href={`/ilan/${createSlug(listing.title)}`}
+                        href={`/ilan/${createListingSlug(listing.title, listing.id)}`}
                         className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                       >
                         <Eye className="w-4 h-4 mr-1" />

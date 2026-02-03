@@ -406,7 +406,8 @@ export async function notifySubscribersNewListing(listing: {
     }
 
     const subject = `🆕 Yeni İlan: ${listing.title}`;
-    const listingUrl = `${siteUrl}/ilan/${listing.id}`;
+    const { createListingSlug } = await import('@/lib/slug');
+    const listingUrl = `${siteUrl}/ilan/${createListingSlug(listing.title, listing.id)}`;
     
     const html = `
       <!DOCTYPE html>

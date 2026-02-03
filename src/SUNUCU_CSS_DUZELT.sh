@@ -7,7 +7,11 @@ echo "🧹 .next klasörü temizleniyor..."
 rm -rf .next
 
 echo "📦 NPM paketleri kontrol ediliyor..."
-npm install --legacy-peer-deps
+if [ -f package-lock.json ]; then
+    npm ci --production=false
+else
+    npm install --include=dev
+fi
 
 echo "🏗️  Build yapılıyor..."
 npm run build

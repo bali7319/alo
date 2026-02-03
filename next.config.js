@@ -89,6 +89,50 @@ const nextConfig = {
         destination: '/images/placeholder.svg',
         permanent: false,
       },
+
+      // Category legacy/alias routes -> canonical slugs
+      {
+        source: '/kategori/ev-bahce',
+        destination: '/kategori/ev-ve-bahce',
+        permanent: true,
+      },
+      {
+        source: '/kategori/ev-bahce/:subSlug',
+        destination: '/kategori/ev-ve-bahce/:subSlug',
+        permanent: true,
+      },
+      {
+        source: '/kategori/ev-esyalari',
+        destination: '/kategori/ev-ve-bahce',
+        permanent: true,
+      },
+      {
+        source: '/kategori/turizm-gecelemeler',
+        destination: '/kategori/turizm-konaklama',
+        permanent: true,
+      },
+      {
+        source: '/kategori/turizm-gecelemeler/:subSlug',
+        destination: '/kategori/turizm-konaklama/:subSlug',
+        permanent: true,
+      },
+      {
+        source: '/kategori/hobi-sanat',
+        destination: '/kategori/sanat-hobi',
+        permanent: true,
+      },
+      {
+        source: '/kategori/hobi-sanat/:subSlug',
+        destination: '/kategori/sanat-hobi/:subSlug',
+        permanent: true,
+      },
+
+      // Legacy mock route (restaurant sub-sub routes) -> canonical subcategory page
+      {
+        source: '/kategori/yemek-icecek/restoranlar/:altKategori',
+        destination: '/kategori/yemek-icecek/restoranlar',
+        permanent: true,
+      },
     ];
   },
 

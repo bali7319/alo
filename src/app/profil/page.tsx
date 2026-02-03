@@ -19,7 +19,7 @@ import {
   ChatBubbleLeftIcon,
 } from '@heroicons/react/24/outline';
 import { listingTypes, listingStatus, Listing } from '@/types/listings';
-import { createSlug } from '@/lib/slug';
+import { createListingSlug } from '@/lib/slug';
 
 interface UserListing {
   id: string;
@@ -415,7 +415,7 @@ export default function ProfilePage() {
                                   </button>
                                 ) : (
                                   <Link
-                                    href={`/ilan/${createSlug(listing.title)}`}
+                                    href={`/ilan/${createListingSlug(listing.title, listing.id)}`}
                                     className="text-xs sm:text-sm text-alo-orange hover:text-alo-light-orange whitespace-nowrap"
                                   >
                                     İlanı Görüntüle
@@ -521,7 +521,7 @@ export default function ProfilePage() {
                             <span className="truncate">{listing.location}</span>
                           </div>
                           <Link
-                            href={`/ilan/${createSlug(listing.title)}`}
+                            href={`/ilan/${createListingSlug(listing.title, listing.id)}`}
                             className="text-xs sm:text-sm text-alo-orange hover:text-alo-light-orange inline-block"
                           >
                             İlanı Görüntüle

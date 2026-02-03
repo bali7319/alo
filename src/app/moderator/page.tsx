@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Check, X, Edit, Eye, Clock, User, FileText, AlertCircle, Search, Filter } from 'lucide-react';
 import Link from 'next/link';
+import { createListingSlug } from '@/lib/slug';
 
 interface Listing {
   id: string;
@@ -430,7 +431,7 @@ export default function ModeratorPage() {
                       Düzenle
                     </Button>
                     <Button asChild variant="outline" className="w-full flex items-center justify-center gap-2">
-                      <Link href={`/ilan/${listing.id}`} target="_blank" rel="noopener noreferrer">
+                      <Link href={`/ilan/${createListingSlug(listing.title, listing.id)}`} target="_blank" rel="noopener noreferrer">
                         <Eye className="w-4 h-4" />
                         Görüntüle
                       </Link>

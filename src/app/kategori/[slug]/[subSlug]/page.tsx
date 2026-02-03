@@ -5,6 +5,10 @@ import { LatestAds } from '@/components/latest-ads'
 import Link from 'next/link'
 import { Home, Sparkles, Star, Clock } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+import { notFound } from 'next/navigation'
+
+export const revalidate = 300; // 5 dakika cache
+export const dynamicParams = true;
 
 // Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -21,33 +25,11 @@ export default async function SubCategoryPage({ params }: { params: Promise<{ sl
 
   // Ana kategoriyi bul
   const foundCategory = categories.find((cat) => cat.slug === slug)
-  if (!foundCategory) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
-          <Link href="/" className="text-blue-600 hover:text-blue-800">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  if (!foundCategory) notFound();
 
   // Alt kategoriyi bul
   const foundSubcategory = foundCategory.subcategories?.find((sub) => sub.slug === subSlug)
-  if (!foundSubcategory) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Alt kategori bulunamadı</h1>
-          <Link href="/" className="text-blue-600 hover:text-blue-800">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  if (!foundSubcategory) notFound();
 
   // Diğer alt kategoriler
   const otherSubcategories = foundCategory.subcategories?.filter((sub) => sub.slug !== subSlug) || []

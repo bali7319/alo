@@ -12,7 +12,6 @@ import { notFound, redirect } from 'next/navigation'
 // Cache eklendi - performans için kritik
 export const revalidate = 300; // 5 dakika cache
 export const dynamicParams = true; // Bilinmeyen slug'lar için runtime'da render et
-export const dynamic = 'force-dynamic'; // Unknown params must not trigger static generation
 
 // Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {

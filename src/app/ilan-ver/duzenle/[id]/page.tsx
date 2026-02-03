@@ -495,7 +495,12 @@ export default function IlanDuzenlePage() {
       }
 
       alert('İlan başarıyla güncellendi!');
-      router.push(`/ilan/${listingId}`);
+      try {
+        const { createListingSlug } = await import('@/lib/slug');
+        router.push(`/ilan/${createListingSlug(updateData.title, listingId)}`);
+      } catch {
+        router.push(`/ilan/${listingId}`);
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'İlan güncellenirken bir hata oluştu');
     } finally {

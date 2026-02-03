@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { createSlug } from '@/lib/slug';
+import { createListingSlug } from '@/lib/slug';
 import { isAdmin } from '@/lib/admin-client';
 
 interface Report {
@@ -83,7 +83,7 @@ export default function SikayetlerPage() {
                 {reports.map((r) => (
                   <tr key={r.id}>
                     <td className="px-4 py-2">
-                      <a href={`/ilan/${createSlug(r.listing.title)}`} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                      <a href={`/ilan/${createListingSlug(r.listing.title, r.listing.id)}`} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
                         {r.listing.title}
                       </a>
                     </td>
