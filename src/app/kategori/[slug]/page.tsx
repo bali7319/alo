@@ -7,10 +7,12 @@ import { Home, Sparkles, Star, MapPin, Users, Clock, Shield, Award } from 'lucid
 import { prisma } from '@/lib/prisma'
 import { Metadata } from 'next'
 import SeoJsonLd from '@/components/SeoJsonLd'
+import { notFound, redirect } from 'next/navigation'
 
 // Cache eklendi - performans için kritik
 export const revalidate = 300; // 5 dakika cache
 export const dynamicParams = true; // Bilinmeyen slug'lar için runtime'da render et
+export const dynamic = 'force-dynamic'; // Unknown params must not trigger static generation
 
 // Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -20,14 +22,6 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Pr
       setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
     )
   ]);
-}
-
-// generateStaticParams fonksiyonu - Runtime'da render için boş döndür
-// Statik sayfalar yerine runtime'da render edilecek (dynamic = 'force-dynamic' sayesinde)
-export async function generateStaticParams() {
-  // Runtime'da render için boş array döndür
-  // Bu sayede tüm sayfalar runtime'da render edilecek ve debug log'ları görünecek
-  return [];
 }
 
 // SEO Metadata
@@ -136,21 +130,20 @@ export default async function CategoryPage({
   const foundCategory = categories.find((cat) => cat.slug === slug)
   
   if (!foundCategory) {
+    // Some links might incorrectly use the category name instead of slug (e.g. /kategori/İş).
+    // Try to map name -> slug (Turkish locale) and redirect to canonical URL.
+    const byName = categories.find(
+      (cat) => cat.name.toLocaleLowerCase('tr-TR') === slug.toLocaleLowerCase('tr-TR')
+    );
+    if (byName) {
+      redirect(`/kategori/${byName.slug}`);
+    }
+
     if (DEBUG) {
       console.error('CategoryPage - Category not found for slug:', slug);
       console.error('CategoryPage - Available slugs:', categories.map(c => c.slug));
     }
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Kategori bulunamadı</h1>
-          <p className="text-gray-600 mb-2">Slug: {slug}</p>
-          <Link href="/" className="text-blue-600 hover:text-blue-800">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </div>
-    )
+    notFound();
   }
   
   if (DEBUG) {
