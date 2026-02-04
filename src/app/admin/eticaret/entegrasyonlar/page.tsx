@@ -89,7 +89,7 @@ export default function ECommerceIntegrationsPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Kayıt başarısız');
+      if (!res.ok) throw new Error(data?.details || data?.error || 'Kayıt başarısız');
 
       setForm((f) => ({ ...f, name: '' }));
       await fetchConnections();

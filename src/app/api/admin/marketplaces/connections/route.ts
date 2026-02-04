@@ -66,10 +66,19 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ connection: created }, { status: 201 });
   } catch (e: any) {
-    // unique(provider, name) constraint
+    const msg = e?.message ?? String(e);
+    const isDuplicate =
+      typeof msg === 'string' &&
+      (msg.toLowerCase().includes('zaten bir bağlantı var') ||
+        msg.toLowerCase().includes('unique') ||
+        msg.toLowerCase().includes('duplicate'));
+
     return NextResponse.json(
-      { error: 'Bağlantı oluşturulamadı', details: e?.message ?? String(e) },
-      { status: 500 }
+      {
+        error: isDuplicate ? 'Bu isimle zaten bir bağlantı var' : 'Bağlantı oluşturulamadı',
+        details: msg,
+      },
+      { status: isDuplicate ? 409 : 500 }
     );
   }
 }
