@@ -19,6 +19,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <AdminNavLink href="/admin/mesajlar" label="Mesajlar" />
             <AdminNavLink href="/admin/odemeler" label="Ödemeler" />
             <AdminNavLink href="/admin/faturalar" label="Faturalar" />
+            <div className="pt-3 mt-3 border-t border-gray-200">
+              <div className="px-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                E-Ticaret
+              </div>
+              <AdminNavLink href="/admin/eticaret/entegrasyonlar" label="Entegrasyonlar" />
+              <AdminNavLink href="/admin/eticaret/urunler" label="Ürünler" />
+              <AdminNavLink href="/admin/eticaret/siparisler" label="Siparişler" />
+            </div>
             <AdminNavLink href="/admin/uyeler" label="Kullanıcılar" />
             <AdminNavLink href="/admin/kariyer" label="Kariyer" />
             <AdminNavLink href="/admin/sozlesmeler" label="Hukuki Belgeler" />

@@ -100,6 +100,9 @@ dist/
 .temp/
 .tmp/
 
+# Local marketplace data (credentials are encrypted but should never be committed)
+.data/
+
 # System Files
 Thumbs.db
 
