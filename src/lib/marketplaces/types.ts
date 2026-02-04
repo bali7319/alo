@@ -49,6 +49,7 @@ export type ShippingLabelResult = {
 export type MarketplaceAdapter = {
   provider: MarketplaceProvider;
   testConnection(credentials: any): Promise<{ ok: boolean; message?: string }>;
-  // MVP: sync methods will be added per provider
+  listProducts?(credentials: any): Promise<MarketplaceProductUpsert[]>;
+  listOrders?(credentials: any): Promise<MarketplaceOrderUpsert[]>;
 };
 

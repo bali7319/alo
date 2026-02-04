@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { RefreshCw, Search } from 'lucide-react';
+import { RefreshCw, Search, DownloadCloud } from 'lucide-react';
 
 type Product = {
   id: string;
@@ -22,6 +22,7 @@ export default function ECommerceProductsPage() {
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   async function fetchProducts() {
     setLoading(true);
@@ -40,6 +41,22 @@ export default function ECommerceProductsPage() {
     }
   }
 
+  async function syncWoo() {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/admin/marketplaces/sync/woocommerce', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) throw new Error(data?.error || 'Senkron başarısız');
+      await fetchProducts();
+      alert(`✅ Çekildi. Ürün: ${data.products}, Sipariş: ${data.orders}`);
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || 'Senkron başarısız');
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -54,14 +71,25 @@ export default function ECommerceProductsPage() {
             Pazaryerlerinden çekilen ürün cache’i. Önce <Link className="text-blue-600 hover:underline" href="/admin/eticaret/entegrasyonlar">entegrasyon</Link> ekleyip senkron başlatacağız.
           </p>
         </div>
-        <button
-          onClick={fetchProducts}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-          type="button"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Yenile
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={syncWoo}
+            disabled={syncing}
+            className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 flex items-center gap-2 disabled:opacity-50"
+            type="button"
+          >
+            <DownloadCloud className="w-4 h-4" />
+            {syncing ? 'Çekiliyor…' : 'Woo Ürünleri Çek'}
+          </button>
+          <button
+            onClick={fetchProducts}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+            type="button"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Yenile
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm p-4">

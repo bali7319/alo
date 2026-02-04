@@ -28,6 +28,7 @@ type StorageData = {
 export type MarketplaceStorage = {
   listConnections(): Promise<ConnectionRecord[]>;
   getConnection(id: string): Promise<ConnectionRecord | null>;
+  getConnectionByProvider(provider: MarketplaceProvider): Promise<ConnectionRecord | null>;
   createConnection(input: Omit<ConnectionRecord, 'id' | 'createdAt' | 'updatedAt' | 'lastTestAt' | 'lastTestOk' | 'lastError'>): Promise<ConnectionRecord>;
   updateConnection(
     id: string,
@@ -38,6 +39,8 @@ export type MarketplaceStorage = {
   deleteConnection(id: string): Promise<void>;
   listProducts(opts: { connectionId?: string; q?: string; limit: number }): Promise<any[]>;
   listOrders(opts: { connectionId?: string; q?: string; status?: string; limit: number }): Promise<any[]>;
+  replaceProductsForConnection(connectionId: string, products: any[]): Promise<void>;
+  replaceOrdersForConnection(connectionId: string, orders: any[]): Promise<void>;
 };
 
 function getDataDir() {
@@ -111,6 +114,11 @@ export function getMarketplaceStorage(): MarketplaceStorage {
     async getConnection(id: string) {
       const data = await readJson();
       return data.connections.find((c) => c.id === id) || null;
+    },
+
+    async getConnectionByProvider(provider: MarketplaceProvider) {
+      const data = await readJson();
+      return data.connections.find((c) => c.provider === provider) || null;
     },
 
     async createConnection(input) {
@@ -201,6 +209,20 @@ export function getMarketplaceStorage(): MarketplaceStorage {
         );
       });
       return filtered.slice(0, limit);
+    },
+
+    async replaceProductsForConnection(connectionId: string, products: any[]) {
+      const data = await readJson();
+      data.products = (data.products || []).filter((p: any) => p.connectionId !== connectionId);
+      data.products.push(...products);
+      await writeJsonAtomic(data);
+    },
+
+    async replaceOrdersForConnection(connectionId: string, orders: any[]) {
+      const data = await readJson();
+      data.orders = (data.orders || []).filter((o: any) => o.connectionId !== connectionId);
+      data.orders.push(...orders);
+      await writeJsonAtomic(data);
     },
   };
 }
