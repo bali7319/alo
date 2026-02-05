@@ -1,6 +1,7 @@
 import type { MarketplaceProvider } from '@prisma/client';
 import type { MarketplaceAdapter } from './types';
 import { wooListAllOrders, wooListAllProducts, wooTestConnection } from './woocommerce';
+import { trendyolListAllOrders, trendyolListAllProducts, trendyolTestConnection } from './trendyol';
 
 function notImplemented(provider: MarketplaceProvider): MarketplaceAdapter {
   return {
@@ -97,9 +98,83 @@ function woocommerceAdapter(): MarketplaceAdapter {
   };
 }
 
+function trendyolAdapter(): MarketplaceAdapter {
+  return {
+    provider: 'trendyol',
+    async testConnection(credentials: any) {
+      try {
+        await trendyolTestConnection({
+          sellerId: String(credentials?.sellerId || ''),
+          apiKey: String(credentials?.apiKey || ''),
+          apiSecret: String(credentials?.apiSecret || ''),
+          token: credentials?.token ? String(credentials.token) : undefined,
+        });
+        return { ok: true, message: 'Bağlantı başarılı' };
+      } catch (e: any) {
+        return { ok: false, message: e?.message ?? String(e) };
+      }
+    },
+    async listProducts(credentials: any) {
+      const creds = {
+        sellerId: String(credentials?.sellerId || ''),
+        apiKey: String(credentials?.apiKey || ''),
+        apiSecret: String(credentials?.apiSecret || ''),
+        token: credentials?.token ? String(credentials.token) : undefined,
+      };
+      const items = await trendyolListAllProducts(creds);
+      return items.map((p: any) => ({
+        externalId: String(p.id ?? p.barcode ?? ''),
+        merchantSku: p.stockCode ?? null,
+        barcode: p.barcode ?? null,
+        title: p.title ?? null,
+        price: p.salePrice ?? p.listPrice ?? null,
+        currency: 'TRY',
+        stock: typeof p.quantity === 'number' ? p.quantity : null,
+        raw: p,
+      }));
+    },
+    async listOrders(credentials: any) {
+      const creds = {
+        sellerId: String(credentials?.sellerId || ''),
+        apiKey: String(credentials?.apiKey || ''),
+        apiSecret: String(credentials?.apiSecret || ''),
+        token: credentials?.token ? String(credentials.token) : undefined,
+      };
+      const items = await trendyolListAllOrders(creds);
+      return items.map((o: any) => {
+        const addr = o.shipmentAddress || {};
+        return {
+          externalId: String(o.id ?? o.orderNumber ?? ''),
+          status: String(o.status ?? ''),
+          placedAt: o.orderDate ?? null,
+          buyerName: o.customerName ?? null,
+          buyerEmail: o.customerEmail ?? null,
+          shippingName: addr.fullName ?? null,
+          shippingCity: addr.city ?? null,
+          shippingDistrict: addr.district ?? null,
+          totalAmount: o.grossAmount ?? null,
+          currency: 'TRY',
+          raw: o,
+          items: Array.isArray(o.lines) ? o.lines.map((li: any) => ({
+            externalId: li.id ? String(li.id) : null,
+            merchantSku: li.merchantSku ?? null,
+            barcode: li.barcode ?? null,
+            title: li.title ?? null,
+            quantity: typeof li.quantity === 'number' ? li.quantity : 1,
+            unitPrice: li.price ?? null,
+            totalPrice: li.totalPrice ?? null,
+            currency: 'TRY',
+          })) : [],
+        };
+      });
+    },
+  };
+}
+
 export function getMarketplaceAdapter(provider: MarketplaceProvider): MarketplaceAdapter {
   switch (provider) {
     case 'trendyol':
+      return trendyolAdapter();
     case 'hepsiburada':
     case 'n11':
     case 'pazarama':

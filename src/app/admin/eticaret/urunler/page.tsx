@@ -93,10 +93,10 @@ export default function ECommerceProductsPage() {
     }
   }
 
-  async function syncWoo() {
+  async function syncProvider(provider: string) {
     setSyncing(true);
     try {
-      const res = await fetch('/api/admin/marketplaces/sync/woocommerce', { method: 'POST' });
+      const res = await fetch(`/api/admin/marketplaces/sync/${provider}`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok || !data?.ok) throw new Error(data?.error || 'Senkron başarısız');
       await fetchProducts();
@@ -125,13 +125,22 @@ export default function ECommerceProductsPage() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={syncWoo}
+            onClick={() => syncProvider('woocommerce')}
             disabled={syncing}
             className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 flex items-center gap-2 disabled:opacity-50"
             type="button"
           >
             <DownloadCloud className="w-4 h-4" />
-            {syncing ? 'Çekiliyor…' : 'Woo Ürünleri Çek'}
+            {syncing ? 'Çekiliyor…' : 'WooCommerce Çek'}
+          </button>
+          <button
+            onClick={() => syncProvider('trendyol')}
+            disabled={syncing}
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2 disabled:opacity-50"
+            type="button"
+          >
+            <DownloadCloud className="w-4 h-4" />
+            {syncing ? 'Çekiliyor…' : 'Trendyol Çek'}
           </button>
           <button
             onClick={fetchProducts}
