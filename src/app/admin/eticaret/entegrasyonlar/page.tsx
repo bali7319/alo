@@ -19,7 +19,17 @@ export default function ECommerceIntegrationsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteForProvider, setDeleteForProvider] = useState(false);
 
-  const [existingMasked, setExistingMasked] = useState<{ baseUrl?: string; keyMasked?: string; secretMasked?: string } | null>(null);
+  const [existingMasked, setExistingMasked] = useState<
+    | { baseUrl?: string; keyMasked?: string; secretMasked?: string }
+    | {
+        sellerId?: string;
+        integrationRefCodeMasked?: string;
+        apiKeyMasked?: string;
+        apiSecretMasked?: string;
+        tokenMasked?: string;
+      }
+    | null
+  >(null);
   const [existingId, setExistingId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -27,6 +37,19 @@ export default function ECommerceIntegrationsPage() {
     baseUrl: '',
     key: '',
     secret: '',
+  });
+  const [formTrendyol, setFormTrendyol] = useState<{
+    sellerId: string;
+    integrationRefCode: string;
+    apiKey: string;
+    apiSecret: string;
+    token: string;
+  }>({
+    sellerId: '',
+    integrationRefCode: '',
+    apiKey: '',
+    apiSecret: '',
+    token: '',
   });
 
   const canSubmit = useMemo(() => !saving, [saving]);
@@ -46,7 +69,18 @@ export default function ECommerceIntegrationsPage() {
       }
       setExistingId(data?.connection?.id || null);
       setExistingMasked(data?.credentials || null);
-      setForm((f) => ({ ...f, baseUrl: data?.credentials?.baseUrl ?? '' , key: '', secret: '' }));
+      setForm((f) => ({ ...f, baseUrl: data?.credentials?.baseUrl ?? '', key: '', secret: '' }));
+      if (p === 'trendyol' && data?.credentials) {
+        const c = data.credentials as any;
+        setFormTrendyol((f) => ({
+          ...f,
+          sellerId: c.sellerId ?? '',
+          integrationRefCode: '',
+          apiKey: '',
+          apiSecret: '',
+          token: '',
+        }));
+      }
     } catch (e) {
       console.error(e);
       setLoadError('Bağlantı kurulamadı');
@@ -74,17 +108,28 @@ export default function ECommerceIntegrationsPage() {
         return;
       }
 
+      const credentials =
+        provider === 'trendyol'
+          ? {
+              sellerId: formTrendyol.sellerId,
+              integrationRefCode: formTrendyol.integrationRefCode,
+              apiKey: formTrendyol.apiKey,
+              apiSecret: formTrendyol.apiSecret,
+              token: formTrendyol.token,
+            }
+          : {
+              baseUrl: form.baseUrl,
+              consumerKey: form.key,
+              consumerSecret: form.secret,
+            };
+
       const res = await fetch('/api/admin/marketplaces/connections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider,
           isActive: true,
-          credentials: {
-            baseUrl: form.baseUrl,
-            consumerKey: form.key,
-            consumerSecret: form.secret,
-          },
+          credentials,
         }),
       });
 
@@ -140,40 +185,97 @@ export default function ECommerceIntegrationsPage() {
           Bu pazaryeri için API bilgilerini sil
         </label>
 
-        <div className="grid grid-cols-1 gap-3">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
-            <div className="text-sm text-gray-600 font-medium">Key</div>
-            <input
-              className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
-              placeholder={existingMasked?.keyMasked ? existingMasked.keyMasked : 'ck_...'}
-              value={form.key}
-              onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))}
-              disabled={deleteForProvider}
-            />
+        {provider === 'trendyol' ? (
+          <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
+              <div className="text-sm text-gray-600 font-medium">Satıcı ID (Cari ID)</div>
+              <input
+                className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Trendyol satıcı numarası"
+                value={formTrendyol.sellerId}
+                onChange={(e) => setFormTrendyol((f) => ({ ...f, sellerId: e.target.value }))}
+                disabled={deleteForProvider}
+              />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
+              <div className="text-sm text-gray-600 font-medium">Entegrasyon Referans Kodu</div>
+              <input
+                className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder={
+                  (existingMasked as any)?.integrationRefCodeMasked || '••••••••'
+                }
+                value={formTrendyol.integrationRefCode}
+                onChange={(e) => setFormTrendyol((f) => ({ ...f, integrationRefCode: e.target.value }))}
+                disabled={deleteForProvider}
+              />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
+              <div className="text-sm text-gray-600 font-medium">API Key</div>
+              <input
+                className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder={(existingMasked as any)?.apiKeyMasked || '••••••••'}
+                value={formTrendyol.apiKey}
+                onChange={(e) => setFormTrendyol((f) => ({ ...f, apiKey: e.target.value }))}
+                disabled={deleteForProvider}
+              />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
+              <div className="text-sm text-gray-600 font-medium">API Secret</div>
+              <input
+                className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder={(existingMasked as any)?.apiSecretMasked || '••••••••'}
+                value={formTrendyol.apiSecret}
+                onChange={(e) => setFormTrendyol((f) => ({ ...f, apiSecret: e.target.value }))}
+                disabled={deleteForProvider}
+              />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
+              <div className="text-sm text-gray-600 font-medium">Token</div>
+              <input
+                className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder={(existingMasked as any)?.tokenMasked || '••••••••'}
+                value={formTrendyol.token}
+                onChange={(e) => setFormTrendyol((f) => ({ ...f, token: e.target.value }))}
+                disabled={deleteForProvider}
+              />
+            </div>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
+              <div className="text-sm text-gray-600 font-medium">Key</div>
+              <input
+                className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder={existingMasked?.keyMasked ? (existingMasked as any).keyMasked : 'ck_...'}
+                value={form.key}
+                onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))}
+                disabled={deleteForProvider}
+              />
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
-            <div className="text-sm text-gray-600 font-medium">Secret Key</div>
-            <input
-              className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
-              placeholder={existingMasked?.secretMasked ? existingMasked.secretMasked : 'cs_...'}
-              value={form.secret}
-              onChange={(e) => setForm((f) => ({ ...f, secret: e.target.value }))}
-              disabled={deleteForProvider}
-            />
-          </div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
+              <div className="text-sm text-gray-600 font-medium">Secret Key</div>
+              <input
+                className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder={existingMasked?.secretMasked ? (existingMasked as any).secretMasked : 'cs_...'}
+                value={form.secret}
+                onChange={(e) => setForm((f) => ({ ...f, secret: e.target.value }))}
+                disabled={deleteForProvider}
+              />
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
-            <div className="text-sm text-gray-600 font-medium">Store Url</div>
-            <input
-              className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
-              placeholder="https://example.com"
-              value={form.baseUrl}
-              onChange={(e) => setForm((f) => ({ ...f, baseUrl: e.target.value }))}
-              disabled={deleteForProvider}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-center">
+              <div className="text-sm text-gray-600 font-medium">Store Url</div>
+              <input
+                className="lg:col-span-3 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="https://example.com"
+                value={form.baseUrl}
+                onChange={(e) => setForm((f) => ({ ...f, baseUrl: e.target.value }))}
+                disabled={deleteForProvider}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <button
           onClick={saveConnection}

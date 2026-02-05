@@ -53,6 +53,30 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ pro
     );
   }
 
+  const prov = (connection as any).provider;
+
+  if (prov === 'trendyol') {
+    return NextResponse.json({
+      connection: {
+        id: (connection as any).id,
+        provider: (connection as any).provider,
+        isActive: (connection as any).isActive,
+        lastTestAt: (connection as any).lastTestAt,
+        lastTestOk: (connection as any).lastTestOk,
+        lastError: (connection as any).lastError,
+        createdAt: (connection as any).createdAt,
+        updatedAt: (connection as any).updatedAt,
+      },
+      credentials: {
+        sellerId: (creds?.sellerId ?? '').trim(),
+        integrationRefCodeMasked: maskSecret((creds?.integrationRefCode ?? '').trim()),
+        apiKeyMasked: maskSecret((creds?.apiKey ?? '').trim()),
+        apiSecretMasked: maskSecret((creds?.apiSecret ?? '').trim()),
+        tokenMasked: maskSecret((creds?.token ?? '').trim()),
+      },
+    });
+  }
+
   const baseUrl = (creds?.baseUrl || '').trim();
   const key = (creds?.consumerKey || creds?.key || '').trim();
   const secret = (creds?.consumerSecret || creds?.secret || '').trim();

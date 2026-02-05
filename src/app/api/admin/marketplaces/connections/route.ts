@@ -78,17 +78,29 @@ export async function POST(req: NextRequest) {
   const name = requestedName || 'default';
 
   const credsObj = (credentials as any) || {};
-  // Support simple fields UI: { storeUrl, key, secret } OR { baseUrl, consumerKey, consumerSecret }
-  const baseUrl = normalizeBaseUrl(credsObj.baseUrl || credsObj.storeUrl || '');
-  const key = (credsObj.consumerKey || credsObj.key || '').trim();
-  const secret = (credsObj.consumerSecret || credsObj.secret || '').trim();
 
-  // If empty key/secret provided, allow create/update but keep as-is on update (handled below).
-  const credentialsNormalized: any = {
-    baseUrl,
-    consumerKey: key,
-    consumerSecret: secret,
-  };
+  // Provider-specific credential shape
+  let credentialsNormalized: any;
+  if (provider === 'trendyol') {
+    credentialsNormalized = {
+      sellerId: (credsObj.sellerId ?? '').trim(),
+      integrationRefCode: (credsObj.integrationRefCode ?? '').trim(),
+      apiKey: (credsObj.apiKey ?? '').trim(),
+      apiSecret: (credsObj.apiSecret ?? '').trim(),
+      token: (credsObj.token ?? '').trim(),
+    };
+  } else if (provider === 'woocommerce') {
+    const baseUrl = normalizeBaseUrl(credsObj.baseUrl || credsObj.storeUrl || '');
+    const key = (credsObj.consumerKey || credsObj.key || '').trim();
+    const secret = (credsObj.consumerSecret || credsObj.secret || '').trim();
+    credentialsNormalized = { baseUrl, consumerKey: key, consumerSecret: secret };
+  } else {
+    // hepsiburada, n11, pazarama: generic pass-through
+    const baseUrl = normalizeBaseUrl(credsObj.baseUrl || credsObj.storeUrl || '');
+    const key = (credsObj.consumerKey || credsObj.key || credsObj.apiKey || '').trim();
+    const secret = (credsObj.consumerSecret || credsObj.secret || credsObj.apiSecret || '').trim();
+    credentialsNormalized = { baseUrl, consumerKey: key, consumerSecret: secret };
+  }
 
   const storage = getMarketplaceStorage();
   const all = await storage.listConnections();
@@ -108,14 +120,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ connection: created }, { status: 201 });
     }
 
-    // Update existing (single per provider). If key/secret blank, keep existing values.
+    // Update existing (single per provider). Blank fields keep existing values.
     const existingCreds = decryptMarketplaceCredentials<any>((existing as any).credentialsEnc);
-    const merged = {
-      ...existingCreds,
-      baseUrl: baseUrl || existingCreds?.baseUrl || '',
-      consumerKey: key || existingCreds?.consumerKey || '',
-      consumerSecret: secret || existingCreds?.consumerSecret || '',
-    };
+    let merged: any;
+    if (provider === 'trendyol') {
+      merged = {
+        sellerId: credentialsNormalized.sellerId || existingCreds?.sellerId || '',
+        integrationRefCode: credentialsNormalized.integrationRefCode || existingCreds?.integrationRefCode || '',
+        apiKey: credentialsNormalized.apiKey || existingCreds?.apiKey || '',
+        apiSecret: credentialsNormalized.apiSecret || existingCreds?.apiSecret || '',
+        token: credentialsNormalized.token || existingCreds?.token || '',
+      };
+    } else {
+      merged = {
+        ...existingCreds,
+        baseUrl: credentialsNormalized.baseUrl || existingCreds?.baseUrl || '',
+        consumerKey: credentialsNormalized.consumerKey || existingCreds?.consumerKey || '',
+        consumerSecret: credentialsNormalized.consumerSecret || existingCreds?.consumerSecret || '',
+      };
+    }
     const updated = await storage.updateConnection((existing as any).id, {
       isActive,
       credentialsEnc: encryptMarketplaceCredentials(merged),
