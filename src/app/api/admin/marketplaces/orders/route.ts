@@ -29,13 +29,21 @@ export async function GET(req: NextRequest) {
   const q = (sp.get('q') || '').trim();
   const take = Math.min(200, Math.max(1, parseInt(sp.get('limit') || '50', 10)));
 
-  const storage = getMarketplaceStorage();
-  const orders = await storage.listOrders({
-    connectionId: connectionId || undefined,
-    q,
-    status: status || undefined,
-    limit: take,
-  });
-  return NextResponse.json({ orders });
+  try {
+    const storage = getMarketplaceStorage();
+    const orders = await storage.listOrders({
+      connectionId: connectionId || undefined,
+      q,
+      status: status || undefined,
+      limit: take,
+    });
+    return NextResponse.json({ orders });
+  } catch (e: any) {
+    const msg = e?.message ?? String(e);
+    return NextResponse.json(
+      { error: 'Siparişler yüklenemedi', code: 'STORAGE_ERROR', details: msg },
+      { status: 500 }
+    );
+  }
 }
 

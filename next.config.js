@@ -53,6 +53,10 @@ const nextConfig = {
   },
   // Experimental özellikler
   experimental: {
+    // Workaround: Bazı Next 15.x sürümlerinde build sırasında
+    // "_not-found" ve trace dosyalarında ENOENT hataları görülebiliyor.
+    // serverMinification'ı kapatmak build'i stabilize edebiliyor.
+    serverMinification: false,
     // Server actions için optimize et
     serverActions: {
       bodySizeLimit: '2mb',

@@ -38,7 +38,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ pro
 
   if (!connection) return NextResponse.json({ connection: null, credentials: null });
 
-  const creds = decryptMarketplaceCredentials<any>((connection as any).credentialsEnc);
+  let creds: any;
+  try {
+    creds = decryptMarketplaceCredentials<any>((connection as any).credentialsEnc);
+  } catch (e: any) {
+    const msg = e?.message ?? String(e);
+    return NextResponse.json(
+      {
+        error: 'Credential çözülemedi. Sunucuda ENCRYPTION_KEY sabit mi? Entegrasyonu silip yeniden kaydedin.',
+        code: 'DECRYPT_FAILED',
+        details: msg,
+      },
+      { status: 500 }
+    );
+  }
+
   const baseUrl = (creds?.baseUrl || '').trim();
   const key = (creds?.consumerKey || creds?.key || '').trim();
   const secret = (creds?.consumerSecret || creds?.secret || '').trim();

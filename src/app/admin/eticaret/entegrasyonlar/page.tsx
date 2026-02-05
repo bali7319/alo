@@ -21,6 +21,7 @@ export default function ECommerceIntegrationsPage() {
 
   const [existingMasked, setExistingMasked] = useState<{ baseUrl?: string; keyMasked?: string; secretMasked?: string } | null>(null);
   const [existingId, setExistingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [form, setForm] = useState<{ baseUrl: string; key: string; secret: string }>({
     baseUrl: '',
@@ -32,15 +33,23 @@ export default function ECommerceIntegrationsPage() {
 
   async function loadProvider(p: Provider) {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch(`/api/admin/marketplaces/connections/provider/${p}`, { cache: 'no-store' });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setLoadError(data?.error || data?.details || `Sunucu hatası (${res.status})`);
+        setExistingId(null);
+        setExistingMasked(null);
+        setForm((f) => ({ ...f, baseUrl: '', key: '', secret: '' }));
+        return;
+      }
       setExistingId(data?.connection?.id || null);
       setExistingMasked(data?.credentials || null);
-      // baseUrl'yi doldur, key/secret boş kalsın (yenileyince eskiyi korur)
-      setForm((f) => ({ ...f, baseUrl: data?.credentials?.baseUrl || '' , key: '', secret: '' }));
+      setForm((f) => ({ ...f, baseUrl: data?.credentials?.baseUrl ?? '' , key: '', secret: '' }));
     } catch (e) {
       console.error(e);
+      setLoadError('Bağlantı kurulamadı');
       setExistingId(null);
       setExistingMasked(null);
     } finally {
@@ -96,6 +105,12 @@ export default function ECommerceIntegrationsPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Pazar Yerleri Entegrasyon Ayarları</h1>
         <p className="text-gray-600 mt-1">Lütfen pazar yeri seçiniz ve API bilgilerini giriniz.</p>
+        {loadError && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+            {loadError}
+            <span className="block mt-1 text-amber-600">Entegrasyonu silip Store URL, Key ve Secret Key ile yeniden kaydedin.</span>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow-sm p-6 space-y-5">

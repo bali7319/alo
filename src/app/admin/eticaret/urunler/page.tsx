@@ -31,11 +31,18 @@ export default function ECommerceProductsPage() {
       if (q.trim()) sp.set('q', q.trim());
       sp.set('limit', '100');
       const res = await fetch(`/api/admin/marketplaces/products?${sp.toString()}`, { cache: 'no-store' });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.error || data?.details || `Sunucu hatası (${res.status})`;
+        setProducts([]);
+        alert(`Ürünler yüklenemedi: ${msg}`);
+        return;
+      }
       setProducts(Array.isArray(data.products) ? data.products : []);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('Ürünler yüklenemedi (henüz sync yoksa normal).');
+      setProducts([]);
+      alert(e?.message || 'Ürünler yüklenemedi (ağ hatası veya henüz sync yok).');
     } finally {
       setLoading(false);
     }

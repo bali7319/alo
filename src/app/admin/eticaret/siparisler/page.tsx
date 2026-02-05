@@ -46,11 +46,18 @@ export default function ECommerceOrdersPage() {
       if (q.trim()) sp.set('q', q.trim());
       sp.set('limit', '50');
       const res = await fetch(`/api/admin/marketplaces/orders?${sp.toString()}`, { cache: 'no-store' });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.error || data?.details || `Sunucu hatası (${res.status})`;
+        setOrders([]);
+        alert(`Siparişler yüklenemedi: ${msg}`);
+        return;
+      }
       setOrders(Array.isArray(data.orders) ? data.orders : []);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('Siparişler yüklenemedi (henüz sync yoksa normal).');
+      setOrders([]);
+      alert(e?.message || 'Siparişler yüklenemedi (ağ hatası veya henüz sync yok).');
     } finally {
       setLoading(false);
     }

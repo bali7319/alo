@@ -28,8 +28,16 @@ export async function GET(req: NextRequest) {
   const q = (sp.get('q') || '').trim();
   const take = Math.min(200, Math.max(1, parseInt(sp.get('limit') || '50', 10)));
 
-  const storage = getMarketplaceStorage();
-  const products = await storage.listProducts({ connectionId: connectionId || undefined, q, limit: take });
-  return NextResponse.json({ products });
+  try {
+    const storage = getMarketplaceStorage();
+    const products = await storage.listProducts({ connectionId: connectionId || undefined, q, limit: take });
+    return NextResponse.json({ products });
+  } catch (e: any) {
+    const msg = e?.message ?? String(e);
+    return NextResponse.json(
+      { error: 'Ürünler yüklenemedi', code: 'STORAGE_ERROR', details: msg },
+      { status: 500 }
+    );
+  }
 }
 
