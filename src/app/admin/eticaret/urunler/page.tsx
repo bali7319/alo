@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { RefreshCw, Search, DownloadCloud } from 'lucide-react';
+import { RefreshCw, Search, DownloadCloud, Save } from 'lucide-react';
 
 type Product = {
   id: string;
@@ -23,6 +23,9 @@ export default function ECommerceProductsPage() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState<Record<string, string>>({});
+  const [editStock, setEditStock] = useState<Record<string, string>>({});
 
   async function fetchProducts() {
     setLoading(true);
@@ -38,13 +41,55 @@ export default function ECommerceProductsPage() {
         alert(`Ürünler yüklenemedi: ${msg}`);
         return;
       }
-      setProducts(Array.isArray(data.products) ? data.products : []);
+      const list = Array.isArray(data.products) ? data.products : [];
+      setProducts(list);
+      const priceMap: Record<string, string> = {};
+      const stockMap: Record<string, string> = {};
+      list.forEach((p: Product) => {
+        priceMap[p.id] = p.price ?? '';
+        stockMap[p.id] = p.stock != null ? String(p.stock) : '';
+      });
+      setEditPrice(priceMap);
+      setEditStock(stockMap);
     } catch (e: any) {
       console.error(e);
       setProducts([]);
       alert(e?.message || 'Ürünler yüklenemedi (ağ hatası veya henüz sync yok).');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function updateProductPriceStock(p: Product) {
+    const priceVal = editPrice[p.id];
+    const stockVal = editStock[p.id];
+    const price = priceVal === '' ? null : priceVal;
+    const stock = stockVal === '' ? null : (Number(stockVal) || null);
+    if (price === (p.price ?? null) && (stock ?? null) === (p.stock ?? null)) return;
+    setUpdatingId(p.id);
+    try {
+      const res = await fetch(`/api/admin/marketplaces/products/${encodeURIComponent(p.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price, stock }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error || data?.details || `Güncelleme başarısız (${res.status})`);
+        return;
+      }
+      setProducts((prev) =>
+        prev.map((x) =>
+          x.id === p.id
+            ? { ...x, price: price ?? null, stock: stock ?? null, updatedAt: new Date().toISOString() }
+            : x
+        )
+      );
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || 'Güncelleme başarısız');
+    } finally {
+      setUpdatingId(null);
     }
   }
 
@@ -139,6 +184,7 @@ export default function ECommerceProductsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Fiyat</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28">İşlem</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -153,10 +199,39 @@ export default function ECommerceProductsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{p.merchantSku || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{p.barcode || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {p.price ? `${p.price} ${p.currency}` : '-'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="w-24 px-2 py-1 border border-gray-300 rounded text-right text-sm"
+                        value={editPrice[p.id] ?? ''}
+                        onChange={(e) => setEditPrice((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                        placeholder="Fiyat"
+                      />
+                      <span className="ml-1 text-gray-500 text-xs">{p.currency}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{p.stock ?? '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded text-right text-sm"
+                        value={editStock[p.id] ?? ''}
+                        onChange={(e) => setEditStock((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                        placeholder="Stok"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <button
+                        type="button"
+                        disabled={updatingId === p.id}
+                        onClick={() => updateProductPriceStock(p)}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        {updatingId === p.id ? 'Kaydediliyor…' : 'Güncelle'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

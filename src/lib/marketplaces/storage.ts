@@ -38,6 +38,7 @@ export type MarketplaceStorage = {
   ): Promise<ConnectionRecord>;
   deleteConnection(id: string): Promise<void>;
   listProducts(opts: { connectionId?: string; q?: string; limit: number }): Promise<any[]>;
+  updateProduct(id: string, patch: { price?: string | null; stock?: number | null }): Promise<void>;
   listOrders(opts: { connectionId?: string; q?: string; status?: string; limit: number }): Promise<any[]>;
   replaceProductsForConnection(connectionId: string, products: any[]): Promise<void>;
   replaceOrdersForConnection(connectionId: string, orders: any[]): Promise<void>;
@@ -192,6 +193,20 @@ export function getMarketplaceStorage(): MarketplaceStorage {
         );
       });
       return filtered.slice(0, limit);
+    },
+
+    async updateProduct(id: string, patch: { price?: string | null; stock?: number | null }) {
+      const data = await readJson();
+      const products = data.products || [];
+      const idx = products.findIndex((p: any) => p.id === id);
+      if (idx < 0) throw new Error('Ürün bulunamadı');
+      const cur = products[idx];
+      if (patch.price !== undefined) cur.price = patch.price == null || patch.price === '' ? null : String(patch.price);
+      if (patch.stock !== undefined) cur.stock = patch.stock == null || Number.isNaN(Number(patch.stock)) ? null : Number(patch.stock);
+      cur.updatedAt = nowIso();
+      products[idx] = cur;
+      data.products = products;
+      await writeJsonAtomic(data);
     },
 
     async listOrders({ connectionId, q, status, limit }) {
