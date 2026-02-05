@@ -121,15 +121,15 @@ export async function trendyolListAllOrders(creds: TrendyolCredentials): Promise
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 365);
-  const start = startDate.toISOString().slice(0, 10);
-  const end = endDate.toISOString().slice(0, 10);
+  const startTs = Math.floor(startDate.getTime() / 1000);
+  const endTs = Math.floor(endDate.getTime() / 1000);
 
   while (page < 50) {
     const data = await trendyolFetch<TrendyolOrdersResponse>(
       creds,
       TRENDYOL_APIGW_BASE,
       '/order/sellers/{sellerId}/orders',
-      { startDate: start, endDate: end, page: String(page), size: String(size) }
+      { startDate: startTs, endDate: endTs, page: String(page), size: String(size) }
     );
     const content = data?.content ?? [];
     all.push(...content);
