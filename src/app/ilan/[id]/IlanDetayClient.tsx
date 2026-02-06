@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Heart, Phone, Mail, Share2, Facebook, Twitter, Instagram, MessageCircle, ChevronRight, Eye, MessageSquare, AlertTriangle, User, Flag, MapPin } from 'lucide-react';
+import { Heart, Phone, Mail, Share2, Facebook, Twitter, Instagram, MessageCircle, ChevronLeft, ChevronRight, Eye, MessageSquare, AlertTriangle, User, Flag, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -134,6 +134,12 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
     // Diğer durumlarda string olarak döndür
     return typeof images === 'string' ? [images] : [];
   };
+
+  // Mobil galeri için kesin array (API bazen string/JSON döndürebiliyor)
+  const mobileGalleryImages = useMemo(() => {
+    const imgs = parseImages((listing as any)?.images).filter(Boolean);
+    return imgs.length > 0 ? imgs : [FALLBACK_IMAGE_SRC];
+  }, [listing?.images]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -410,9 +416,17 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
     if (!el) return;
     const width = el.clientWidth || 1;
     const raw = Math.round(el.scrollLeft / width);
-    const total = Array.isArray(listing?.images) ? listing!.images.length : 0;
+    const total = mobileGalleryImages.length;
     const next = Math.max(0, Math.min(raw, Math.max(0, total - 1)));
     if (next !== selectedImageIndex) setSelectedImageIndex(next);
+  };
+
+  const scrollMobileGalleryToIndex = (index: number) => {
+    const el = mobileGalleryRef.current;
+    if (!el) return;
+    const width = el.clientWidth || 1;
+    el.scrollTo({ left: index * width, behavior: 'smooth' });
+    setSelectedImageIndex(index);
   };
 
   const actionButtons = useMemo(() => {
@@ -507,6 +521,17 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
       }
     }
     return `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+  };
+
+  const handleDirectionsClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    address: string
+  ) => {
+    // Some environments (PWA/standalone WebView) may ignore target="_blank".
+    // Force opening a new tab/window.
+    e.preventDefault();
+    const url = getDirectionsUrlForDevice(address);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleReport = async () => {
@@ -608,15 +633,52 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
         {/* Galeri */}
         <div className="bg-black">
           <div className="relative">
+            {(() => {
+              const total = mobileGalleryImages.length;
+              const prevDisabled = selectedImageIndex <= 0;
+              const nextDisabled = selectedImageIndex >= total - 1;
+
+              // Mobile overlay arrows (transparent)
+              return total > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => scrollMobileGalleryToIndex(Math.max(0, selectedImageIndex - 1))}
+                    disabled={prevDisabled}
+                    className={`absolute left-2 top-1/2 -translate-y-1/2 z-30 pointer-events-auto rounded-full bg-black/50 backdrop-blur-sm p-2 text-white shadow-lg ring-1 ring-white/30 transition ${
+                      prevDisabled ? 'opacity-30' : 'hover:bg-black/35 active:scale-95'
+                    }`}
+                    aria-label="Önceki fotoğraf"
+                  >
+                    <ChevronLeft className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollMobileGalleryToIndex(Math.min(total - 1, selectedImageIndex + 1))}
+                    disabled={nextDisabled}
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 z-30 pointer-events-auto rounded-full bg-black/50 backdrop-blur-sm p-2 text-white shadow-lg ring-1 ring-white/30 transition ${
+                      nextDisabled ? 'opacity-30' : 'hover:bg-black/35 active:scale-95'
+                    }`}
+                    aria-label="Sonraki fotoğraf"
+                  >
+                    <ChevronRight className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                </>
+              ) : null;
+            })()}
+
             <div
               ref={mobileGalleryRef}
               onScroll={handleMobileGalleryScroll}
               className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {(Array.isArray(listing.images) && listing.images.length > 0 ? listing.images : [FALLBACK_IMAGE_SRC]).map((img, idx) => {
+              {mobileGalleryImages.map((img, idx) => {
                 const src = img || FALLBACK_IMAGE_SRC;
                 return (
-                  <div key={idx} className="relative w-full shrink-0 snap-center aspect-[4/3]">
+                  <div
+                    key={idx}
+                    className="relative w-full shrink-0 snap-center aspect-[4/3] overflow-hidden border-2 border-alo-orange"
+                  >
                     {src.startsWith('data:image') ? (
                       <img
                         src={src}
@@ -644,9 +706,9 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
             </div>
 
             {/* Sayaç */}
-            {Array.isArray(listing.images) && listing.images.length > 0 && (
+            {mobileGalleryImages.length > 1 && (
               <div className="absolute left-3 bottom-3 rounded bg-black/60 text-white text-xs px-2 py-1">
-                {Math.min(selectedImageIndex + 1, listing.images.length)} / {listing.images.length}
+                {Math.min(selectedImageIndex + 1, mobileGalleryImages.length)} / {mobileGalleryImages.length}
               </div>
             )}
           </div>
@@ -660,6 +722,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
               href={getDirectionsUrlForDevice(listing.location)}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => handleDirectionsClick(e, listing.location)}
               className="mt-2 flex items-start gap-2 text-sm text-gray-600 hover:text-alo-orange min-w-0"
               aria-label="Adrese git (yol tarifi)"
               title="Adrese git (yol tarifi)"
@@ -1059,7 +1122,37 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
             {/* Resim Galerisi */}
             {listing.images && listing.images.length > 0 && listing.images[0] ? (
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="aspect-w-16 aspect-h-9 mb-4">
+                <div className="relative w-full mb-4 border-2 border-alo-orange rounded-lg overflow-hidden bg-gray-100">
+                  {listing.images.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImageIndex((i) => Math.max(0, i - 1))}
+                        disabled={selectedImageIndex <= 0}
+                        className={`absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full w-12 h-12 sm:w-14 sm:h-14 bg-white/95 hover:bg-white text-gray-800 shadow-xl border border-gray-200 transition-all duration-200 ${
+                          selectedImageIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:scale-110 active:scale-95'
+                        }`}
+                        aria-label="Önceki fotoğraf"
+                      >
+                        <ChevronLeft className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImageIndex((i) => Math.min(Math.max(0, listing.images.length - 1), i + 1))
+                        }
+                        disabled={selectedImageIndex >= listing.images.length - 1}
+                        className={`absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full w-12 h-12 sm:w-14 sm:h-14 bg-white/95 hover:bg-white text-gray-800 shadow-xl border border-gray-200 transition-all duration-200 ${
+                          selectedImageIndex >= listing.images.length - 1
+                            ? 'opacity-40 cursor-not-allowed'
+                            : 'hover:scale-110 active:scale-95'
+                        }`}
+                        aria-label="Sonraki fotoğraf"
+                      >
+                        <ChevronRight className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
+                      </button>
+                    </>
+                  )}
                   {(() => {
                     const selected = listing.images[selectedImageIndex] || listing.images[0];
                     const src = selected || FALLBACK_IMAGE_SRC;
@@ -1068,7 +1161,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                         <img
                           src={src}
                           alt={listing.title}
-                          className="w-full h-96 object-cover rounded-lg"
+                          className="w-full h-96 object-cover"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
                           }}
@@ -1081,7 +1174,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                         alt={listing.title}
                         width={800}
                         height={600}
-                        className="w-full h-96 object-cover rounded-lg"
+                        className="w-full h-96 object-cover"
                         onError={(e) => {
                           const img = e.target as unknown as HTMLImageElement;
                           img.src = FALLBACK_IMAGE_SRC;
@@ -1098,7 +1191,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                           key={index}
                           src={image}
                           alt={`${listing.title} - görsel ${index + 1}`}
-                          className={`w-full h-16 sm:h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
+                          className={`w-full h-16 sm:h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 border-2 border-alo-orange ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
                           onClick={() => setSelectedImageIndex(index)}
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
@@ -1111,7 +1204,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                           alt={`${listing.title} - görsel ${index + 1}`}
                           width={200}
                           height={150}
-                          className={`w-full h-16 sm:h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
+                          className={`w-full h-16 sm:h-24 object-cover rounded-lg cursor-pointer hover:opacity-75 border-2 border-alo-orange ${index === selectedImageIndex ? 'ring-2 ring-alo-orange' : ''}`}
                           onClick={() => setSelectedImageIndex(index)}
                           onError={(e) => {
                             const img = e.target as unknown as HTMLImageElement;
@@ -1196,6 +1289,9 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                   {listing.location ? (
                     <a
                       href={getDirectionsUrlForDevice(listing.location)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => handleDirectionsClick(e, listing.location)}
                       className="text-sm text-gray-600 hover:text-alo-orange underline-offset-4 hover:underline"
                       aria-label="Haritalarda yol tarifi al"
                       title="Haritalarda yol tarifi al"
@@ -1213,6 +1309,9 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                 <div className="mt-3">
                   <a
                     href={getDirectionsUrlForDevice(listing.location)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => handleDirectionsClick(e, listing.location)}
                     className="w-full inline-flex items-center justify-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     aria-label="Adrese git (yol tarifi)"
                     title="Adrese git (yol tarifi)"
