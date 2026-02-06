@@ -4054,7 +4054,7 @@ export const contractTemplates: { [key: string]: ContractTemplate } = {
             {page2Content}
           </A4PageWrapper>
           <A4PageWrapper pageNumber={3} totalPages={3}>
-            {tahliyeTaahutContent}
+            {tahliyeTaahhutContent}
           </A4PageWrapper>
         </div>
       );
