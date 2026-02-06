@@ -398,7 +398,10 @@ export default function AdminPage() {
                   {deletingDemo && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>}
                 </button>
               )}
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+              <button
+                onClick={() => router.push('/admin/sikayetler')}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
                 Kullanıcı Şikayetleri
               </button>
               <button 

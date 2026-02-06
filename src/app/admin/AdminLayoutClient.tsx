@@ -23,6 +23,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
             <AdminNavLink href="/admin/kariyer" label="Kariyer" />
             <AdminNavLink href="/admin/sozlesmeler" label="Hukuki Belgeler" />
             <AdminNavLink href="/admin/aboneler" label="Aboneler" />
+            <AdminNavLink href="/admin/sikayetler" label="Şikayetler" />
             <AdminNavLink href="/admin/ayarlar" label="Ayarlar" />
           </div>
         </nav>
