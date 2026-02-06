@@ -923,7 +923,12 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                   aria-disabled={!actionButtons.canRevealPhone}
                 >
                   <Phone className="h-4 w-4" />
-                  {actionButtons.phone ? 'Ara' : isRevealingPhone ? 'Yükleniyor...' : 'Telefonu göster'}
+                  {actionButtons.phone ? 'Ara' : isRevealingPhone ? 'Yükleniyor...' : (
+                    <>
+                      <span className="md:hidden">Ara</span>
+                      <span className="hidden md:inline">Telefonu göster</span>
+                    </>
+                  )}
                 </a>
 
                 {/* Mesaj */}
@@ -1330,7 +1335,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                     className="w-full flex items-center justify-center px-2 py-1 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                   >
                     <Phone className="h-3 w-3 mr-1.5" />
-                    {listing.seller.phone ? listing.seller.phone : isRevealingPhone ? 'Yükleniyor...' : 'Telefonu göster'}
+                    {listing.seller.phone ? listing.seller.phone : isRevealingPhone ? 'Yükleniyor...' : 'Ara'}
                   </a>
                 )}
                 
