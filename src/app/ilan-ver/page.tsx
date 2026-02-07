@@ -1651,7 +1651,7 @@ export default function IlanVerPage() {
                       </a>{' '}
                       ve{' '}
                       <a 
-                        href="/gizlilik-politikasi" 
+                        href="/gizlilik" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="font-medium text-blue-600 hover:text-blue-800 underline"

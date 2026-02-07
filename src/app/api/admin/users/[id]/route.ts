@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 import { Prisma } from '@prisma/client';
 
 // Kullanıcı rolünü güncelle (moderator atama/kaldırma)
@@ -11,30 +13,8 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Sadece admin rol değiştirebilir
-    const adminUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
-    });
-
-    if (!adminUser || adminUser.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok. Sadece admin kullanıcı rolleri değiştirebilir.' },
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { id } = await params;
     const body = await request.json();
@@ -163,22 +143,8 @@ export async function PATCH(
       },
     }, { headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
-    console.error('Kullanıcı rol güncelleme hatası:', error);
-    
-    return NextResponse.json(
-      {
-        error: 'Kullanıcı rolü güncellenirken bir hata oluştu',
-        details: error instanceof Error ? error.message : 'Bilinmeyen hata'
-      },
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }
-    );
+    return handleApiError(error);
   }
-    // NOT: $disconnect() çağrısını kaldırdık - Prisma connection pool otomatik yönetir
 }
 
 // Kullanıcıyı sil
@@ -188,35 +154,17 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
-    // Sadece admin kullanıcı silebilir
     const adminUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
+      where: { email: session!.user!.email! },
+      select: { id: true },
     });
-
-    if (!adminUser || adminUser.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok. Sadece admin kullanıcı silebilir.' },
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
 
     const { id } = await params;
 
-    // Admin kendisini silemez
-    if (id === adminUser.id) {
+    if (adminUser && id === adminUser.id) {
       return NextResponse.json(
         { error: 'Kendinizi silemezsiniz' },
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -252,20 +200,7 @@ export async function DELETE(
       message: 'Kullanıcı başarıyla silindi',
     }, { headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
-    console.error('Kullanıcı silme hatası:', error);
-    
-    return NextResponse.json(
-      {
-        error: 'Kullanıcı silinirken bir hata oluştu',
-        details: error instanceof Error ? error.message : 'Bilinmeyen hata'
-      },
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }
-    );
+    return handleApiError(error);
   }
 }
 

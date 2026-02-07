@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { isAdminEmail } from '@/lib/admin';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 
 // API route'unu dynamic yap - cache yapma
 export const dynamic = 'force-dynamic';
@@ -185,44 +186,8 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü - önce session'dan role'ü kontrol et
-    let isAdmin = false;
-    
-    // Önce session'dan role bilgisini kontrol et (veritabanı bağlantısı gerektirmez)
-    const userRole = (session.user as any)?.role;
-    if (userRole === 'admin') {
-      isAdmin = true;
-    } else {
-      // Session'da role yoksa veritabanından kontrol et
-      try {
-        const user = await prisma.user.findUnique({
-          where: { email: session.user.email },
-          select: { role: true }
-        });
-        isAdmin = user?.role === 'admin';
-      } catch (dbError) {
-        console.error('Admin kontrolü sırasında veritabanı hatası:', dbError);
-        // Veritabanı hatası durumunda email'e göre kontrol et
-        if (session.user.email) {
-          isAdmin = isAdminEmail(session.user.email);
-        }
-      }
-    }
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok. Sadece admin bu işlemi yapabilir.' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     // Request body'yi timeout ile parse et
     const body = await withTimeout(
@@ -267,25 +232,12 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('PUT /api/admin/settings error:', error);
-    
-    // Timeout hatası
     if (error instanceof Error && error.message.includes('timeout')) {
-      console.error('Request timeout:', error.message);
       return NextResponse.json(
         { error: 'İstek zaman aşımına uğradı. Lütfen tekrar deneyin.' },
         { status: 504 }
       );
     }
-    
-    return NextResponse.json(
-      { error: 'Ayarlar güncellenirken hata oluştu' },
-      { 
-        status: 500,
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-        },
-      }
-    );
+    return handleApiError(error);
   }
 } 

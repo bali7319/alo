@@ -122,7 +122,7 @@ export const Sidebar = () => {
       {/* Mobil Menü Toggle Butonu */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden fixed top-20 left-4 z-[60] bg-white border border-gray-300 rounded-md p-2 shadow-lg hover:bg-gray-50 transition-colors"
+        className="md:hidden inline-flex items-center gap-2 bg-white border border-gray-300 rounded-md px-3 py-2 shadow hover:bg-gray-50 transition-colors"
         aria-label="Kategoriler menüsünü aç/kapat"
         aria-expanded={isMobileMenuOpen}
       >
@@ -131,6 +131,7 @@ export const Sidebar = () => {
         ) : (
           <Menu className="w-5 h-5 text-gray-700" />
         )}
+        <span className="text-sm font-medium text-gray-700">Kategoriler</span>
       </button>
 
       {/* Mobil Overlay */}

@@ -6,6 +6,7 @@ import { HelpCircle, FileText, CreditCard, Shield, Users, TrendingUp } from 'luc
 export const metadata: Metadata = {
   title: 'Sıkça Sorulan Sorular (SSS) - Alo17',
   description: 'Alo17 ilan ve reklam sitesi hakkında sıkça sorulan sorular ve cevapları. İlan verme, reklam verme, ödeme ve site kullanımı hakkında bilgiler.',
+  alternates: { canonical: 'https://alo17.tr/sss' },
 };
 
 export default function SSSPage() {

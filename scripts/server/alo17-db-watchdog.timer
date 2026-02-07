@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Alo17 DB Watchdog every minute
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=60
+AccuracySec=15
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+

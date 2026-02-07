@@ -191,6 +191,32 @@ Soft 404'ler genellikle boş içerik veya hatalı sayfalar demektir. Kontrol edi
 - Dizine eklenen sayfa sayısı artmalı
 - Kopya içerik sorunları azalmalı
 
+## 🔄 Son Güncellemeler (Canonical & Tek Sayfa)
+
+### Canonical URL’ler
+- **Ana sayfa:** `https://alo17.tr/`
+- **Kategori seviyeleri:** Tüm `/kategori/[slug]`, `/kategori/[slug]/[subSlug]`, `/kategori/[slug]/[subSlug]/[subsubslug]` sayfalarında `generateMetadata` ile canonical tanımlı.
+- **İlan:** Ana ilan sayfası slug’lı canonical; `/ilan/[id]/sikayet` ve `/ilan/[id]/yorumlar` için layout ile ana ilan URL’si canonical.
+- **Statik sayfalar:** İletişim, SSS, Hakkımızda, Kategoriler, İlan verme kuralları, İlan ver, Yardım, Premium, Gizlilik, KVKK, Çerez politikası, Kullanım koşulları, Kariyer, Sözleşmeler, Kampanyalar, Social, Yeni ürünler, Ev kiralama sözleşmesi, Sözleşme detay (`/sozlesmeler/[id]`) — hepsinde canonical veya layout canonical var.
+
+### Tek sayfa yönlendirmeleri
+- `/kullanim-sartlari` → `/kullanim-kosullari` (301, next.config + page)
+- `/gizlilik-politikasi` → `/gizlilik` (301, next.config + page)
+
+### Sitemap
+- Statik sayfalar, 1–2–3. seviye kategoriler, ilanlar, sözleşme tipleri (`contractTemplates` anahtarları) dahil.
+- Sözleşme URL’leri dinamik import ile ekleniyor; hata olursa sitemap yine de üretiliyor.
+
+### Noindex
+- Middleware ile noindex: giriş, kayıt, şifre sıfırlama, admin, moderator, profil, ilanlarım, favorilerim, mesajlar, ödeme, fatura, bildirimler, `/ilan-ver/duzenle`, `/ilan-ver/onizle`.
+- robots.txt: `Disallow: /api/`, `Disallow: /dev/`.
+- Layout noindex: ilan şikayet/yorumlar, giriş, kayıt, admin vb.
+
+### OG görseli
+- Varsayılan paylaşım görseli `/images/placeholder.jpg` (og-image.jpg yoksa). İsterseniz `public/images/og-image.jpg` (1200×630) ekleyip metadata’yı güncelleyebilirsiniz.
+
+---
+
 ## 📚 Kaynaklar
 
 - [Next.js Metadata API](https://nextjs.org/docs/app/api-reference/functions/generate-metadata)

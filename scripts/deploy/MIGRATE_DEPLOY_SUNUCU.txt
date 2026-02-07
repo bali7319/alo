@@ -1,0 +1,13 @@
+# Sunucuda Prisma migration (e-ticaret kaldirma) - SSH ile baglandiktan sonra
+
+# 1. Proje dizinine gec
+cd /var/www/alo17
+
+# 2. (Opcional) Son kodu cek - migration dosyasi repoda olsun
+git pull origin main
+
+# 3. Migration uygula (PostgreSQL DATABASE_URL .env'de olmali)
+npm exec -- prisma@6 -- migrate deploy
+
+# Cikti "X migration(s) applied" gibi olmali. Sonra gerekirse:
+# npm run build && pm2 restart alo17

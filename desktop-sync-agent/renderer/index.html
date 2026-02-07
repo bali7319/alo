@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alo17 Sync Agent</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+        background: #0b1220;
+        color: #e6e9f2;
+      }
+      .topbar {
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .badge {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #2563eb, #60a5fa);
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+      }
+      .muted {
+        color: rgba(230, 233, 242, 0.72);
+        font-size: 13px;
+      }
+      .wrap {
+        padding: 16px 18px 20px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      input, select, textarea {
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 10px 10px;
+        color: #e6e9f2;
+        outline: none;
+      }
+      textarea {
+        min-height: 160px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .btnrow {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.06);
+        color: #e6e9f2;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+      button.primary {
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        border: 0;
+        color: #06210f;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.05);
+        font-size: 13px;
+      }
+      .ok { color: #22c55e; }
+      .bad { color: #ef4444; }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand">
+        <div class="badge">A</div>
+        <div>
+          <div style="font-weight: 800; letter-spacing: 0.2px">Alo17 Sync Agent</div>
+          <div class="muted">Windows üzerinden WooCommerce senkron</div>
+        </div>
+      </div>
+      <div class="pill">
+        <span class="muted">v</span>
+        <span id="ver">-</span>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="card">
+        <div class="row">
+          <label>
+            <span class="muted">Panel URL</span>
+            <input id="panelUrl" placeholder="https://alo17.tr" />
+          </label>
+          <label>
+            <span class="muted">Provider</span>
+            <select id="provider">
+              <option value="woocommerce" selected>woocommerce</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          <span class="muted">Agent Token (sunucudaki MARKETPLACE_AGENT_TOKEN)</span>
+          <input id="token" placeholder="..." />
+        </label>
+        <div class="btnrow">
+          <button id="btnConfig">Config Al</button>
+          <button id="btnSync" class="primary">Senkronla (Ürün + Sipariş)</button>
+          <button id="btnLog">Log dosyasını göster</button>
+          <span id="status" class="muted"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px; margin-bottom:8px">
+          <div style="font-weight:700">Durum</div>
+          <div id="last" class="muted"></div>
+        </div>
+        <textarea id="out" readonly spellcheck="false"></textarea>
+      </div>
+    </div>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
+

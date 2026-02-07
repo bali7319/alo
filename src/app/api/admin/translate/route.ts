@@ -1,32 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { isAdminEmail } from '@/lib/admin';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return { ok: false as const, status: 401 as const, error: 'Oturum açmanız gerekiyor' };
-
-  const userRole = (session.user as any)?.role;
-  if (userRole === 'admin') return { ok: true as const, session };
-
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { role: true },
-    });
-    if (user?.role === 'admin') return { ok: true as const, session };
-  } catch {
-    // ignore
-  }
-
-  if (isAdminEmail(session.user.email)) return { ok: true as const, session };
-  return { ok: false as const, status: 403 as const, error: 'Yetkiniz yok. Sadece admin bu işlemi yapabilir.' };
-}
 
 type Body = {
   text?: string;
@@ -58,8 +37,9 @@ async function translateOne(text: string, from: string, to: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin.ok) return NextResponse.json({ error: admin.error }, { status: admin.status });
+  const session = await getServerSession(authOptions);
+  const adminError = await requireAdmin(session);
+  if (adminError) return adminError;
 
   let body: Body | null = null;
   try {
@@ -111,8 +91,7 @@ export async function POST(req: NextRequest) {
     const translatedText = await translateOne(text, from, to);
     return NextResponse.json({ translatedText }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
-    console.error('[admin/translate] error', e);
-    return NextResponse.json({ error: 'Çeviri servisine ulaşılamadı' }, { status: 502 });
+    return handleApiError(e);
   }
 }
 

@@ -396,83 +396,18 @@ export default function Header() {
                 </Link>
               </Button>
             ) : session ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    aria-label="Kullanıcı menüsü"
-                  >
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110">
-                      <span className="text-white font-medium text-sm">
-                        {session.user?.name?.charAt(0) || session.user?.email?.charAt(0) || 'U'}
-                      </span>
-                    </div>
-                    <span className="hidden lg:block text-sm font-medium text-gray-700">
-                      {session.user?.name || session.user?.email}
-                    </span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>
-                    {session.user?.name || session.user?.email}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profil" className="cursor-pointer">
-                      <User className="h-4 w-4 mr-2" />
-                      Profil
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/ilanlarim" className="cursor-pointer">
-                      <Heart className="h-4 w-4 mr-2" />
-                      İlanlarım
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/favorilerim" className="cursor-pointer">
-                      <Heart className="h-4 w-4 mr-2" />
-                      Favorilerim
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/mesajlar" className="cursor-pointer">
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Mesajlarım
-                    </Link>
-                  </DropdownMenuItem>
-                  {((session.user as any)?.role === 'admin' || (session.user as any)?.role === 'moderator') && (
-                    <>
-                      <DropdownMenuSeparator />
-                      {(session.user as any)?.role === 'moderator' && (
-                        <DropdownMenuItem asChild>
-                          <Link href="/moderator" className="cursor-pointer">
-                            <Shield className="h-4 w-4 mr-2" />
-                            Moderatör Paneli
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
-                      {(session.user as any)?.role === 'admin' && (
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin" className="cursor-pointer">
-                            <Settings className="h-4 w-4 mr-2" />
-                            Admin Panel
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={(e) => handleSignOut(e)}
-                    disabled={isSigningOut}
-                    className="cursor-pointer text-red-600 focus:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    {isSigningOut ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              /* User dropdown removed (was causing unwanted mobile menu).
+                 Keep a simple profile link instead. */
+              <Button
+                asChild
+                variant="outline"
+                className="border-gray-300 hover:border-blue-600 hover:text-blue-600 transition-all duration-200"
+              >
+                <Link href="/profil" aria-label="Profil">
+                  <User className="h-4 w-4 lg:mr-2" />
+                  <span className="hidden lg:inline">Profil</span>
+                </Link>
+              </Button>
             ) : (
               <Button
                 asChild

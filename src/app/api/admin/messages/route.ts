@@ -2,28 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 
 // Admin için tüm mesajları getir (sayfalama ile)
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü - session'dan role ile (daha hızlı)
-    const userRole = (session.user as any)?.role;
-    if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
@@ -81,16 +68,8 @@ export async function GET(request: NextRequest) {
       limit,
       totalPages,
     });
-  } catch (error: unknown) {
-    console.error('Admin mesajlar getirme hatası:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-    return NextResponse.json(
-      { 
-        error: 'Mesajlar yüklenirken bir hata oluştu',
-        details: errorMessage 
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

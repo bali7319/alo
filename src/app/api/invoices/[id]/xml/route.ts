@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -91,12 +92,8 @@ export async function GET(
         'Content-Disposition': `attachment; filename="fatura-${invoice.invoiceNumber}.xml"`,
       },
     });
-  } catch (error: any) {
-    console.error('XML indirme hatası:', error);
-    return NextResponse.json(
-      { error: 'XML dosyası oluşturulamadı', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

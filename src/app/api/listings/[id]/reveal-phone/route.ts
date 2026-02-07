@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { decryptPhone } from '@/lib/encryption';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { extractIdFromSlug } from '@/lib/slug';
+import { handleApiError } from '@/lib/api-error';
 
 // Telefon "reveal" endpoint'i:
 // - Listing detail API'de telefonu public dönmüyoruz.
@@ -125,8 +126,7 @@ export async function POST(
       }
     );
   } catch (error) {
-    console.error('Telefon reveal hatası:', error);
-    return NextResponse.json({ error: 'Bir hata oluştu' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

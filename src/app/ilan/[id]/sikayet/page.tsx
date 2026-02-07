@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, AlertTriangle, Send, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { createListingSlug } from '@/lib/slug';
 
 interface ReportReason {
   id: string;
@@ -100,7 +101,8 @@ export default function IlanSikayetPage() {
         setDescription('');
         // 3 saniye sonra ilan sayfasına yönlendir
         setTimeout(() => {
-          window.location.href = `/ilan/${listingId}`;
+          const href = listing?.title ? `/ilan/${createListingSlug(listing.title, listingId)}` : `/ilan/${listingId}`;
+          window.location.href = href;
         }, 3000);
       } else {
         const errorData = await response.json();
@@ -124,7 +126,7 @@ export default function IlanSikayetPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
               <Link 
-                href={`/ilan/${listingId}`}
+                href={listing?.title ? `/ilan/${createListingSlug(listing.title, listingId)}` : `/ilan/${listingId}`}
                 className="flex items-center space-x-2 text-gray-600 hover:text-alo-orange transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -206,7 +208,7 @@ export default function IlanSikayetPage() {
 
             <div className="flex justify-end space-x-4">
               <Link 
-                href={`/ilan/${listingId}`}
+                href={listing?.title ? `/ilan/${createListingSlug(listing.title, listingId)}` : `/ilan/${listingId}`}
                 className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
               >
                 İptal

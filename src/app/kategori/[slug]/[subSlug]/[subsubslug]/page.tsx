@@ -6,9 +6,35 @@ import Link from 'next/link'
 import { Home } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 
 export const revalidate = 300; // 5 dakika cache
 export const dynamicParams = true;
+
+// SEO: canonical ve metadata (alt-alt kategori sayfaları dizin sorunlarını gidermek için)
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; subSlug: string; subsubslug: string }>;
+}): Promise<Metadata> {
+  const { slug, subSlug, subsubslug } = await params;
+  const foundCategory = categories.find((cat) => cat.slug === slug);
+  if (!foundCategory) return { title: 'Kategori Bulunamadı' };
+  const foundSubcategory = foundCategory.subcategories?.find((sub) => sub.slug === subSlug);
+  if (!foundSubcategory) return { title: 'Kategori Bulunamadı' };
+  const foundSubSubcategory = foundSubcategory.subcategories?.find((subsub) => subsub.slug === subsubslug);
+  if (!foundSubSubcategory) return { title: 'Kategori Bulunamadı' };
+  const canonical = `https://alo17.tr/kategori/${slug}/${subSlug}/${subsubslug}`;
+  const title = `${foundSubSubcategory.name} İlanları - Çanakkale | Alo17`;
+  const description = `Çanakkale'de ${foundSubSubcategory.name} kategorisinde ilanlar. Ücretsiz ilan ver, ilanları keşfedin.`;
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, siteName: 'Alo17', locale: 'tr_TR', type: 'website' },
+    twitter: { card: 'summary_large_image', title, description },
+  };
+}
 
 // Timeout wrapper
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -210,12 +236,8 @@ export default async function SubSubCategoryPage({ params }: { params: Promise<{
         </nav>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Sol Sidebar - Mobilde gizli, toggle butonu ile açılır */}
-          <div className="hidden md:block w-full md:w-64 flex-shrink-0">
-            <Sidebar />
-          </div>
-          {/* Mobil Sidebar - Toggle butonu ile açılır */}
-          <div className="md:hidden">
+          {/* Sidebar (responsive; mobile uses internal toggle) */}
+          <div className="w-full md:w-64 flex-shrink-0">
             <Sidebar />
           </div>
 

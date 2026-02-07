@@ -16,7 +16,7 @@ export default function AdminTestEmailPage() {
     message: 'Bu bir test email\'idir. Email gönderme sistemi çalışıyor! ✅',
   });
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string; details?: string } | null>(null);
 
   // Admin kontrolü
   if (status === 'loading') {
@@ -48,7 +48,7 @@ export default function AdminTestEmailPage() {
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
+      if (data.success && data.to) {
         setResult({
           success: true,
           message: `Email başarıyla gönderildi! Alıcı: ${data.to}`,
@@ -60,9 +60,11 @@ export default function AdminTestEmailPage() {
           message: 'Bu bir test email\'idir. Email gönderme sistemi çalışıyor! ✅',
         });
       } else {
+        const detailsMsg = data.details?.message || data.details?.code;
         setResult({
           success: false,
           message: data.error || 'Email gönderilemedi',
+          details: detailsMsg ? String(detailsMsg) : undefined,
         });
       }
     } catch (error: any) {
@@ -161,17 +163,24 @@ export default function AdminTestEmailPage() {
                 >
                   <div className="flex items-center">
                     {result.success ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                      <CheckCircle className="h-5 w-5 text-green-600 mr-2 flex-shrink-0" />
                     ) : (
-                      <XCircle className="h-5 w-5 text-red-600 mr-2" />
+                      <XCircle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0" />
                     )}
-                    <p
-                      className={
-                        result.success ? 'text-green-800' : 'text-red-800'
-                      }
-                    >
-                      {result.message}
-                    </p>
+                    <div className="min-w-0">
+                      <p
+                        className={
+                          result.success ? 'text-green-800' : 'text-red-800'
+                        }
+                      >
+                        {result.message}
+                      </p>
+                      {!result.success && result.details && (
+                        <p className="mt-2 text-sm text-red-700 font-mono break-all">
+                          {result.details}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

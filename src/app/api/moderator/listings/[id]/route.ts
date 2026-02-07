@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireModeratorOrAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 import { Prisma } from '@prisma/client';
 
 // Moderator için ilan onaylama/reddetme
@@ -11,30 +13,9 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin veya moderator kontrolü
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
-    });
-
-    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok. Sadece admin ve moderatörler bu işlemi yapabilir.' },
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const auth = await requireModeratorOrAdmin(session);
+    if (auth instanceof NextResponse) return auth;
+    const { user } = auth;
 
     const { id } = await params;
     const body = await request.json();
@@ -110,26 +91,8 @@ export async function PATCH(
       }
     });
   } catch (error) {
-    console.error('Moderator ilan işlem hatası:', error);
-    
-    // Error object'i güvenli şekilde serialize et
-    const errorMessage = error instanceof Error ? error.message : 'İşlem sırasında bir hata oluştu';
-    const errorName = error instanceof Error ? error.name : 'Error';
-    
-    return NextResponse.json(
-      { 
-        error: errorMessage,
-        type: errorName
-      },
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }
-    );
+    return handleApiError(error);
   }
-  // NOT: $disconnect() çağrısını kaldırdık - Prisma connection pool otomatik yönetir
 }
 
 // Moderator için ilan düzenleme
@@ -139,30 +102,9 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin veya moderator kontrolü
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
-    });
-
-    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok. Sadece admin ve moderatörler bu işlemi yapabilir.' },
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const auth = await requireModeratorOrAdmin(session);
+    if (auth instanceof NextResponse) return auth;
+    const { user } = auth;
 
     const { id } = await params;
     const body = await request.json();
@@ -240,25 +182,7 @@ export async function PUT(
       }
     });
   } catch (error) {
-    console.error('Moderator ilan düzenleme hatası:', error);
-    
-    // Error object'i güvenli şekilde serialize et
-    const errorMessage = error instanceof Error ? error.message : 'İlan güncellenirken bir hata oluştu';
-    const errorName = error instanceof Error ? error.name : 'Error';
-    
-    return NextResponse.json(
-      { 
-        error: errorMessage,
-        type: errorName
-      },
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }
-    );
+    return handleApiError(error);
   }
-  // NOT: $disconnect() çağrısını kaldırdık - Prisma connection pool otomatik yönetir
 }
 

@@ -2,36 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireModeratorOrAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 import { Prisma } from '@prisma/client';
 
 // Moderator için bekleyen ilanları getir
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin veya moderator kontrolü
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
-    });
-
-    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok. Sadece admin ve moderatörler bu sayfaya erişebilir.' },
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const auth = await requireModeratorOrAdmin(session);
+    if (auth instanceof NextResponse) return auth;
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
@@ -75,9 +55,6 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-    }).catch((error) => {
-      console.error('Prisma query hatası:', error);
-      throw error;
     });
 
     const parseArray = (val: string | null) => {
@@ -130,27 +107,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Moderator ilan getirme hatası:', error);
-    
-    // Error object'i güvenli şekilde serialize et
-    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-    const errorName = error instanceof Error ? error.name : 'Error';
-    
-    return NextResponse.json(
-      { 
-        error: 'İlanlar yüklenirken hata oluştu',
-        message: errorMessage,
-        type: errorName
-      },
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }
-    );
+    return handleApiError(error);
   }
-  // NOT: $disconnect() çağrısını kaldırdık
-  // Prisma connection pool otomatik yönetir, manuel disconnect connection pool'u bozar
 }
 

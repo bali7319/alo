@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 
 // HTML formatında fatura oluştur
 function generateInvoiceHTML(invoice: any, user: any): string {
@@ -195,25 +197,8 @@ function generateInvoiceHTML(invoice: any, user: any): string {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user || (user as any).role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Bu işlem için admin yetkisi gerekiyor' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const body = await request.json();
     const { invoiceIds } = body;
@@ -260,12 +245,8 @@ export async function POST(request: NextRequest) {
         'Content-Disposition': `attachment; filename="faturalar-${new Date().toISOString().split('T')[0]}.html"`,
       },
     });
-  } catch (error: any) {
-    console.error('Toplu HTML indirme hatası:', error);
-    return NextResponse.json(
-      { error: 'HTML dosyası oluşturulamadı', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

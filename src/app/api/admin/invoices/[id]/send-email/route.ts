@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 
 export async function POST(
   request: NextRequest,
@@ -9,24 +11,8 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user || (user as any).role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Bu işlem için admin yetkisi gerekiyor' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { id } = await params;
     const invoice = await prisma.invoice.findUnique({
@@ -65,12 +51,8 @@ export async function POST(
       success: true,
       message: 'Fatura e-postası başarıyla gönderildi',
     });
-  } catch (error: any) {
-    console.error('E-posta gönderme hatası:', error);
-    return NextResponse.json(
-      { error: 'E-posta gönderilemedi', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

@@ -16,7 +16,7 @@ import SeoJsonLd from '@/components/SeoJsonLd'
 
 export const metadata: Metadata = {
   alternates: {
-    canonical: '/',
+    canonical: 'https://alo17.tr/',
   },
 }
 

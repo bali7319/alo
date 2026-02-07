@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 import { Prisma } from '@prisma/client';
 import { updateContractSchema } from '@/lib/validations/contract';
 
@@ -12,11 +14,8 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-
-    const userRole = session?.user?.role;
-    if (!session || userRole !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { id } = await params;
     const contract = await prisma.contract.findUnique({
@@ -28,13 +27,8 @@ export async function GET(
     }
 
     return NextResponse.json(contract);
-  } catch (error: unknown) {
-    console.error('Sözleşme getirme hatası:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-    return NextResponse.json(
-      { error: 'Sözleşme yüklenemedi', details: errorMessage },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -45,11 +39,8 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-
-    const userRole = session?.user?.role;
-    if (!session || userRole !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { id } = await params;
     const body = await request.json();
@@ -109,13 +100,8 @@ export async function PUT(
     });
 
     return NextResponse.json(contract);
-  } catch (error: unknown) {
-    console.error('Sözleşme güncelleme hatası:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-    return NextResponse.json(
-      { error: 'Sözleşme güncellenemedi', details: errorMessage },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -126,11 +112,8 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-
-    const userRole = session?.user?.role;
-    if (!session || userRole !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { id } = await params;
     const body = await request.json();
@@ -157,13 +140,8 @@ export async function PATCH(
     });
 
     return NextResponse.json(contract);
-  } catch (error: unknown) {
-    console.error('Sözleşme durum güncelleme hatası:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-    return NextResponse.json(
-      { error: 'Sözleşme durumu güncellenemedi', details: errorMessage },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -174,11 +152,8 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-
-    const userRole = session?.user?.role;
-    if (!session || userRole !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { id } = await params;
     const contract = await prisma.contract.findUnique({
@@ -194,12 +169,7 @@ export async function DELETE(
     });
 
     return NextResponse.json({ message: 'Sözleşme silindi' });
-  } catch (error: unknown) {
-    console.error('Sözleşme silme hatası:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-    return NextResponse.json(
-      { error: 'Sözleşme silinemedi', details: errorMessage },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

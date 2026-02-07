@@ -1,0 +1,11 @@
+# Proje klasöründe (C:\Users\bali\Desktop\alo) PowerShell veya CMD açıp sırayla:
+
+cd C:\Users\bali\Desktop\alo
+
+git add --all
+git status
+git commit -m "SEO: canonical, sitemap, redirects, noindex, tek sayfa"
+git push origin main
+
+# Sonra sunucuda güncelleme:
+ssh -p 2222 root@alo17.tr "cd /var/www/alo17 && git pull origin main && npm run build && pm2 restart alo17"

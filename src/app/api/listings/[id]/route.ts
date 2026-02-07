@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client';
 import { updateListingSchema } from '@/lib/validations/listing';
 import { getCache, setCache, deleteCache, clearCachePattern, createCacheKey } from '@/lib/cache';
 import { decryptPhone } from '@/lib/encryption';
+import { handleApiError } from '@/lib/api-error';
 
 // Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -458,12 +459,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('İlan getirme hatası:', error);
-    // Prod'da stack spam olmasın
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('Hata detayı:', error instanceof Error ? error.stack : String(error));
-    }
-    
     // Timeout hatası
     if (error instanceof Error && error.message.includes('timeout')) {
       console.error('Request timeout:', error.message);
@@ -496,27 +491,7 @@ export async function GET(
       }
     }
     
-    // Detaylı hata mesajı (development için)
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : String(error);
-    const errorDetails = process.env.NODE_ENV === 'development' 
-      ? { message: errorMessage, stack: error instanceof Error ? error.stack : undefined }
-      : { message: 'İlan yüklenirken hata oluştu' };
-    
-    return NextResponse.json(
-      { 
-        error: 'İlan yüklenirken hata oluştu',
-        ...errorDetails
-      },
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-        },
-      }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -800,11 +775,7 @@ export async function PUT(
       listing: formattedListing 
     });
   } catch (error) {
-    console.error('İlan güncelleme hatası:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'İlan güncellenirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -983,11 +954,7 @@ export async function PATCH(
       }
     });
   } catch (error) {
-    console.error('İlan durumu güncelleme hatası:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'İlan durumu güncellenirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -1178,11 +1145,7 @@ export async function DELETE(
       message: 'İlan başarıyla silindi',
     });
   } catch (error) {
-    console.error('İlan silme hatası:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'İlan silinirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 

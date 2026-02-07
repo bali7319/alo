@@ -6,9 +6,33 @@ import Link from 'next/link'
 import { Home, Sparkles, Star, Clock } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 
 export const revalidate = 300; // 5 dakika cache
 export const dynamicParams = true;
+
+// SEO: canonical ve metadata (alt kategori sayfaları dizin sorunlarını gidermek için)
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; subSlug: string }>;
+}): Promise<Metadata> {
+  const { slug, subSlug } = await params;
+  const foundCategory = categories.find((cat) => cat.slug === slug);
+  if (!foundCategory) return { title: 'Kategori Bulunamadı' };
+  const foundSubcategory = foundCategory.subcategories?.find((sub) => sub.slug === subSlug);
+  if (!foundSubcategory) return { title: 'Kategori Bulunamadı' };
+  const canonical = `https://alo17.tr/kategori/${slug}/${subSlug}`;
+  const title = `${foundSubcategory.name} İlanları - Çanakkale | Alo17`;
+  const description = `Çanakkale'de ${foundSubcategory.name} kategorisinde ilanlar. Ücretsiz ilan ver, ikinci el al-sat.`;
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, siteName: 'Alo17', locale: 'tr_TR', type: 'website' },
+    twitter: { card: 'summary_large_image', title, description },
+  };
+}
 
 // Timeout wrapper - 8 saniye içinde cevap vermezse hata döndür
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -181,12 +205,8 @@ export default async function SubCategoryPage({ params }: { params: Promise<{ sl
         </nav>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Sol Sidebar - Mobilde gizli, toggle butonu ile açılır */}
-          <div className="hidden md:block w-full md:w-64 flex-shrink-0">
-            <Sidebar />
-          </div>
-          {/* Mobil Sidebar - Toggle butonu ile açılır */}
-          <div className="md:hidden">
+          {/* Sidebar (responsive; mobile uses internal toggle) */}
+          <div className="w-full md:w-64 flex-shrink-0">
             <Sidebar />
           </div>
 

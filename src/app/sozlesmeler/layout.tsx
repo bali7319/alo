@@ -14,6 +14,7 @@ export const metadata: Metadata = {
     'dilekçe örneği',
     'sözleşme şablonu',
   ],
+  alternates: { canonical: 'https://alo17.tr/sozlesmeler' },
   openGraph: {
     title: 'Hukuki Belgeler ve Dilekçe - Alo17',
     description: 'İhtiyacınıza uygun hukuki belge ve dilekçe şablonlarını seçin ve oluşturun.',

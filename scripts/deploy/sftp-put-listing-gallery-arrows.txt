@@ -1,0 +1,2 @@
+put "C:/Users/bali/Desktop/alo/src/app/ilan/[id]/IlanDetayClient.tsx" "/var/www/alo17/src/app/ilan/[id]/IlanDetayClient.tsx"
+

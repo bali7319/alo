@@ -9,20 +9,14 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           // API endpoint'leri - kesinlikle engelle
           '/api/',
-          // Kullanıcı özel sayfaları - engelle
-          '/admin/',
-          '/moderator/',
-          '/profil/',
-          '/ilanlarim/',
-          '/favorilerim/',
-          '/mesajlar/',
-          '/odeme/',
-          '/fatura/',
-          '/sifre-sifirla/',
-          '/sifremi-unuttum/',
-          // Not: Eski/spam URL pattern'lerini robots ile engellemiyoruz.
-          // Çünkü Google "Blocked by robots.txt" olarak raporlar ve index'ten çıkarması gecikebilir.
-          // Bu URL'ler middleware'de 410 Gone dönüyor; botların görmesi daha iyi.
+          // Geliştirme/test sayfaları
+          '/dev/',
+
+          // NOT:
+          // Kullanıcı/özel sayfaları robots ile engellemiyoruz.
+          // Çünkü robots engeli, Google'ın sayfayı tarayıp `noindex` görmesini engeller ve
+          // Search Console'da "Blocked by robots.txt although indexed" uyarısına yol açabilir.
+          // Bu sayfalar middleware + layout metadata ile `noindex` olarak işaretlenir.
         ],
       },
       {
@@ -30,17 +24,8 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         disallow: [
           '/api/',
-          '/admin/',
-          '/moderator/',
-          '/profil/',
-          '/ilanlarim/',
-          '/favorilerim/',
-          '/mesajlar/',
-          '/odeme/',
-          '/fatura/',
-          '/sifre-sifirla/',
-          '/sifremi-unuttum/',
-          // Not: Eski/spam URL pattern'leri 410 Gone ile kaldırılıyor (middleware).
+          '/dev/',
+          // NOT: Özel sayfalar robots ile engellenmez; `noindex` ile kaldırılır.
         ],
       },
     ],

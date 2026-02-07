@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     description: 'Çanakkalede ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul. Elektronik, giyim, ev eşyaları ve daha fazlası.',
     images: [
       {
-        url: '/images/og-image.jpg',
+        url: '/images/placeholder.jpg',
         width: 1200,
         height: 630,
         alt: 'Alo17 - İlan Sitesi',
@@ -79,7 +79,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Alo17 - Çanakkalenin En Büyük İlan Sitesi',
     description: 'Çanakkale\'de ücretsiz ilan ver, ikinci el eşya al-sat, iş ilanları bul.',
-    images: ['/images/og-image.jpg'],
+    images: ['/images/placeholder.jpg'],
   },
   robots: {
     index: true,

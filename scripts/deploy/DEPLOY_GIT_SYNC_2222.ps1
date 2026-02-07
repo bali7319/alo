@@ -34,6 +34,7 @@ function Invoke-RemoteSsh([string]$Command) {
   & ssh.exe -p $Port -i $IdentityFile `
     -o StrictHostKeyChecking=no `
     -o UserKnownHostsFile=NUL `
+    -o LogLevel=ERROR `
     -o BatchMode=yes `
     -o ConnectTimeout=30 `
     -o ConnectionAttempts=3 `
@@ -56,21 +57,51 @@ if ($LASTEXITCODE -ne 0) { Write-Host $ping; throw "SSH connection failed" }
 Write-Host "1) Git sync + install + build + restart..." -ForegroundColor Yellow
 $remoteCmd = "set -euo pipefail; " +
   "cd '$RemotePath'; " +
-  "echo '📥 Git sync...'; " +
+  # Avoid PowerShell "NativeCommandError" noise by merging remote stderr->stdout.
+  "exec 2>&1; " +
+  "echo 'Preflight...'; " +
+  "node -v; npm -v; " +
+  "echo 'Exec check (repo mount)...'; " +
+  "printf '%s\n' '#!/bin/sh' 'echo exec-ok' > .alo17_exec_test.sh; chmod +x .alo17_exec_test.sh; " +
+  "if ./.alo17_exec_test.sh; then :; else echo 'exec-failed (likely noexec mount)'; fi; rm -f .alo17_exec_test.sh; " +
+  "echo 'Git sync...'; " +
   "git fetch origin '$Branch'; " +
   "git reset --hard 'origin/$Branch'; " +
-  "git clean -fd; " +
-  "echo '📦 NPM install (deterministic)...'; " +
-  "if [ -f package-lock.json ]; then npm ci --production=false; else npm install --include=dev; fi; " +
-  "echo '🔧 Prisma generate...'; " +
-  "npx prisma generate; " +
-  "echo '🏗️ Build...'; " +
-  "npm run build; " +
-  "echo '🔄 PM2 restart...'; " +
+  # IMPORTANT:
+  # - We MUST wipe ignored build artifacts (node_modules, .next, etc.) to avoid npm ENOTEMPTY issues.
+  # - We MUST keep user-uploaded assets + env files safe.
+  # NOTE: `-x` removes ignored files too; exclusions keep the important ones.
+  "git clean -fdx " +
+    "-e public/uploads " +
+    "-e public/images/listings " +
+    "-e .env " +
+    "-e .env.* " +
+    "-e prisma/dev.db " +
+    "-e prisma/prisma/dev.db; " +
+  "echo 'NPM install (deterministic)...'; " +
+  # NOTE: On some servers /var/www may be mounted with `noexec`, which breaks postinstall binaries.
+  # Using --ignore-scripts avoids failures like "napi-postinstall: Permission denied".
+  "if [ -f package-lock.json ]; then npm ci --production=false --ignore-scripts; else npm install --include=dev --ignore-scripts; fi; " +
+  "echo 'Prisma generate...'; " +
+  "node node_modules/prisma/build/index.js generate; " +
+  "echo 'Sanity check (Next export module)...'; " +
+  "if [ -f node_modules/next/dist/export/index.js ]; then " +
+    "echo 'node_modules/next/dist/export/index.js OK'; " +
+  "else " +
+    "echo 'node_modules/next/dist/export/index.js MISSING'; " +
+    "echo 'Next install seems incomplete; reinstalling next...'; " +
+    "rm -rf node_modules/next; " +
+    "npm install --no-save next@15.5.9 --ignore-scripts; " +
+    "test -f node_modules/next/dist/export/index.js; " +
+  "fi; " +
+  "echo 'Build...'; " +
+  "node node_modules/next/dist/bin/next build; " +
+  "echo 'PM2 restart...'; " +
   "pm2 restart '$Pm2AppName'; pm2 save; " +
-  "echo '✅ Deploy completed.'"
+  "echo 'Deploy completed.'"
 
 Invoke-RemoteSsh $remoteCmd | ForEach-Object { $_ }
+if ($LASTEXITCODE -ne 0) { throw "Remote deploy command failed (exit $LASTEXITCODE)" }
 
 Write-Host ""
 Write-Host "✅ Done." -ForegroundColor Green

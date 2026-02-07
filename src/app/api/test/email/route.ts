@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { sendEmail } from '@/lib/email';
+import { createSmtpTransporter, sendEmail } from '@/lib/email';
+import { isAdminEmail } from '@/lib/admin';
 
 export async function POST(request: NextRequest) {
   try {
     // Admin kontrolü
     const session = await getServerSession(authOptions);
     
-    if (!session || (session.user as any)?.role !== 'admin') {
+    const sessionEmail = session?.user?.email || '';
+    const isAdmin = Boolean((session?.user as any)?.role === 'admin') || (sessionEmail ? isAdminEmail(sessionEmail) : false);
+    if (!session || !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -73,31 +76,27 @@ Bu email Alo17 email test sistemi tarafından gönderilmiştir.
 ${new Date().toLocaleString('tr-TR')}
     `;
 
-    const success = await sendEmail({
+    const result = await sendEmail({
       to,
       subject: `[TEST] ${subject}`,
       html,
       text,
     });
 
-    if (success) {
+    if (result.success) {
       return NextResponse.json({
         success: true,
         message: 'Test email başarıyla gönderildi',
         to,
         subject: `[TEST] ${subject}`,
       });
-    } else {
-      return NextResponse.json(
-        { error: 'Email gönderilemedi. Lütfen SMTP ayarlarını kontrol edin.' },
-        { status: 500 }
-      );
     }
-  } catch (error: any) {
-    console.error('Email test hatası:', error);
-    return NextResponse.json(
-      { error: error.message || 'Email gönderme sırasında bir hata oluştu' },
-      { status: 500 }
-    );
+
+    // 200 döndür, body'de success: false ve error ile; böylece konsol "500" göstermez
+    const errorMessage = result.error || 'Email gönderilemedi. Lütfen SMTP ayarlarını kontrol edin.';
+    return NextResponse.json({ success: false, error: errorMessage });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Beklenmeyen hata';
+    return NextResponse.json({ success: false, error: message });
   }
 }

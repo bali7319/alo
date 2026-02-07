@@ -1,20 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Cron job için güvenlik: Sadece belirli secret key ile çalışsın
-const CRON_SECRET = process.env.CRON_SECRET || 'your-secret-key-here';
+const DEFAULT_CRON_SECRET = 'your-secret-key-here';
 
 export async function GET(request: NextRequest) {
   try {
-    // Güvenlik kontrolü - Vercel cron jobs otomatik olarak Authorization header ekler
+    const CRON_SECRET = process.env.CRON_SECRET || DEFAULT_CRON_SECRET;
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Production'da zayıf/default secret ile çalışmayı engelle
+    if (isProduction && (!CRON_SECRET || CRON_SECRET === DEFAULT_CRON_SECRET)) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const authHeader = request.headers.get('authorization');
     const cronSecret = request.nextUrl.searchParams.get('secret');
-    const vercelCron = request.headers.get('x-vercel-cron'); // Vercel cron job header'ı
-    
-    // Vercel cron job'dan geliyorsa veya doğru secret key varsa izin ver
-    if (vercelCron || authHeader === `Bearer ${CRON_SECRET}` || cronSecret === CRON_SECRET) {
-      // Devam et
-    } else {
+    const vercelCron = request.headers.get('x-vercel-cron');
+
+    const allowed =
+      vercelCron === '1' ||
+      authHeader === `Bearer ${CRON_SECRET}` ||
+      cronSecret === CRON_SECRET;
+
+    if (!allowed) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

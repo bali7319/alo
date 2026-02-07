@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -49,12 +50,8 @@ export async function GET(
     }
 
     return NextResponse.json({ invoice });
-  } catch (error: any) {
-    console.error('Fatura detay hatası:', error);
-    return NextResponse.json(
-      { error: 'Fatura yüklenirken bir hata oluştu', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

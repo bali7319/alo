@@ -2,17 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session || (session.user as any)?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -61,24 +58,15 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Aboneler getirme hatası:', error);
-    return NextResponse.json(
-      { error: 'Aboneler getirilirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session || (session.user as any)?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -98,24 +86,15 @@ export async function DELETE(request: NextRequest) {
       message: 'Abonelik başarıyla silindi' 
     });
   } catch (error) {
-    console.error('Abonelik silme hatası:', error);
-    return NextResponse.json(
-      { error: 'Abonelik silinirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session || (session.user as any)?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const body = await request.json();
     const { id, isActive } = body;
@@ -137,10 +116,6 @@ export async function PATCH(request: NextRequest) {
       subscriber 
     });
   } catch (error) {
-    console.error('Abonelik güncelleme hatası:', error);
-    return NextResponse.json(
-      { error: 'Abonelik güncellenirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

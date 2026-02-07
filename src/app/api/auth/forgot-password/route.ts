@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      const emailSent = await sendEmail({
+      const emailResult = await sendEmail({
         to: normalizedEmail,
         subject: 'Şifre Sıfırlama - Alo17',
         html: `
@@ -139,7 +139,7 @@ Eğer şifre sıfırlama talebinde bulunmadıysanız, bu email'i görmezden gele
       `,
       });
 
-      if (!emailSent) {
+      if (!emailResult.success) {
         console.error('❌ Şifre sıfırlama emaili gönderilemedi:', normalizedEmail);
         // Email gönderilemese bile güvenlik için başarılı mesajı döndür
       } else {

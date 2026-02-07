@@ -1,0 +1,2 @@
+put "C:/Users/bali/Desktop/alo/scripts/deploy/alo17.nginx.conf" "/etc/nginx/sites-available/alo17"
+

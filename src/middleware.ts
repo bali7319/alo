@@ -91,6 +91,41 @@ function getClientIP(request: NextRequest): string {
 export async function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
 
+  // SEO: Kullanıcı/özel sayfalar indexlenmesin.
+  // Not: robots.txt ile engellemek yerine `noindex` kullanıyoruz ki Google sayfayı tarayıp
+  // index'ten hızlıca çıkarabilsin (GSC: "Blocked by robots.txt although indexed" sorununu azaltır).
+  const isNoIndexPath = (() => {
+    // Exact paths
+    if (
+      pathname === '/giris' ||
+      pathname === '/kayit' ||
+      pathname === '/sifre-sifirla' ||
+      pathname === '/sifremi-unuttum'
+    ) {
+      return true;
+    }
+
+    // Prefix paths (kullanıcıya/oturuma özel sayfalar)
+    return (
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/moderator') ||
+      pathname.startsWith('/profil') ||
+      pathname.startsWith('/ilanlarim') ||
+      pathname.startsWith('/favorilerim') ||
+      pathname.startsWith('/mesajlar') ||
+      pathname.startsWith('/odeme') ||
+      pathname.startsWith('/fatura') ||
+      pathname.startsWith('/notifications') ||
+      pathname.startsWith('/ilan-ver/duzenle') ||
+      pathname.startsWith('/ilan-ver/onizle')
+    );
+  })();
+
+  const withNoIndex = (response: NextResponse) => {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    return response;
+  };
+
   // getToken() pahalı olabilir; aynı request içinde tek sefer çağırıp paylaş.
   let tokenPromise: Promise<any> | null = null;
   const getTokenOnce = async () => {
@@ -239,7 +274,8 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.hostname = hostname.replace(/^www\./, '');
     url.protocol = 'https:'; // HTTPS'e zorla
-    return NextResponse.redirect(url, 301); // 301 Permanent Redirect
+    const res = NextResponse.redirect(url, 301); // 301 Permanent Redirect
+    return isNoIndexPath ? withNoIndex(res) : res;
   }
 
   // Not: query-string legacy/spam kontrolü yukarıda yapılıyor.
@@ -292,7 +328,7 @@ export async function middleware(request: NextRequest) {
     if (pathname !== '/giris') {
       const loginUrl = new URL('/giris', request.url);
       loginUrl.searchParams.set('logout', 'true');
-      return NextResponse.redirect(loginUrl);
+      return withNoIndex(NextResponse.redirect(loginUrl));
     }
     // /giris?logout=true için devam et
   }
@@ -320,7 +356,7 @@ export async function middleware(request: NextRequest) {
         url.pathname = '/profil/duzenle';
         url.searchParams.set('onboarding', '1');
         url.searchParams.set('callbackUrl', requestedPath);
-        return NextResponse.redirect(url);
+        return withNoIndex(NextResponse.redirect(url));
       }
     }
   }
@@ -332,22 +368,27 @@ export async function middleware(request: NextRequest) {
     if (!token) {
       const loginUrl = new URL('/giris', request.url);
       loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname + request.nextUrl.search);
-      return NextResponse.redirect(loginUrl);
+      return withNoIndex(NextResponse.redirect(loginUrl));
     }
 
     // Admin route'ları için admin kontrolü
     if (pathname.startsWith('/admin') && token.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url));
+      return withNoIndex(NextResponse.redirect(new URL('/', request.url)));
     }
 
     // Moderator route'ları için moderator veya admin kontrolü
     if (pathname.startsWith('/moderator') && token.role !== 'moderator' && token.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url));
+      return withNoIndex(NextResponse.redirect(new URL('/', request.url)));
     }
   }
 
   // Security headers ekle
   const response = NextResponse.next();
+
+  // noindex headers (özel sayfalar)
+  if (isNoIndexPath) {
+    withNoIndex(response);
+  }
   
   // Baseline security headers
   response.headers.set('X-XSS-Protection', '1; mode=block');

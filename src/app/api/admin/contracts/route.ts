@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 import { Prisma } from '@prisma/client';
 import { createContractSchema } from '@/lib/validations/contract';
 
@@ -9,11 +11,8 @@ import { createContractSchema } from '@/lib/validations/contract';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
-    const userRole = session?.user?.role;
-    if (!session || userRole !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     // Contract modelinin var olup olmadığını kontrol et
     try {
@@ -46,26 +45,12 @@ export async function GET(request: NextRequest) {
       throw dbError;
     }
   } catch (error: unknown) {
-    console.error('Sözleşmeler listeleme hatası:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-    
-    // Prisma hatalarını daha iyi handle et
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2021' || error.code === 'P2025') {
-        // Tablo/model yoksa boş array döndür
-        console.warn('Contract tablosu/modeli bulunamadı, boş liste döndürülüyor');
         return NextResponse.json([]);
       }
     }
-    
-    return NextResponse.json(
-      { 
-        error: 'Sözleşmeler yüklenemedi', 
-        details: errorMessage,
-        hint: 'Database migration çalıştırıldı mı? (npx prisma migrate dev)'
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -73,11 +58,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
-    const userRole = session?.user?.role;
-    if (!session || userRole !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const body = await request.json();
 
@@ -122,12 +104,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(contract, { status: 201 });
-  } catch (error: any) {
-    console.error('Sözleşme oluşturma hatası:', error);
-    return NextResponse.json(
-      { error: 'Sözleşme oluşturulamadı', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

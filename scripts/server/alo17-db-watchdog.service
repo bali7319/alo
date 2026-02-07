@@ -1,0 +1,10 @@
+[Unit]
+Description=Alo17 DB Watchdog (restart Postgres if down)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/alo17-db-watchdog.env
+ExecStart=/usr/local/bin/alo17-db-watchdog.sh
+

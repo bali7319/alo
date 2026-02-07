@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { isAdminEmail } from '@/lib/admin';
+import { requireAdmin } from '@/lib/admin';
 import { createReportSchema } from '@/lib/validations/report';
+import { handleApiError } from '@/lib/api-error';
 
 // Şikayet oluştur
 export async function POST(request: NextRequest) {
@@ -94,11 +95,7 @@ export async function POST(request: NextRequest) {
       },
     }, { status: 201 });
   } catch (error) {
-    console.error('Şikayet oluşturma hatası:', error);
-    return NextResponse.json(
-      { error: 'Şikayet gönderilirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -106,30 +103,8 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { role: true, email: true },
-    });
-
-    const isAdmin = user?.role === 'admin' || 
-                    (user?.email && isAdminEmail(user.email)) ||
-                    user?.email?.endsWith('@alo17.tr');
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const reports = await prisma.report.findMany({
       include: {
@@ -154,11 +129,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(reports);
   } catch (error) {
-    console.error('Şikayetleri getirme hatası:', error);
-    return NextResponse.json(
-      { error: 'Şikayetler yüklenirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 

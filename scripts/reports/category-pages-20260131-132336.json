@@ -1,0 +1,787 @@
+{
+  "base": "https://alo17.tr",
+  "checked": 129,
+  "okCount": 125,
+  "soft404Count": 0,
+  "failCount": 4,
+  "results": [
+    {
+      "url": "https://alo17.tr/kategoriler",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/giyim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/moda-stil",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sporlar-oyunlar-eglenceler",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/anne-bebek",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/yemek-icecek",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/catering-ticaret",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/turizm-konaklama",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/saglik-guzellik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sanat-hobi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ucretsiz-gel-al",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/garson-komi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/guvenlik-gorevlisi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/muhasebeci-finans-elemani",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/nakliyat",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/ogretmen-egitmen",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/pazarlama-reklam-uzmani",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/saglik-personeli",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/satis-danismani",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/sekreter-ofis-elemani",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/sofor-kurye",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/teknik-servis",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/tekniker-muhendis",
+      "status": 0,
+      "ok": false,
+      "softNotFound": null,
+      "error": "Timeout: https://alo17.tr/kategori/is/tekniker-muhendis"
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/temizlik-personeli",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/is/yazilim-bilisim-uzmani",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/guvenlik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/tadilat-dekorasyon",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/elektrik-tesisat",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/mobilya-marangoz",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/isitma-sogutma-servis",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/temizlik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/teknik-servis",
+      "status": 0,
+      "ok": false,
+      "softNotFound": null,
+      "error": "Timeout: https://alo17.tr/kategori/hizmetler/teknik-servis"
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/nakliyat",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/ozel-ders-egitim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/saglik-bakim-guzellik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/profesyonel-organizasyon",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/hizmetler/tasarim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik/bilgisayar",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik/kamera",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik/kulaklik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik/network",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik/oyun-konsolu",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik/tablet",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik/telefon",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik/televizyon",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/elektronik/yazici",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce/aydinlatma",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce/bahce-aletleri",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce/beyaz-esya",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce/dekorasyon",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce/guvenlik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce/isitma-sogutma",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce/mobilya",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce/mutfak-gerecleri",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ev-ve-bahce/temizlik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/giyim/aksesuar",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/giyim/ayakkabi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/giyim/ayakkabi-canta",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/giyim/bayan-giyim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/giyim/cocuk-giyim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/giyim/erkek-giyim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/moda-stil/aksesuar",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/moda-stil/ayakkabi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/moda-stil/cocuk",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/moda-stil/erkek",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sporlar-oyunlar-eglenceler/spor-aktiviteleri",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sporlar-oyunlar-eglenceler/spor-dallari",
+      "status": 0,
+      "ok": false,
+      "softNotFound": null,
+      "error": "Timeout: https://alo17.tr/kategori/sporlar-oyunlar-eglenceler/spor-dallari"
+    },
+    {
+      "url": "https://alo17.tr/kategori/sporlar-oyunlar-eglenceler/video-oyunlari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/anne-bebek/bebek-giyim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/anne-bebek/bebek-odasi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/anne-bebek/bebek-oyuncaklari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/anne-bebek/bebek-bakim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/anne-bebek/hamilelik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi/cocuk-aksesuar",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi/cocuk-ayakkabi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi/cocuk-bisikleti",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi/cocuk-giyim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi/cocuk-kitaplari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi/cocuk-muzik-aletleri",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi/cocuk-odasi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi/cocuk-oyuncaklari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/cocuk-dunyasi/cocuk-spor",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/akademik-kurslar",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/bilgisayar",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/dans",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/diger",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/mesleki",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/muzik-kurslari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/okul-kres",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/sanat-kurslari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/spor-kurslari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/egitim-kurslar/yabanci-dil-kurslari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/yemek-icecek/fast-food",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/yemek-icecek/kafeler",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/yemek-icecek/ozel-yemekler",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/yemek-icecek/restoranlar",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/yemek-icecek/tatli-pastane",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/catering-ticaret/catering",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/catering-ticaret/ticaret",
+      "status": 0,
+      "ok": false,
+      "softNotFound": null,
+      "error": "Timeout: https://alo17.tr/kategori/catering-ticaret/ticaret"
+    },
+    {
+      "url": "https://alo17.tr/kategori/catering-ticaret/toplu-yemek",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/turizm-konaklama/arac-kiralama",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/turizm-konaklama/konaklama",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/turizm-konaklama/turlar",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/turizm-konaklama/ucak-bileti",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/saglik-guzellik/bayan-kuafor",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/saglik-guzellik/diyet-ve-beslenme",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/saglik-guzellik/erkek-kuafor",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/saglik-guzellik/guzellik-merkezi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/saglik-guzellik/kisisel-bakim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/saglik-guzellik/kozmetik",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/saglik-guzellik/saglik-urunleri",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/saglik-guzellik/spa-merkezi",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sanat-hobi/el-isi-malzemeleri",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sanat-hobi/el-sanatlari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sanat-hobi/hobi-kurslari",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sanat-hobi/koleksiyon",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sanat-hobi/muzik-aletleri",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/sanat-hobi/resim-malzemeleri",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ucretsiz-gel-al/esya",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ucretsiz-gel-al/giyim",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ucretsiz-gel-al/kitap",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ucretsiz-gel-al/mobilya",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    },
+    {
+      "url": "https://alo17.tr/kategori/ucretsiz-gel-al/oyuncak",
+      "status": 200,
+      "ok": true,
+      "softNotFound": null
+    }
+  ]
+}

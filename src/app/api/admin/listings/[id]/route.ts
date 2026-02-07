@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { isAdminEmail } from '@/lib/admin';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 import { Prisma } from '@prisma/client';
 
 // Admin için ilan detayı getir
@@ -12,21 +13,8 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü
-    if (!isAdminEmail(session.user.email)) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { id } = await params;
 
@@ -53,13 +41,8 @@ export async function GET(
 
     return NextResponse.json({ listing });
   } catch (error) {
-    console.error('Admin ilan getirme hatası:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'İlan yüklenirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-  // NOT: $disconnect() çağrısını kaldırdık - Prisma connection pool otomatik yönetir
 }
 
 // Admin için ilan işlemleri (onaylama, reddetme, silme, premium yapma)
@@ -69,25 +52,11 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
-    // Admin kontrolü
-    if (!isAdminEmail(session.user.email)) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok' },
-        { status: 403 }
-      );
-    }
-
-    // Admin kullanıcıyı bul
     const adminUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: session!.user!.email! },
       select: { id: true, name: true, email: true, role: true },
     });
 
@@ -240,6 +209,31 @@ export async function PATCH(
       },
     });
 
+    // İlan sahibine durum maili gönder (async)
+    try {
+      if (action === 'approve' && updatedListing.approvalStatus === 'approved') {
+        const { sendListingApprovedEmail } = await import('@/lib/email');
+        sendListingApprovedEmail({
+          listing: { id: updatedListing.id, title: updatedListing.title },
+          user: { name: updatedListing.user?.name, email: updatedListing.user.email },
+        }).catch((error) => {
+          console.error('İlan onaylandı maili gönderme hatası:', error);
+        });
+      } else if (action === 'reject' && updatedListing.approvalStatus === 'rejected') {
+        const { sendListingRejectedEmail } = await import('@/lib/email');
+        sendListingRejectedEmail({
+          listing: { id: updatedListing.id, title: updatedListing.title },
+          user: { name: updatedListing.user?.name, email: updatedListing.user.email },
+          reason: updatedListing.moderatorNotes || null,
+        }).catch((error) => {
+          console.error('İlan reddedildi maili gönderme hatası:', error);
+        });
+      }
+    } catch (error) {
+      // Email hatası kritik değil
+      console.error('İlan durum maili gönderme hatası:', error);
+    }
+
     // İlan onaylandıysa ve daha önce pending ise, abonelere email gönder
     if (isApproving && wasPending && updatedListing.approvalStatus === 'approved') {
       try {
@@ -266,13 +260,8 @@ export async function PATCH(
     
     return response;
   } catch (error) {
-    console.error('Admin ilan işlem hatası:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'İşlem sırasında bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-  // NOT: $disconnect() çağrısını kaldırdık - Prisma connection pool otomatik yönetir
 }
 
 // Admin için ilan silme
@@ -282,21 +271,8 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü
-    if (!isAdminEmail(session.user.email)) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const { id } = await params;
 
@@ -348,12 +324,7 @@ export async function DELETE(
       message: 'İlan başarıyla silindi',
     });
   } catch (error) {
-    console.error('Admin ilan silme hatası:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'İlan silinirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-  // NOT: $disconnect() çağrısını kaldırdık - Prisma connection pool otomatik yönetir
 }
 

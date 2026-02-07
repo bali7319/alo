@@ -12,7 +12,7 @@ export default function SEO({
   title,
   description,
   keywords,
-  ogImage = '/images/og-image.jpg',
+  ogImage = '/images/placeholder.jpg',
   ogUrl = 'https://alo17.tr'
 }: SEOProps) {
   return (

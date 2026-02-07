@@ -81,6 +81,10 @@ const nextConfig = {
   // Bu URL'ler `src/middleware.ts` içinde 410 Gone döndürülerek Google'ın daha hızlı düşürmesi sağlanır.
   async redirects() {
     return [
+      // Tek sayfaya toplanan URL'ler (canonical)
+      { source: '/gizlilik-politikasi', destination: '/gizlilik', permanent: true },
+      { source: '/kullanim-sartlari', destination: '/kullanim-kosullari', permanent: true },
+
       // Broken/legacy placeholder.jpg paths -> SVG placeholder.
       // (These redirects work only if the .jpg file doesn't exist in /public.)
       {

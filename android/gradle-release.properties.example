@@ -1,0 +1,11 @@
+## Copy this file to `android/gradle-release.properties` (same folder) and fill values.
+## IMPORTANT: Never commit `gradle-release.properties` (it is gitignored).
+##
+## This repo currently uses RELEASE_* keys (kept for backward compatibility).
+## Path is relative to the `android/` folder.
+
+RELEASE_STORE_FILE=../keystore/alo17-release-key.jks
+RELEASE_KEY_ALIAS=alo17
+RELEASE_STORE_PASSWORD=CHANGE_ME
+RELEASE_KEY_PASSWORD=CHANGE_ME
+

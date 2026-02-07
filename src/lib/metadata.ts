@@ -89,7 +89,7 @@ export function createMetadata({
           ]
         : [
             {
-              url: `${baseUrl}/images/og-image.jpg`,
+              url: `${baseUrl}/images/placeholder.jpg`,
               width: 1200,
               height: 630,
               alt: 'Alo17 - İlan Sitesi',
@@ -102,7 +102,7 @@ export function createMetadata({
       description,
       images: image
         ? [image.startsWith('http') ? image : `${baseUrl}${image}`]
-        : [`${baseUrl}/images/og-image.jpg`],
+        : [`${baseUrl}/images/placeholder.jpg`],
     },
   }
 }

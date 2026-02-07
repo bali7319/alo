@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { createListingSchema } from '@/lib/validations/listing';
 import { clearCachePattern } from '@/lib/cache';
+import { handleApiError } from '@/lib/api-error';
 
 // Tüm ilanları getir (sayfalama ile)
 export async function GET(request: NextRequest) {
@@ -248,11 +249,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[GET /api/listings] Error:', error);
-    return NextResponse.json(
-      { error: 'İlanlar yüklenirken bir hata oluştu', details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -323,11 +320,7 @@ export async function POST(request: NextRequest) {
           },
         });
       } catch (error) {
-        console.error('Kullanıcı oluşturma hatası:', error);
-        return NextResponse.json(
-          { error: 'Kullanıcı oluşturulamadı. Lütfen tekrar giriş yapın.' },
-          { status: 500 }
-        );
+        return handleApiError(error);
       }
     }
 
@@ -512,6 +505,21 @@ export async function POST(request: NextRequest) {
     clearCachePattern('homepage-listings');
     clearCachePattern('category-listings');
 
+    // İlan sahibine bilgilendirme maili gönder (async)
+    try {
+      const { sendListingSubmittedEmail } = await import('@/lib/email');
+      sendListingSubmittedEmail({
+        listing: { id: listing.id, title: listing.title },
+        user: { name: user.name, email: user.email },
+        approvalStatus: finalApprovalStatus,
+      }).catch((error) => {
+        console.error('İlan alındı maili gönderme hatası:', error);
+      });
+    } catch (error) {
+      // Email hatası kritik değil
+      console.error('İlan alındı maili gönderme hatası:', error);
+    }
+
     // Admin'e bildirim gönder (sadece gerçekten moderatör onayı bekleyen ilanlar için)
     // payment_pending durumunda (ödeme bekliyor) bildirim gönderme
     if (finalApprovalStatus === 'pending') {
@@ -568,18 +576,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: 'İlanınız başarıyla oluşturuldu. Moderatör onayından sonra yayınlanacaktır.',
+        message:
+          finalApprovalStatus === 'payment_pending'
+            ? 'İlanınız oluşturuldu. Yayınlanması için ödemenizi tamamlayın.'
+            : 'İlanınız başarıyla oluşturuldu. Moderatör onayından sonra yayınlanacaktır.',
         listing,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('İlan oluşturma hatası:', error);
-    return NextResponse.json(
-      { error: 'İlan oluşturulurken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-  // NOT: $disconnect() çağrısını kaldırdık - Prisma connection pool otomatik yönetir
 }
 

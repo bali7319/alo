@@ -3,6 +3,7 @@ import Link from "next/link";
 export const metadata = {
   title: "Sosyal Medya Görselleri | Alo17",
   description: "Alo17 sosyal medya tanıtım görselleri (Facebook).",
+  alternates: { canonical: "https://alo17.tr/social" },
 };
 
 export default function SocialAssetsPage() {

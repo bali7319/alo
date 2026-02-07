@@ -2,26 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { isAdminEmail } from '@/lib/admin';
+import { requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü
-    if (!isAdminEmail(session.user.email)) {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     // Tüm istatistikleri paralel olarak getir
     const [
@@ -59,11 +47,7 @@ export async function GET(request: NextRequest) {
       totalMessages
     });
   } catch (error) {
-    console.error('İstatistik getirme hatası:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'İstatistikler yüklenirken bir hata oluştu' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 

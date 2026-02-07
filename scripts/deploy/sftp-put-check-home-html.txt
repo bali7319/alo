@@ -1,0 +1,3 @@
+put "C:/Users/bali/Desktop/alo/scripts/server/check_home_html.py" "/var/www/alo17/scripts/server/check_home_html.py"
+put "C:/Users/bali/Desktop/alo/scripts/server/extract_header_html.py" "/var/www/alo17/scripts/server/extract_header_html.py"
+

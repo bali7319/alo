@@ -1,0 +1,5 @@
+put "C:/Users/bali/Desktop/alo/src/components/sidebar.tsx" "/var/www/alo17/src/components/sidebar.tsx"
+put "C:/Users/bali/Desktop/alo/src/app/kategori/[slug]/page.tsx" "/var/www/alo17/src/app/kategori/[slug]/page.tsx"
+put "C:/Users/bali/Desktop/alo/src/app/kategori/[slug]/[subSlug]/page.tsx" "/var/www/alo17/src/app/kategori/[slug]/[subSlug]/page.tsx"
+put "C:/Users/bali/Desktop/alo/src/app/kategori/[slug]/[subSlug]/[subsubslug]/page.tsx" "/var/www/alo17/src/app/kategori/[slug]/[subSlug]/[subsubslug]/page.tsx"
+

@@ -1,25 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { isAdminEmail } from '@/lib/admin';
+import { createSmtpTransporter, getSmtpSettings } from '@/lib/email';
+import { handleApiError } from '@/lib/api-error';
 
 async function handleRequest(request: NextRequest) {
   try {
     // Admin kontrolü
     const session = await getServerSession(authOptions);
     
-    if (!session || (session.user as any)?.role !== 'admin') {
+    const sessionEmail = session?.user?.email || '';
+    const isAdmin = Boolean((session?.user as any)?.role === 'admin') || (sessionEmail ? isAdminEmail(sessionEmail) : false);
+    if (!session || !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    // If SendGrid API configured, report that instead of SMTP.
+    if (process.env.SENDGRID_API_KEY) {
+      try {
+        const res = await fetch('https://api.sendgrid.com/v3/user/profile', {
+          headers: { Authorization: `Bearer ${process.env.SENDGRID_API_KEY}` },
+          cache: 'no-store',
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          return NextResponse.json({
+            configured: true,
+            partiallyConfigured: true,
+            provider: 'sendgrid',
+            connectionTest: {
+              success: false,
+              message: `SendGrid API error: HTTP ${res.status}`,
+              details: text?.slice(0, 500),
+            },
+            status: 'error',
+            message: 'SendGrid API yapılandırılmış ancak doğrulama hatası var',
+          });
+        }
+      } catch (e: any) {
+        return NextResponse.json({
+          configured: true,
+          partiallyConfigured: true,
+          provider: 'sendgrid',
+          connectionTest: {
+            success: false,
+            message: e?.message || 'SendGrid API connection error',
+          },
+          status: 'error',
+          message: 'SendGrid API bağlantı hatası',
+        });
+      }
+
+      return NextResponse.json({
+        configured: true,
+        partiallyConfigured: true,
+        provider: 'sendgrid',
+        settings: {
+          from: process.env.SENDGRID_FROM || process.env.SMTP_USER || process.env.SUPPORT_EMAIL || null,
+          fromName: process.env.SENDGRID_FROM_NAME || null,
+        },
+        connectionTest: { success: true, message: 'SendGrid API bağlantısı başarılı' },
+        status: 'ready',
+        message: 'SendGrid API ayarları yapılandırılmış ve bağlantı başarılı',
+      });
+    }
+
     // SMTP ayarlarını kontrol et
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = process.env.SMTP_PORT;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    const smtpFrom = process.env.SMTP_FROM;
+    const settings = getSmtpSettings();
+    const smtpHost = settings?.host;
+    const smtpPort = settings?.port ? String(settings.port) : process.env.SMTP_PORT;
+    const smtpUser = settings?.user;
+    const smtpPass = settings?.pass;
+    const smtpFrom = settings?.from;
 
     // Ayarların durumunu kontrol et
     const hasHost = !!smtpHost;
@@ -35,29 +91,11 @@ async function handleRequest(request: NextRequest) {
     let connectionTest = null;
     if (allConfigured) {
       try {
-        const nodemailer = await import('nodemailer');
-        const port = parseInt(smtpPort || '587');
-        const isSecure = port === 465;
-
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: port,
-          secure: isSecure,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-          tls: {
-            rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false',
-            minVersion: 'TLSv1',
-            secureProtocol: 'TLSv1_2_method',
-          },
-          requireTLS: false,
-          connectionTimeout: 5000,
-          greetingTimeout: 5000,
-        });
-
-        await transporter.verify();
+        const smtp = await createSmtpTransporter();
+        if (!smtp) {
+          throw new Error('SMTP ayarları eksik');
+        }
+        await smtp.transporter.verify();
         connectionTest = {
           success: true,
           message: 'SMTP bağlantısı başarılı',
@@ -98,6 +136,12 @@ async function handleRequest(request: NextRequest) {
           configured: hasFrom,
           value: hasFrom ? smtpFrom : smtpUser || 'noreply@alo17.tr',
         },
+        flags: {
+          ignoreTLS: settings?.ignoreTLS ?? (process.env.SMTP_IGNORE_TLS === 'true'),
+          requireTLS: settings?.requireTLS ?? (process.env.SMTP_REQUIRE_TLS === 'true'),
+          rejectUnauthorized: settings?.rejectUnauthorized ?? (process.env.SMTP_REJECT_UNAUTHORIZED !== 'false'),
+          secure: settings?.secure ?? (process.env.SMTP_SECURE === 'true'),
+        }
       },
       connectionTest,
       status: allConfigured
@@ -113,15 +157,8 @@ async function handleRequest(request: NextRequest) {
         ? 'SMTP ayarları eksik - bazı ayarlar yapılandırılmamış'
         : 'SMTP ayarları yapılandırılmamış - email simülasyon modunda çalışıyor',
     });
-  } catch (error: any) {
-    console.error('SMTP kontrol hatası:', error);
-    return NextResponse.json(
-      { 
-        error: error.message || 'SMTP ayarları kontrol edilirken bir hata oluştu',
-        status: 'error',
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

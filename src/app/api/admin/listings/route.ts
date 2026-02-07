@@ -2,28 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getAdminEmail } from '@/lib/admin';
+import { getAdminEmail, requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 
 // Admin için ilanları getir (sayfalama ve filtreleme ile)
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü - session'dan role ile (daha hızlı)
-    const userRole = (session.user as any)?.role;
-    if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
@@ -125,18 +112,8 @@ export async function GET(request: NextRequest) {
       limit,
       totalPages,
     });
-  } catch (error: unknown) {
-    console.error('Admin ilanlar getirme hatası:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-    console.error('Hata detayı:', errorMessage);
-    return NextResponse.json(
-      { 
-        error: 'İlanlar yüklenirken bir hata oluştu',
-        details: errorMessage 
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
-  // NOT: $disconnect() çağrısını kaldırdık - Prisma connection pool otomatik yönetir
 }
 

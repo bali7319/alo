@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -77,12 +78,8 @@ Toplam,${invoice.totalAmount.toFixed(2)}
         'Content-Disposition': `attachment; filename="fatura-${invoice.invoiceNumber}.csv"`,
       },
     });
-  } catch (error: any) {
-    console.error('Excel indirme hatası:', error);
-    return NextResponse.json(
-      { error: 'Excel dosyası oluşturulamadı', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

@@ -1,6 +1,12 @@
 #!/bin/bash
 cd /var/www/alo17
 
+# Güvenlik: SMTP şifresini repoya yazma. Çalıştırmadan önce env ver veya interaktif sor.
+if [ -z "${SMTP_PASS}" ]; then
+  read -s -p "SMTP_PASS (for destek@alo17.tr): " SMTP_PASS
+  echo
+fi
+
 # Eski SMTP ayarlarını sil
 sed -i '/^SMTP_HOST=/d' .env
 sed -i '/^SMTP_PORT=/d' .env
@@ -14,7 +20,7 @@ echo "# SMTP Email (mail.kurumsaleposta.com)" >> .env
 echo "SMTP_HOST=mail.kurumsaleposta.com" >> .env
 echo "SMTP_PORT=465" >> .env
 echo "SMTP_USER=destek@alo17.tr" >> .env
-echo "SMTP_PASS=L19--AzF_jG1ij-3" >> .env
+echo "SMTP_PASS=$SMTP_PASS" >> .env
 echo "SMTP_FROM=destek@alo17.tr" >> .env
 
 # Ayarları göster

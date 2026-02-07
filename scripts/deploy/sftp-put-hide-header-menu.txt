@@ -1,0 +1,2 @@
+put "C:/Users/bali/Desktop/alo/src/app/globals.css" "/var/www/alo17/src/app/globals.css"
+

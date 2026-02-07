@@ -2,35 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getAdminEmail } from '@/lib/admin';
+import { getAdminEmail, requireAdmin } from '@/lib/admin';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü
-    const user = await (prisma.user.findUnique as any)({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
-    });
-
-    if (!user || (user as any).role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok. Sadece admin bu işlemi yapabilir.' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     // Admin kullanıcısını bul (sadece hariç tutmak için)
     const adminUser = await prisma.user.findUnique({
@@ -93,41 +72,15 @@ export async function GET(request: NextRequest) {
       demoListingsCount: demoListings.length,
     });
   } catch (error) {
-    console.error('Demo ilan kontrol hatası:', error);
-    return NextResponse.json(
-      { error: 'Kontrol sırasında bir hata oluştu', details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Oturum açmanız gerekiyor' },
-        { status: 401 }
-      );
-    }
-
-    // Admin kontrolü
-    const user = await (prisma.user.findUnique as any)({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-      },
-    });
-
-    if (!user || (user as any).role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Yetkiniz yok. Sadece admin bu işlemi yapabilir.' },
-        { status: 403 }
-      );
-    }
+    const adminError = await requireAdmin(session);
+    if (adminError) return adminError;
 
     // Admin kullanıcısını bul (sadece hariç tutmak için)
     const adminUser = await prisma.user.findUnique({
@@ -210,11 +163,7 @@ export async function DELETE(request: NextRequest) {
       note: 'Admin kullanıcısının ilanları korundu',
     });
   } catch (error) {
-    console.error('Demo ilan silme hatası:', error);
-    return NextResponse.json(
-      { error: 'Silme işlemi sırasında bir hata oluştu', details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
