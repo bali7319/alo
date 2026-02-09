@@ -393,6 +393,34 @@ export default function Header() {
               </Button>
             )}
 
+            {/* Moderatör paneli - moderator veya admin rolü */}
+            {effectiveSession && ((effectiveSession.user as any)?.role === 'moderator' || (effectiveSession.user as any)?.role === 'admin') && (
+              <Button
+                asChild
+                variant="outline"
+                className="flex items-center border-gray-300 hover:border-amber-600 hover:text-amber-600 transition-all duration-200"
+              >
+                <Link href="/moderator" aria-label="Moderatör paneli">
+                  <Shield className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden lg:inline">Moderatör</span>
+                </Link>
+              </Button>
+            )}
+
+            {/* Admin paneli - sadece admin rolü */}
+            {effectiveSession && (effectiveSession.user as any)?.role === 'admin' && (
+              <Button
+                asChild
+                variant="outline"
+                className="flex items-center border-gray-300 hover:border-red-600 hover:text-red-600 transition-all duration-200"
+              >
+                <Link href="/admin" aria-label="Admin paneli">
+                  <Shield className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden lg:inline">Admin</span>
+                </Link>
+              </Button>
+            )}
+
             {/* Kullanıcı Menüsü */}
             {status === 'loading' ? (
               <Button asChild variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600">
