@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useSession } from 'next-auth/react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 interface Notification {
   id: string;
@@ -28,6 +28,12 @@ interface Notification {
 export default function Header() {
   const { data: session, status, update } = useSession();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Çıkış sonrası giriş sayfasında (loggedOut/logout) session eski kalabiliyor; burada Profil göstermeyelim
+  const isLoginPageAfterLogout =
+    pathname === '/giris' &&
+    (searchParams.get('loggedOut') === 'true' || searchParams.get('logout') === 'true');
+  const effectiveSession = isLoginPageAfterLogout ? null : session;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
@@ -206,7 +212,7 @@ export default function Header() {
 
   // Bildirimleri yükle
   useEffect(() => {
-    if (session?.user) {
+    if (effectiveSession?.user) {
       fetchNotifications();
       // Her 30 saniyede bir bildirimleri kontrol et
       const interval = setInterval(fetchNotifications, 30000);
@@ -219,7 +225,7 @@ export default function Header() {
         }
       };
     }
-  }, [session]);
+  }, [effectiveSession]);
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {
@@ -283,7 +289,7 @@ export default function Header() {
           {/* User Actions */}
           <div className="flex items-center space-x-2 lg:space-x-4">
             {/* Bildirimler - Sadece giriş yapılmışsa göster */}
-            {session && (
+            {effectiveSession && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -360,7 +366,7 @@ export default function Header() {
             )}
 
             {/* Favorilerim Butonu - Sadece giriş yapılmışsa göster */}
-            {session && (
+            {effectiveSession && (
               <Button
                 asChild
                 variant="outline"
@@ -374,7 +380,7 @@ export default function Header() {
             )}
 
             {/* Mesajlarım Butonu - Sadece giriş yapılmışsa göster */}
-            {session && (
+            {effectiveSession && (
               <Button
                 asChild
                 variant="outline"
@@ -395,7 +401,7 @@ export default function Header() {
                   <span className="hidden lg:inline">Giriş Yap</span>
                 </Link>
               </Button>
-            ) : session ? (
+            ) : effectiveSession ? (
               /* User dropdown removed (was causing unwanted mobile menu).
                  Keep a simple profile link instead. */
               <Button

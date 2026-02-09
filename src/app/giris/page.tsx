@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 function LoginForm() {
@@ -84,6 +84,10 @@ function LoginForm() {
     // (Örn. admin sayfasından login'e yönlenip sonra session gelince hala /giris'te kalma durumu)
     const loggedOutParam = searchParams?.get('loggedOut');
     const forceParam = searchParams?.get('force');
+    // Çıkış sonrası giriş sayfasında client session'ı temizle (Header'da Profil yerine Giriş görünsün)
+    if (loggedOutParam === 'true') {
+      signOut({ redirect: false });
+    }
     if (status === 'authenticated' && session?.user && loggedOutParam !== 'true' && forceParam !== 'true') {
       window.location.replace(resolvePostLoginRedirect());
       return;
@@ -180,11 +184,20 @@ function LoginForm() {
           localStorage.removeItem('rememberMe');
         }
         
-        // Giriş başarılı: cookie gerçekten set oldu mu kontrol et (bazı tarayıcı ayarları cookie bloklayabilir)
-        try {
-          const sres = await fetch('/api/auth/session', { cache: 'no-store' });
+        // Giriş başarılı: cookie gerçekten set oldu mu kontrol et (bazı ortamlarda cookie bir tick gecikmeli yazılabiliyor)
+        const checkSession = async (): Promise<boolean> => {
+          const sres = await fetch('/api/auth/session', { cache: 'no-store', credentials: 'include' });
           const sjson = await sres.json().catch(() => null);
-          if (!sjson?.user) {
+          return Boolean(sjson?.user);
+        };
+        try {
+          await new Promise((r) => setTimeout(r, 150));
+          let hasSession = await checkSession();
+          if (!hasSession) {
+            await new Promise((r) => setTimeout(r, 350));
+            hasSession = await checkSession();
+          }
+          if (!hasSession) {
             setError('Giriş yapılamadı: tarayıcı çerezleri (cookie) engelliyor olabilir. Lütfen çerezlere izin verip tekrar deneyin.');
             return;
           }

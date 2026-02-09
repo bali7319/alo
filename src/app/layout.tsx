@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import './globals.css'
@@ -132,7 +133,9 @@ export default function RootLayout({
       <body className={`h-full font-sans antialiased ${inter.className}`}>
         <Providers>
           <div className="min-h-screen flex flex-col">
-            <Header />
+            <Suspense fallback={<header className="bg-white border-b shadow-sm sticky top-0 z-50 h-14 sm:h-16" />}>
+              <Header />
+            </Suspense>
             <main className="flex-1">
               {children}
             </main>
