@@ -184,28 +184,23 @@ function LoginForm() {
           localStorage.removeItem('rememberMe');
         }
         
-        // Giriş başarılı: cookie gerçekten set oldu mu kontrol et (bazı ortamlarda cookie bir tick gecikmeli yazılabiliyor)
+        // Giriş başarılı: kısa bekleyip yönlendir. Cookie bazen hemen okunmayabiliyor; sayfa yenilendiğinde oturum gelir.
+        await new Promise((r) => setTimeout(r, 400));
         const checkSession = async (): Promise<boolean> => {
           const sres = await fetch('/api/auth/session', { cache: 'no-store', credentials: 'include' });
           const sjson = await sres.json().catch(() => null);
           return Boolean(sjson?.user);
         };
-        try {
-          await new Promise((r) => setTimeout(r, 150));
-          let hasSession = await checkSession();
-          if (!hasSession) {
-            await new Promise((r) => setTimeout(r, 350));
-            hasSession = await checkSession();
-          }
-          if (!hasSession) {
-            setError('Giriş yapılamadı: tarayıcı çerezleri (cookie) engelliyor olabilir. Lütfen çerezlere izin verip tekrar deneyin.');
-            return;
-          }
-        } catch {
-          // ignore: yine de yönlendirelim
+        let hasSession = await checkSession();
+        if (!hasSession) {
+          await new Promise((r) => setTimeout(r, 500));
+          hasSession = await checkSession();
         }
-
-        // Hard navigation daha güvenilir (cookie + middleware güncel state)
+        if (!hasSession) {
+          await new Promise((r) => setTimeout(r, 400));
+          hasSession = await checkSession();
+        }
+        // Session kontrolü başarısız olsa bile yönlendir; cookie gecikmeli yazılmış olabilir, sonraki sayfada oturum açık olur
         window.location.href = resolvePostLoginRedirect();
       }
     } catch (error) {
