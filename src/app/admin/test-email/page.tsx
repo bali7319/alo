@@ -181,8 +181,10 @@ export default function AdminTestEmailPage() {
                         </p>
                       )}
                       {!result.success && (result.message?.toLowerCase().includes('timeout') || result.details?.toLowerCase().includes('timeout')) && (
-                        <p className="mt-2 text-sm text-amber-800 bg-amber-50 rounded p-2">
-                          <strong>İpucu:</strong> Bağlantı zaman aşımı genelde yerel ağdan 587 portunun kapalı olmasından kaynaklanır. Testi sunucudan (alo17.tr) yapmayı deneyin; sunucuda SMTP çalışıyorsa mail gider. İsterseniz SMTP_PORT=465 ve SMTP_SECURE=true deneyin.
+                        <p className="mt-2 text-sm text-amber-800 bg-amber-50 rounded p-2 space-y-1">
+                          <strong>Connection timeout – ne yapılabilir?</strong>
+                          <br />• Sunucudan da timeout alıyorsanız sunucu, mail.alo17.tr:587’ye ulaşamıyor demektir. SSH ile sunucuya bağlanıp: <code className="bg-amber-100 px-1 rounded">bash scripts/check-smtp-from-server.sh</code> çalıştırın (587 ve 465 test edilir); port açıksa sorun SMTP ayarlarında, kapalıysa firewall veya hosting giden 587’yi kapatıyor olabilir.
+                          <br />• <strong>Port 465</strong> deneyin: sunucu .env içinde <code className="bg-amber-100 px-1 rounded">SMTP_PORT=465</code> ve <code className="bg-amber-100 px-1 rounded">SMTP_SECURE=true</code> yapın, build + pm2 restart.
                         </p>
                       )}
                     </div>
