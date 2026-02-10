@@ -11,7 +11,7 @@ export default function AdminTestEmailPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [formData, setFormData] = useState({
-    to: '',
+    to: 'destek@alo17.tr',
     subject: 'Test Email',
     message: 'Bu bir test email\'idir. Email gönderme sistemi çalışıyor! ✅',
   });
@@ -55,7 +55,7 @@ export default function AdminTestEmailPage() {
         });
         // Formu temizle
         setFormData({
-          to: '',
+          to: 'destek@alo17.tr',
           subject: 'Test Email',
           message: 'Bu bir test email\'idir. Email gönderme sistemi çalışıyor! ✅',
         });
@@ -116,7 +116,7 @@ export default function AdminTestEmailPage() {
                     value={formData.to}
                     onChange={(e) => setFormData({ ...formData, to: e.target.value })}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="ornek@email.com"
+                    placeholder="destek@alo17.tr"
                   />
                 </div>
               </div>
@@ -178,6 +178,11 @@ export default function AdminTestEmailPage() {
                       {!result.success && result.details && (
                         <p className="mt-2 text-sm text-red-700 font-mono break-all">
                           {result.details}
+                        </p>
+                      )}
+                      {!result.success && (result.message?.toLowerCase().includes('timeout') || result.details?.toLowerCase().includes('timeout')) && (
+                        <p className="mt-2 text-sm text-amber-800 bg-amber-50 rounded p-2">
+                          <strong>İpucu:</strong> Bağlantı zaman aşımı genelde yerel ağdan 587 portunun kapalı olmasından kaynaklanır. Testi sunucudan (alo17.tr) yapmayı deneyin; sunucuda SMTP çalışıyorsa mail gider. İsterseniz SMTP_PORT=465 ve SMTP_SECURE=true deneyin.
                         </p>
                       )}
                     </div>

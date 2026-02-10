@@ -77,8 +77,9 @@ export async function createSmtpTransporter() {
     tls: {
       rejectUnauthorized: settings.rejectUnauthorized,
     },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
     pool: false,
     maxConnections: 1,
     authMethod: process.env.SMTP_AUTH_METHOD || 'PLAIN',
@@ -170,53 +171,6 @@ async function sendEmailViaSmtp(options: EmailOptions): Promise<SendEmailResult>
 
 export async function sendEmail(options: EmailOptions): Promise<SendEmailResult> {
   try {
-    // Prefer HTTPS relay providers if configured (works even when SMTP ports are blocked)
-    const sendgridKey = process.env.SENDGRID_API_KEY;
-    if (sendgridKey) {
-      const fromEmail = process.env.SENDGRID_FROM || process.env.SMTP_USER || process.env.SUPPORT_EMAIL || 'destek@alo17.tr';
-      const fromName = process.env.SENDGRID_FROM_NAME || 'Alo17';
-      const text = options.text || options.html.replace(/<[^>]*>/g, '');
-
-      const payload: any = {
-        personalizations: [{ to: [{ email: options.to }] }],
-        from: { email: fromEmail, name: fromName },
-        subject: options.subject,
-        content: [
-          { type: 'text/plain', value: text },
-          { type: 'text/html', value: options.html },
-        ],
-      };
-
-      const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${sendgridKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.status === 202) {
-        console.log('✅ [SENDGRID] Email accepted:', { to: options.to, subject: options.subject });
-        return { success: true };
-      }
-
-      let errBody: any = null;
-      try {
-        errBody = await res.json();
-      } catch {
-        // ignore
-      }
-      const errMsg = errBody?.errors?.[0]?.message || `HTTP ${res.status}`;
-      console.error('❌ [SENDGRID] Email send failed:', {
-        status: res.status,
-        to: options.to,
-        subject: options.subject,
-        errors: errBody?.errors,
-      });
-      return { success: false, error: errMsg };
-    }
-
     const hasSmtp = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     if (!hasSmtp) {
       console.log('📧 [EMAIL SIMULATION] Email gönderiliyor:', {

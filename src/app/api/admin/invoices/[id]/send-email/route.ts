@@ -36,7 +36,7 @@ export async function POST(
     }
 
     // Email gönderme (şimdilik simüle ediyoruz)
-    // TODO: Gerçek email servisi entegrasyonu (Nodemailer, SendGrid, vb.)
+    // TODO: Gerçek email servisi entegrasyonu (Nodemailer, vb.)
 
     // Email gönderildi olarak işaretle
     await prisma.invoice.update({

@@ -74,12 +74,7 @@ await transporter.sendMail({
    npm install resend
    ```
 
-2. **SendGrid**
-   ```bash
-   npm install @sendgrid/mail
-   ```
-
-3. **AWS SES**
+2. **AWS SES**
    ```bash
    npm install @aws-sdk/client-ses
    ```

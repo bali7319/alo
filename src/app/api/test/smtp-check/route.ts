@@ -19,56 +19,6 @@ async function handleRequest(request: NextRequest) {
       );
     }
 
-    // If SendGrid API configured, report that instead of SMTP.
-    if (process.env.SENDGRID_API_KEY) {
-      try {
-        const res = await fetch('https://api.sendgrid.com/v3/user/profile', {
-          headers: { Authorization: `Bearer ${process.env.SENDGRID_API_KEY}` },
-          cache: 'no-store',
-        });
-        if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          return NextResponse.json({
-            configured: true,
-            partiallyConfigured: true,
-            provider: 'sendgrid',
-            connectionTest: {
-              success: false,
-              message: `SendGrid API error: HTTP ${res.status}`,
-              details: text?.slice(0, 500),
-            },
-            status: 'error',
-            message: 'SendGrid API yapılandırılmış ancak doğrulama hatası var',
-          });
-        }
-      } catch (e: any) {
-        return NextResponse.json({
-          configured: true,
-          partiallyConfigured: true,
-          provider: 'sendgrid',
-          connectionTest: {
-            success: false,
-            message: e?.message || 'SendGrid API connection error',
-          },
-          status: 'error',
-          message: 'SendGrid API bağlantı hatası',
-        });
-      }
-
-      return NextResponse.json({
-        configured: true,
-        partiallyConfigured: true,
-        provider: 'sendgrid',
-        settings: {
-          from: process.env.SENDGRID_FROM || process.env.SMTP_USER || process.env.SUPPORT_EMAIL || null,
-          fromName: process.env.SENDGRID_FROM_NAME || null,
-        },
-        connectionTest: { success: true, message: 'SendGrid API bağlantısı başarılı' },
-        status: 'ready',
-        message: 'SendGrid API ayarları yapılandırılmış ve bağlantı başarılı',
-      });
-    }
-
     // SMTP ayarlarını kontrol et
     const settings = getSmtpSettings();
     const smtpHost = settings?.host;
