@@ -1,14 +1,11 @@
 import { Suspense } from 'react'
-import dynamic from 'next/dynamic'
 import { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import './globals.css'
 import Providers from '@/components/Providers'
 import Header from '@/components/Header'
 import Footer from '@/components/footer'
-
-// CookieConsent: hydration sonrası yükle, ilk render'ı bloklamasın
-const CookieConsent = dynamic(() => import('@/components/CookieConsent'), { ssr: false })
+import CookieConsent from '@/components/CookieConsent'
 
 // Font optimization - Sadece Regular font yükle (220 KB → ~110 KB tasarruf)
 // Bold font'u CSS font-weight ile simüle et (font-weight: 700)
