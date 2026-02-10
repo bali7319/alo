@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, Bell, LogOut, Settings, Heart, MessageCircle, Shield } from "lucide-react"
+import { User, Bell, LogOut, Menu, Heart, MessageCircle, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -393,35 +393,7 @@ export default function Header() {
               </Button>
             )}
 
-            {/* Moderatör paneli - moderator veya admin rolü */}
-            {effectiveSession && ((effectiveSession.user as any)?.role === 'moderator' || (effectiveSession.user as any)?.role === 'admin') && (
-              <Button
-                asChild
-                variant="outline"
-                className="flex items-center border-gray-300 hover:border-amber-600 hover:text-amber-600 transition-all duration-200"
-              >
-                <Link href="/moderator" aria-label="Moderatör paneli">
-                  <Shield className="h-4 w-4 sm:mr-1" />
-                  <span className="hidden lg:inline">Moderatör</span>
-                </Link>
-              </Button>
-            )}
-
-            {/* Admin paneli - sadece admin rolü */}
-            {effectiveSession && (effectiveSession.user as any)?.role === 'admin' && (
-              <Button
-                asChild
-                variant="outline"
-                className="flex items-center border-gray-300 hover:border-red-600 hover:text-red-600 transition-all duration-200"
-              >
-                <Link href="/admin" aria-label="Admin paneli">
-                  <Shield className="h-4 w-4 sm:mr-1" />
-                  <span className="hidden lg:inline">Admin</span>
-                </Link>
-              </Button>
-            )}
-
-            {/* Kullanıcı Menüsü */}
+            {/* Kullanıcı: Giriş yapılmamışsa Giriş Yap, yapılmışsa hamburger menü (Profil, Admin, Moderatör) */}
             {status === 'loading' ? (
               <Button asChild variant="outline" className="border-gray-300 hover:border-blue-600 hover:text-blue-600">
                 <Link href={createLoginUrl(pathname || '/')}>
@@ -430,18 +402,64 @@ export default function Header() {
                 </Link>
               </Button>
             ) : effectiveSession ? (
-              /* User dropdown removed (was causing unwanted mobile menu).
-                 Keep a simple profile link instead. */
-              <Button
-                asChild
-                variant="outline"
-                className="border-gray-300 hover:border-blue-600 hover:text-blue-600 transition-all duration-200"
-              >
-                <Link href="/profil" aria-label="Profil">
-                  <User className="h-4 w-4 lg:mr-2" />
-                  <span className="hidden lg:inline">Profil</span>
-                </Link>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="border-gray-300 hover:border-blue-600 hover:text-blue-600 transition-all duration-200 flex items-center gap-2"
+                    aria-label="Profil menüsü"
+                  >
+                    <Menu className="h-4 w-4" />
+                    <span className="hidden sm:inline max-w-[120px] truncate">
+                      {(effectiveSession.user as any)?.name || (effectiveSession.user as any)?.email || 'Profil'}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col">
+                      <span className="font-medium truncate">
+                        {(effectiveSession.user as any)?.name || (effectiveSession.user as any)?.email || 'Kullanıcı'}
+                      </span>
+                      {(effectiveSession.user as any)?.email && (effectiveSession.user as any)?.name && (
+                        <span className="text-xs text-muted-foreground truncate">{(effectiveSession.user as any)?.email}</span>
+                      )}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profil" className="cursor-pointer flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Profil
+                    </Link>
+                  </DropdownMenuItem>
+                  {((effectiveSession.user as any)?.role === 'moderator' || (effectiveSession.user as any)?.role === 'admin') && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/moderator" className="cursor-pointer flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Moderatör
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {(effectiveSession.user as any)?.role === 'admin' && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="cursor-pointer flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer text-red-600 focus:text-red-600 flex items-center gap-2"
+                    onClick={handleSignOut}
+                    disabled={isSigningOut}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Çıkış Yap
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Button
                 asChild
