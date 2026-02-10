@@ -1,18 +1,15 @@
 import type { Metadata } from 'next'
-import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { Plus } from 'lucide-react'
 import { SearchBar } from '@/components/search-bar'
 import { Button } from '@/components/ui/button'
-import { FeaturedAds } from '@/components/featured-ads'
-import { LatestAds } from '@/components/latest-ads'
 import { WhyUsHero } from '@/components/home/WhyUsHero'
 import { AdvantageBand } from '@/components/home/AdvantageBand'
 import { DifferenceInline } from '@/components/home/DifferenceSidebar'
 import { CityStory } from '@/components/home/CityStory'
-import type { Listing } from '@/types/listings'
 import SeoJsonLd from '@/components/SeoJsonLd'
+import { HomeListingsSection } from './HomeListingsSection'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const metadata: Metadata = {
   alternates: {
@@ -20,51 +17,10 @@ export const metadata: Metadata = {
   },
 }
 
-// Dynamic imports - Lazy loading için (FCP optimizasyonu)
-const Sidebar = nextDynamic(
-  () => import("@/components/sidebar").then(mod => ({ default: mod.Sidebar })),
-  {
-    loading: () => <div className="w-full md:w-64 h-64 bg-gray-100 animate-pulse rounded-lg" />
-  }
-)
+export const revalidate = 60
 
-// Ana sayfayı dynamic yap - Her istekte fresh data çek (tüm ilanlar için)
-// NOTE:
-// Home page is not user-specific; enabling ISR improves TTFB/SEO and reduces DB load.
-// If you need "rotating" premium cards, do it daily/periodically (seed-based) rather than per-request.
-export const revalidate = 60; // 60s ISR cache (edge/server), good SEO + performance balance
-
-// Günlük rotasyon için seed'li shuffle fonksiyonu
-function seededShuffle<T>(array: T[], seed: string): T[] {
-  // Seed'den basit bir hash oluştur
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    const char = seed.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // 32-bit integer'a çevir
-  }
-  
-  // Fisher-Yates shuffle algoritması (seed'li)
-  const shuffled = [...array];
-  const random = () => {
-    hash = ((hash * 9301) + 49297) % 233280;
-    return hash / 233280;
-  };
-  
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  
-  return shuffled;
-}
-
-export default async function Home() {
-  let featuredListings: Listing[] = [];
-  let latestListings: Listing[] = [];
+export default function Home() {
   const baseUrl = 'https://alo17.tr'
-  const todaySeed = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (daily rotation)
-
   const orgJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -81,199 +37,6 @@ export default async function Home() {
     url: baseUrl,
   }
 
-  const makeMockListing = (id: string, overrides: Partial<Listing> = {}): Listing => ({
-    id,
-    title: 'Örnek İlan',
-    description: '',
-    price: '0',
-    location: 'Çanakkale',
-    category: 'Genel',
-    images: [],
-    isPremium: false,
-    createdAt: new Date().toISOString(),
-    user: { id: 'demo', email: 'demo@alo17.tr', name: 'Alo17' },
-    ...overrides,
-  });
-
-  const useMock = () => {
-    // UI düzenleme/dev için: DB yoksa sayfa boş kalmasın.
-    featuredListings = [
-      makeMockListing('demo-premium-1', { title: 'Öne Çıkan Örnek İlan 1', isPremium: true, planName: 'Premium', price: '1500', category: 'Elektronik', location: 'Merkez' }),
-      makeMockListing('demo-premium-2', { title: 'Öne Çıkan Örnek İlan 2', isPremium: true, planName: 'Premium', price: '0', category: 'Hizmetler', location: 'Kepez' }),
-      makeMockListing('demo-premium-3', { title: 'Öne Çıkan Örnek İlan 3', isPremium: true, planName: 'Premium', price: '750', category: 'Ev & Bahçe', location: 'Biga' }),
-    ];
-    latestListings = [
-      makeMockListing('demo-latest-1', { title: 'Tüm İlanlar Örnek 1', price: '250', category: 'Giyim', location: 'Merkez' }),
-      makeMockListing('demo-latest-2', { title: 'Tüm İlanlar Örnek 2', price: '0', category: 'Ücretsiz Gel Al', location: 'Kepez' }),
-      makeMockListing('demo-latest-3', { title: 'Tüm İlanlar Örnek 3', price: '1200', category: 'Elektronik', location: 'Çan' }),
-      makeMockListing('demo-latest-4', { title: 'Tüm İlanlar Örnek 4', price: '500', category: 'Sanat & Hobi', location: 'Ayvacık' }),
-      makeMockListing('demo-latest-5', { title: 'Tüm İlanlar Örnek 5', price: '0', category: 'Hizmetler', location: 'Gelibolu' }),
-      makeMockListing('demo-latest-6', { title: 'Tüm İlanlar Örnek 6', price: '99', category: 'Yemek & İçecek', location: 'Lapseki' }),
-    ];
-  };
-
-  try {
-    const dbUrl = process.env.DATABASE_URL || '';
-    const isPostgresUrl = dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://');
-
-    // Local/dev: DATABASE_URL yanlışsa Prisma daha query aşamasında patlar (schema provider postgresql).
-    // UI geliştirmeyi bloklamamak için mock fallback kullan.
-    if (!isPostgresUrl) {
-      if (process.env.NODE_ENV !== 'production') {
-        useMock();
-        console.warn(
-          'DATABASE_URL is not a postgres URL (expected postgresql:// or postgres://). Using mock listings for local UI.'
-        );
-      }
-      // Skip DB queries
-      throw new Error('__SKIP_DB__');
-    }
-
-    const { prisma } = await import('@/lib/prisma');
-
-    // Not: "tüm ilanları" tek seferde çekmek üretimde timeout/performans sorunlarına yol açabilir.
-    // Ana sayfada yüksek ama makul limit kullanıyoruz; tam liste için /ilanlar.
-    // Premium sayısı artarsa eski premiumlar da düşmesin diye biraz yüksek tutuyoruz.
-    const PREMIUM_TAKE = 60;
-    const LATEST_TAKE = 60;
-    const nowForDb = new Date();
-
-    const [premiumListingsRaw, latest] = await Promise.all([
-      prisma.listing.findMany({
-        where: { 
-          isActive: true, 
-          approvalStatus: 'approved',
-          // Premium'u belirle: isPremium=true veya premiumUntil devam ediyor
-          // Görünürlük: expiresAt geçmiş olsa bile premiumUntil devam ediyorsa göster
-          AND: [
-            { OR: [{ isPremium: true }, { premiumUntil: { gt: nowForDb } }] },
-            { OR: [{ expiresAt: { gt: nowForDb } }, { premiumUntil: { gt: nowForDb } }] },
-          ],
-        },
-        select: { 
-          id: true, 
-          title: true, 
-          price: true, 
-          location: true, 
-          category: true, 
-          images: true, 
-          createdAt: true, 
-          isPremium: true, 
-          user: { 
-            select: { id: true, name: true } 
-          } 
-        },
-        orderBy: [
-          { premiumUntil: 'desc' },
-          { createdAt: 'desc' },
-        ],
-        take: PREMIUM_TAKE,
-      }),
-      prisma.listing.findMany({
-        where: { 
-          isActive: true, 
-          approvalStatus: 'approved',
-          expiresAt: { gt: nowForDb }
-        },
-        select: { 
-          id: true, 
-          title: true, 
-          price: true, 
-          location: true, 
-          category: true, 
-          images: true, 
-          createdAt: true, 
-          isPremium: true, 
-          user: { 
-            select: { id: true, name: true } 
-          } 
-        },
-        orderBy: { createdAt: 'desc' },
-        take: LATEST_TAKE,
-      }),
-    ]);
-    
-    // Premium ilanları günlük rotasyon ile karıştır (cache dostu)
-    // Undefined/null ilanları filtrele
-    const validPremiumListings = premiumListingsRaw.filter(l => l != null);
-    const shuffledPremium = seededShuffle(validPremiumListings, todaySeed);
-    // Tüm premium ilanları göster (rotasyon ile karıştırılmış)
-    const premiumListings = shuffledPremium;
-
-    // Güvenli JSON parse fonksiyonu
-    const safeParseImages = (images: string | null): string[] => {
-      if (!images) return [];
-      try {
-        if (typeof images === 'string') {
-          if (images.startsWith('data:image')) {
-            return [images];
-          }
-          const parsed = JSON.parse(images);
-          return Array.isArray(parsed) ? parsed : [];
-        }
-        return Array.isArray(images) ? images : [];
-      } catch {
-        return [];
-      }
-    };
-
-    // Sadece ilk resmi gönder (performans için)
-    // Güvenlik için tekrar filtrele
-    featuredListings = premiumListings.filter(l => l != null).map(l => {
-      const parsedImages = safeParseImages(l.images);
-      const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
-      return {
-        id: l.id,
-        title: l.title,
-        price: l.price,
-        location: l.location,
-        category: l.category,
-        images: firstImage,
-        description: "",
-        createdAt: l.createdAt.toISOString(),
-        isPremium: l.isPremium,
-        user: {
-          id: l.user?.id || '',
-          name: l.user?.name || null,
-        }
-      };
-    });
-    
-    latestListings = latest.map(l => {
-      const parsedImages = safeParseImages(l.images);
-      const firstImage = parsedImages.length > 0 ? [parsedImages[0]] : [];
-      return {
-        id: l.id,
-        title: l.title,
-        price: l.price,
-        location: l.location,
-        category: l.category,
-        images: firstImage,
-        description: "",
-        createdAt: l.createdAt.toISOString(),
-        isPremium: l.isPremium,
-        user: {
-          id: l.user?.id || '',
-          name: l.user?.name || null,
-        }
-      };
-    });
-  } catch (error) {
-    // Sadece local/dev'de DB yokken UI boş kalmasın diye mock'a düş.
-    // Production'da mock göstermek yanıltıcı olduğu için boş liste + log tercih ediyoruz.
-    if (process.env.NODE_ENV !== 'production' && featuredListings.length === 0 && latestListings.length === 0) {
-      useMock();
-    }
-    // "__SKIP_DB__" is intentional when local DB isn't configured.
-    if (error instanceof Error && error.message === '__SKIP_DB__') {
-      // no-op
-    } else {
-      console.error('Database error (Home):', error);
-    }
-  }
-
-  // Above-the-fold content'i önce render et (FCP için kritik)
-  // Streaming SSR ile sayfanın ilk kısmı hemen gösterilir
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Structured data (JSON-LD) for SEO */}
@@ -310,50 +73,27 @@ export default async function Home() {
           <AdvantageBand />
         </div>
       </section>
-      {/* Below-the-fold: Sidebar ve listings - Lazy load */}
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 flex flex-col lg:flex-row gap-4 sm:gap-6 md:gap-8">
-        <div className="w-full md:w-64 flex-shrink-0">
-          {/* Hukuki Belgeler ve Dilekçe Butonu */}
-          <div className="mb-4">
-            <Button
-              asChild
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-semibold shadow-lg"
-              size="lg"
-            >
-              <Link href="/sozlesmeler" className="block">
-                <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
-                Hukuki Belgeler ve Dilekçe
-              </Link>
-            </Button>
+
+      {/* İlan listesi: stream ile yüklenir, anında skeleton gösterilir */}
+      <Suspense
+        fallback={
+          <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 flex flex-col lg:flex-row gap-6">
+            <div className="w-full md:w-64 flex-shrink-0 space-y-4">
+              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="w-full md:w-64 h-64 rounded-lg" />
+            </div>
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-48 rounded-lg" />
+              ))}
+            </div>
           </div>
-          {/* Reklam Ver Butonu - Kategorilerin Üstünde */}
-          <div className="mb-4">
-            <Button
-              asChild
-              className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold shadow-lg"
-              size="lg"
-            >
-              <Link href="/ilan-ver" className="block">
-                <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
-                Reklam Ver
-              </Link>
-            </Button>
-          </div>
-          <Sidebar />
-        </div>
-        <div className="flex-1 space-y-8">
-          <FeaturedAds title="Öne Çıkan İlanlar" listings={featuredListings} limit={3} />
-          <LatestAds title="Tüm İlanlar" listings={latestListings} />
-          <div className="pt-2">
-            <Button asChild variant="outline">
-              <Link href="/ilanlar" className="inline-flex">
-                Tüm ilanları /ilanlar sayfasında gör
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-      {/* Footer-top story section */}
+        }
+      >
+        <HomeListingsSection />
+      </Suspense>
+
       <CityStory />
     </div>
   );

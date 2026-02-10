@@ -13,22 +13,24 @@ function serializeDeletionCookie(opts: {
   return base.join(';\x20');
 }
 
-function buildCookieDeletionResponse(nextPath: string) {
+function buildCookieDeletionResponse(redirectUrl: string) {
   // Bazı reverse proxy/edge katmanları 30x response'larda Set-Cookie'yi problemli işleyebiliyor.
   // Bu yüzden 200 HTML döndürüp, cookie'leri sildikten sonra client-side redirect yapıyoruz.
-  // Böylece cookie silme tarayıcı tarafından kesin uygulanır.
+  // Tam URL kullanarak meta refresh ve script redirect'in her ortamda çalışması sağlanır.
+  const escapedUrl = redirectUrl.replace(/"/g, '&quot;');
   const html = `<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0;url=${nextPath}" />
+    <meta http-equiv="refresh" content="0;url=${escapedUrl}" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Çıkış yapılıyor…</title>
   </head>
   <body>
     <p>Çıkış yapılıyor…</p>
+    <p><a href="${escapedUrl}" id="login-link">Giriş sayfasına git</a></p>
     <script>
-      window.location.replace(${JSON.stringify(nextPath)});
+      (function(){ try { window.location.replace(${JSON.stringify(redirectUrl)}); } catch(e) { document.getElementById('login-link').style.display = 'inline'; } })();
     </script>
   </body>
 </html>`;
@@ -77,8 +79,11 @@ export async function GET(request: NextRequest) {
   const next = url.searchParams.get('next') || '/giris?logout=true';
 
   // Only allow same-origin relative redirects
-  const safeNext = next.startsWith('/') ? next : '/giris?logout=true';
-  return buildCookieDeletionResponse(safeNext);
+  const safePath = next.startsWith('/') ? next : '/giris?logout=true';
+  // Tam URL ile yönlendirme (meta refresh ve bazı proxy'ler relative path'te takılabiliyor)
+  const origin = url.origin || (process.env.NEXTAUTH_URL ?? '');
+  const redirectUrl = origin ? `${origin}${safePath}` : safePath;
+  return buildCookieDeletionResponse(redirectUrl);
 }
 
 export async function POST(request: NextRequest) {

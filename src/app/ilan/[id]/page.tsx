@@ -233,8 +233,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function IlanDetayPage({ params }: PageProps) {
   const { id: slugOrId } = await params;
-  const seo = await getSeoSettings();
-  const listing = await getListingForSeo(slugOrId);
+  const [seo, listing] = await Promise.all([
+    getSeoSettings(),
+    getListingForSeo(slugOrId),
+  ]);
 
   if (!listing) {
     notFound();

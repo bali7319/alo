@@ -141,11 +141,10 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
     return imgs.length > 0 ? imgs : [FALLBACK_IMAGE_SRC];
   }, [listing?.images]);
 
+  // İlanı hemen çek; oturum sadece favori/iletişim için gerekli (beklemeden yükle)
   useEffect(() => {
-    if (status === 'loading') return;
-    
     fetchListing();
-  }, [id, status]);
+  }, [id]);
 
   useEffect(() => {
     if (session && listing) {
