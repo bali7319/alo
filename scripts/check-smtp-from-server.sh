@@ -2,7 +2,7 @@
 # Sunucudan mail.alo17.tr SMTP portlarını test et (587 ve 465).
 # SSH ile sunucuya bağlanıp: cd /var/www/alo17 && bash scripts/check-smtp-from-server.sh
 
-HOST="mail.alo17.tr"
+HOST="mail.kurumsaleposta.com"
 
 test_port() {
   local port=$1
