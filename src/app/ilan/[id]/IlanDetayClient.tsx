@@ -893,7 +893,7 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
         </div>
 
         {/* Sabit CTA bar */}
-        {(actionButtons.canRevealPhone || actionButtons.showMessage || actionButtons.canRevealWhatsApp) && (
+        {(actionButtons.canRevealPhone || actionButtons.showMessage || actionButtons.canRevealWhatsApp || listing.location) && (
           <div className="fixed inset-x-0 bottom-0 z-50 bg-white border-t">
             <div className="px-3 py-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
               <div className="grid grid-cols-3 gap-2">
@@ -930,18 +930,26 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
                   )}
                 </a>
 
-                {/* Mesaj */}
-                <button
-                  type="button"
-                  onClick={() => actionButtons.showMessage && handleMessage()}
-                  disabled={!actionButtons.showMessage}
-                  className={`h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold ${
-                    actionButtons.showMessage ? 'bg-gray-100 text-gray-800' : 'bg-gray-100 text-gray-400'
-                  }`}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  Mesaj gönder
-                </button>
+                {/* Adrese git (mobilde Mesaj gönder yerine) */}
+                {listing.location ? (
+                  <a
+                    href={getDirectionsUrlForDevice(listing.location)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => handleDirectionsClick(e, listing.location)}
+                    className="h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold bg-gray-100 text-gray-800 hover:bg-gray-200 active:scale-[0.99] transition"
+                    aria-label="Adrese git (yol tarifi)"
+                    title="Adrese git (yol tarifi)"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Adrese git
+                  </a>
+                ) : (
+                  <span className="h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold bg-gray-100 text-gray-400">
+                    <MapPin className="h-4 w-4" />
+                    Adrese git
+                  </span>
+                )}
 
                 {/* WhatsApp */}
                 <a
