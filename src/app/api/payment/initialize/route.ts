@@ -38,18 +38,46 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { listingId, amount, currency } = body;
+    const { listingId, amount: clientAmount, currency, planType, premiumFeaturesPrice = 0 } = body;
 
     console.log('=== PayTR INITIALIZE DEBUG ===');
     console.log('Request body:', JSON.stringify(body));
     console.log('listingId:', listingId);
-    console.log('amount (raw):', amount, typeof amount);
-    console.log('currency:', currency);
+    console.log('planType:', planType);
     console.log('==============================');
 
-    if (!listingId || !amount) {
+    if (!listingId) {
       return NextResponse.json(
-        { error: 'İlan ID ve tutar gerekli' },
+        { error: 'İlan ID gerekli' },
+        { status: 400 }
+      );
+    }
+
+    // Tutar: Plan Bazlı Ayarlar'daki fiyatlar kadar alınır (KDV dahil). planType varsa sunucu ayarlarından hesapla
+    let amount: number;
+    if (planType != null && planType !== '') {
+      const settingsRecord = await prisma.settings.findUnique({
+        where: { key: 'admin_settings' },
+      });
+      const settings = settingsRecord ? (() => {
+        try { return JSON.parse(settingsRecord.value); } catch { return {}; }
+      })() : {};
+      const planPrices: Record<string, number> = {
+        none: Number(settings.nonePremiumPrice) || 0,
+        monthly: Number(settings.monthlyPremiumPrice) ?? 199,
+        quarterly: Number(settings.quarterlyPremiumPrice) ?? 494,
+        yearly: Number(settings.yearlyPremiumPrice) ?? 2179,
+      };
+      const planPrice = planPrices[planType] ?? 0;
+      amount = planPrice + Number(premiumFeaturesPrice) || 0;
+      console.log('PayTR amount (Plan Bazlı Ayarlar):', { planType, planPrice, premiumFeaturesPrice, amount });
+    } else {
+      amount = parseFloat(clientAmount);
+    }
+
+    if (amount == null || isNaN(amount) || amount < 0) {
+      return NextResponse.json(
+        { error: 'Geçerli tutar gerekli' },
         { status: 400 }
       );
     }

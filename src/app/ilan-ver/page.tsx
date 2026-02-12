@@ -573,11 +573,8 @@ export default function IlanVerPage() {
         const feature = premiumFeatures.find(f => f.id === settingId);
         return total + (feature?.price || 0);
       }, 0);
-    // KDV dahil toplam (KDV oranı %20)
-    const taxRate = 20;
-    const amountWithoutTax = planPrice + premiumFeaturesPrice;
-    const totalWithTax = amountWithoutTax * (1 + taxRate / 100);
-    return totalWithTax;
+    // Plan Bazlı Ayarlar'daki fiyatlar KDV dahil; ek KDV hesaplanmaz, aynı tutar ödeme adımında alınır
+    return planPrice + premiumFeaturesPrice;
   };
 
   // Resimleri base64'e çevir (optimize edilmiş - boyut küçültülür)
@@ -776,10 +773,8 @@ export default function IlanVerPage() {
       // Ücretsiz plan seçilmişse ve premium özellik yoksa paymentData kaydetme
       // Premium plan seçilmişse veya premium özellik varsa paymentData kaydet
       if (selectedPlan !== 'none' || premiumFeaturesPrice > 0) {
-        // KDV dahil toplam (KDV oranı %20)
-        const taxRate = 20;
-        const amountWithoutTax = selectedPlanData.price + premiumFeaturesPrice;
-        const totalPrice = amountWithoutTax * (1 + taxRate / 100);
+        // Plan Bazlı Ayarlar'daki fiyatlar KDV dahil; ödeme adımında bu tutar kadar alınır (ek KDV yok)
+        const totalPrice = selectedPlanData.price + premiumFeaturesPrice;
 
         const paymentData = {
           listingId: listingId,

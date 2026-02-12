@@ -93,6 +93,8 @@ function OdemePageContent() {
           listingId: paymentData.listingId,
           amount: paymentData.totalAmount,
           currency: 'TL',
+          planType: paymentData.planType,
+          premiumFeaturesPrice: paymentData.premiumFeaturesPrice ?? 0,
         }),
       });
 
