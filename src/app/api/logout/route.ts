@@ -76,10 +76,10 @@ function buildCookieDeletionResponse(redirectUrl: string) {
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const next = url.searchParams.get('next') || '/giris?logout=true';
+  const next = url.searchParams.get('next') || '/';
 
   // Only allow same-origin relative redirects
-  const safePath = next.startsWith('/') ? next : '/giris?logout=true';
+  const safePath = next.startsWith('/') ? next : '/';
   // Tam URL ile yönlendirme (meta refresh ve bazı proxy'ler relative path'te takılabiliyor)
   const origin = url.origin || (process.env.NEXTAUTH_URL ?? '');
   const redirectUrl = origin ? `${origin}${safePath}` : safePath;

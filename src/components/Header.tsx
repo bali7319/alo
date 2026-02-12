@@ -72,13 +72,13 @@ export default function Header() {
       console.log('Storage temizlendi');
 
       // 2) Sunucu tarafında cookie temizleyip redirect eden güvenilir logout
-      window.location.href = `/api/logout?next=${encodeURIComponent('/giris?logout=true')}&ts=${Date.now()}`;
+      window.location.href = `/api/logout?next=${encodeURIComponent('/')}&ts=${Date.now()}`;
       
     } catch (error) {
       console.error('Çıkış hatası:', error);
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = window.location.origin + '/giris?logout=true';
+      window.location.href = window.location.origin + '/';
     } finally {
       setIsSigningOut(false);
       (window as any).isLoggingOut = false;

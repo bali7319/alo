@@ -75,7 +75,7 @@ function LoginForm() {
       // /api/auth/callback/credentials tarafında 401 üretebiliyor.
       // Güvenilir (HttpOnly dahil) cookie temizliği için server-side logout endpoint'ine yönlendir.
       console.log('[LOGIN] Logout parametresi tespit edildi, /api/logout ile çıkış tamamlanıyor...');
-      const next = encodeURIComponent('/giris?loggedOut=true');
+      const next = encodeURIComponent('/');
       window.location.replace(`/api/logout?next=${next}&ts=${Date.now()}`);
       return;
     }

@@ -320,17 +320,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Logout parametresi kontrolü:
-  // /giris?logout=true sayfasının açılmasına İZİN ver (cookie temizliği burada tamamlanıyor)
-  // Diğer tüm sayfalarda logout=true varsa kullanıcıyı /giris?logout=true'ye taşı.
+  // Logout parametresi: logout=true ile gelen istekleri anasayfaya yönlendir
   const logoutParam = request.nextUrl.searchParams.get('logout');
   if (logoutParam === 'true') {
-    if (pathname !== '/giris') {
-      const loginUrl = new URL('/giris', request.url);
-      loginUrl.searchParams.set('logout', 'true');
-      return withNoIndex(NextResponse.redirect(loginUrl));
-    }
-    // /giris?logout=true için devam et
+    return withNoIndex(NextResponse.redirect(new URL('/', request.url)));
   }
 
   // Onboarding: Google ile giriş yapan ve telefon numarası eksik olan kullanıcıyı
