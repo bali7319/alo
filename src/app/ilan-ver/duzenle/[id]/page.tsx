@@ -367,10 +367,8 @@ export default function IlanDuzenlePage() {
         const feature = premiumFeatures.find(f => f.id === settingId);
         return total + (feature?.price || 0);
       }, 0);
-    const taxRate = 20;
-    const amountWithoutTax = planPrice + premiumFeaturesPrice;
-    const totalWithTax = amountWithoutTax * (1 + taxRate / 100);
-    return totalWithTax;
+    // Plan Bazlı Ayarlar fiyatları KDV dahil; ek KDV eklenmez
+    return planPrice + premiumFeaturesPrice;
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

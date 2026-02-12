@@ -144,12 +144,7 @@ function OdemePageContent() {
     );
   }
 
-  // KDV hesaplama
-  const taxRate = 20; // %20 KDV
-  const amountWithoutTax = paymentData.totalAmount / (1 + taxRate / 100);
-  const taxAmount = paymentData.totalAmount - amountWithoutTax;
-
-
+  // Tutar Plan Bazlı Ayarlar'dan KDV dahil gelir; ayrı KDV satırı gösterilmez
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-3xl mx-auto">
@@ -288,16 +283,8 @@ function OdemePageContent() {
                 )}
 
                 <div className="border-t pt-3">
-                  <div className="flex justify-between text-gray-600 mb-2">
-                    <span>KDV Hariç</span>
-                    <span>{amountWithoutTax.toFixed(2)} ₺</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600 mb-2">
-                    <span>KDV (%{taxRate})</span>
-                    <span>{taxAmount.toFixed(2)} ₺</span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t">
-                    <span>Toplam</span>
+                  <div className="flex justify-between text-lg font-bold text-gray-900 pt-2">
+                    <span>Toplam (KDV dahil)</span>
                     <span>{paymentData.totalAmount.toFixed(2)} ₺</span>
                   </div>
                 </div>
