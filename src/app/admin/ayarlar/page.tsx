@@ -347,7 +347,7 @@ export default function AdminAyarlarPage() {
                         İlan Başına Resim Sayısı
                       </th>
                       <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider w-[200px]">
-                        Fiyat (TL)
+                        Fiyat (TL, KDV dahil)
                       </th>
                     </tr>
                   </thead>
@@ -694,10 +694,11 @@ export default function AdminAyarlarPage() {
 
           {/* Fiyat Özeti */}
           <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-semibold mb-4 md:mb-6 flex items-center">
+            <h2 className="text-lg sm:text-xl font-semibold mb-1 md:mb-2 flex items-center">
               <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-green-500 mr-2" />
               Fiyat Özeti
             </h2>
+            <p className="text-xs sm:text-sm text-gray-500 mb-4 md:mb-6">Tüm fiyatlar KDV dahildir.</p>
             
             <div className="space-y-3">
               {/* Premium Paketler */}
