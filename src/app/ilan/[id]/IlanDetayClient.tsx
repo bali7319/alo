@@ -1473,18 +1473,6 @@ export default function IlanDetayClient({ id, seo }: IlanDetayClientProps) {
               </DialogContent>
             </Dialog>
 
-            {/* Güvenlik Uyarısı */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex">
-                <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2 mt-0.5" />
-                <div className="text-sm text-yellow-800">
-                  <h3 className="font-medium">Güvenlik Uyarısı</h3>
-                  <p className="mt-1">
-                    Alışveriş yaparken dikkatli olun. Ödeme öncesi ürünü mutlaka kontrol edin.
-                  </p>
-                </div>
-              </div>
-            </div>
             </div>
           </div>
         </div>
