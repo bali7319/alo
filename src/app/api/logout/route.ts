@@ -24,14 +24,10 @@ function buildCookieDeletionResponse(redirectUrl: string) {
     <meta charset="utf-8" />
     <meta http-equiv="refresh" content="0;url=${escapedUrl}" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Çıkış yapılıyor…</title>
+    <title>Yönlendiriliyor</title>
   </head>
   <body>
-    <p>Çıkış yapılıyor…</p>
-    <p><a href="${escapedUrl}" id="login-link">Giriş sayfasına git</a></p>
-    <script>
-      (function(){ try { window.location.replace(${JSON.stringify(redirectUrl)}); } catch(e) { document.getElementById('login-link').style.display = 'inline'; } })();
-    </script>
+    <script>window.location.replace(${JSON.stringify(redirectUrl)});</script>
   </body>
 </html>`;
 
@@ -80,9 +76,11 @@ export async function GET(request: NextRequest) {
 
   // Only allow same-origin relative redirects
   const safePath = next.startsWith('/') ? next : '/';
-  // Tam URL ile yönlendirme (meta refresh ve bazı proxy'ler relative path'te takılabiliyor)
-  const origin = url.origin || (process.env.NEXTAUTH_URL ?? '');
-  const redirectUrl = origin ? `${origin}${safePath}` : safePath;
+  // Tam URL ile yönlendirme. Production'da anasayfa (/) için NEXTAUTH_URL kullan ki her zaman https://alo17.tr/ açılsın
+  const baseUrl = process.env.NODE_ENV === 'production' && process.env.NEXTAUTH_URL && safePath === '/'
+    ? process.env.NEXTAUTH_URL.replace(/\/$/, '')
+    : (url.origin || process.env.NEXTAUTH_URL ?? '');
+  const redirectUrl = baseUrl ? `${baseUrl}${safePath}` : safePath;
   return buildCookieDeletionResponse(redirectUrl);
 }
 
