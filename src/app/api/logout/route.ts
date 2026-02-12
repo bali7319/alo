@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
   // Tam URL ile yönlendirme. Production'da anasayfa (/) için NEXTAUTH_URL kullan ki her zaman https://alo17.tr/ açılsın
   const baseUrl = process.env.NODE_ENV === 'production' && process.env.NEXTAUTH_URL && safePath === '/'
     ? process.env.NEXTAUTH_URL.replace(/\/$/, '')
-    : (url.origin || process.env.NEXTAUTH_URL ?? '');
+    : ((url.origin || process.env.NEXTAUTH_URL) ?? '');
   const redirectUrl = baseUrl ? `${baseUrl}${safePath}` : safePath;
   return buildCookieDeletionResponse(redirectUrl);
 }
