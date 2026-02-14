@@ -140,6 +140,11 @@ export default function Footer() {
               <h3 className="text-lg font-semibold mb-4">Yasal</h3>
               <ul className="space-y-2">
                 <li>
+                  <Link href="/gizlilik" className="text-gray-400 hover:text-white transition-colors">
+                    Gizlilik
+                  </Link>
+                </li>
+                <li>
                   <Link href="/kvkk" className="text-gray-400 hover:text-white transition-colors">
                     KVKK
                   </Link>

@@ -99,6 +99,7 @@
 1. **Google Search Console:** Doğrulama kodu kullanılacaksa `src/app/layout.tsx` içinde `verification.google` değeri doldurulmalı.
 2. **OG görseli:** Varsayılan `/images/placeholder.jpg` – marka için özel 1200x630 görsel eklenebilir.
 3. **/ilan-ver:** Layout’ta canonical ve metadata var ✓; ek sayfa bazlı meta ihtiyacı yoksa mevcut yapı yeterli.
+4. **Footer Yasal:** "Gizlilik" linki eklendi (`/gizlilik`) – sayfa vardı, footer’da eksikti.
 
 ---
 
