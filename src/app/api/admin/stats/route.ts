@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const adminError = await requireAdmin(session);
     if (adminError) return adminError;
 
-    // Tüm istatistikleri paralel olarak getir
+    // Tüm istatistikleri ve son aktiviteleri paralel getir
     const [
       totalUsers,
       totalListings,
@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
       rejectedListings,
       premiumListings,
       totalViews,
-      totalMessages
+      totalMessages,
+      latestUser,
+      latestListing
     ] = await Promise.all([
       prisma.user.count(),
       prisma.listing.count(),
@@ -33,7 +35,17 @@ export async function GET(request: NextRequest) {
           views: true
         }
       }).then(result => result._sum.views || 0),
-      prisma.message.count()
+      prisma.message.count(),
+      prisma.user.findFirst({
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { name: true, createdAt: true }
+      }),
+      prisma.listing.findFirst({
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { title: true, createdAt: true }
+      })
     ]);
 
     return NextResponse.json({
@@ -44,7 +56,9 @@ export async function GET(request: NextRequest) {
       rejectedListings,
       premiumListings,
       totalViews,
-      totalMessages
+      totalMessages,
+      latestUser,
+      latestListing
     });
   } catch (error) {
     return handleApiError(error);

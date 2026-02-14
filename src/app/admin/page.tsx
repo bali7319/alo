@@ -14,6 +14,8 @@ interface Stats {
   premiumListings: number;
   totalViews: number;
   totalMessages: number;
+  latestUser?: { name: string | null; createdAt: string } | null;
+  latestListing?: { title: string; createdAt: string } | null;
 }
 
 export default function AdminPage() {
@@ -64,20 +66,10 @@ export default function AdminPage() {
       if (process.env.NODE_ENV === 'development') {
         console.log('İstatistikler getiriliyor');
       }
-      
-      // Demo istatistikler
-      const demoStats: Stats = {
-        totalUsers: 1247,
-        totalListings: 892,
-        activeListings: 756,
-        pendingListings: 23,
-        rejectedListings: 12,
-        premiumListings: 89,
-        totalViews: 15420,
-        totalMessages: 342
-      };
-      
-      setStats(demoStats);
+      const res = await fetch('/api/admin/stats');
+      if (!res.ok) throw new Error('İstatistikler alınamadı');
+      const data = await res.json();
+      setStats(data);
       if (process.env.NODE_ENV === 'development') {
         console.log('İstatistikler başarıyla yüklendi');
       }
@@ -423,17 +415,25 @@ export default function AdminPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Son Aktiviteler</h3>
             <div className="space-y-3">
-              <div className="flex items-center text-sm text-gray-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                <span>Yeni kullanıcı kaydı: Ahmet Yılmaz</span>
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                <span>Yeni ilan eklendi: iPhone 13</span>
-              </div>
+              {stats?.latestUser ? (
+                <div className="flex items-center text-sm text-gray-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                  <span>Yeni kullanıcı kaydı: {stats.latestUser.name || 'İsimsiz'}</span>
+                </div>
+              ) : (
+                <div className="flex items-center text-sm text-gray-500">Henüz kayıtlı kullanıcı yok.</div>
+              )}
+              {stats?.latestListing ? (
+                <div className="flex items-center text-sm text-gray-600">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                  <span>Yeni ilan eklendi: {stats.latestListing.title}</span>
+                </div>
+              ) : (
+                <div className="flex items-center text-sm text-gray-500">Henüz ilan yok.</div>
+              )}
               <div className="flex items-center text-sm text-gray-600">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
-                <span>Bekleyen onay: 5 ilan</span>
+                <span>Bekleyen onay: {stats?.pendingListings ?? 0} ilan</span>
               </div>
             </div>
           </div>
