@@ -100,7 +100,8 @@ export async function middleware(request: NextRequest) {
       pathname === '/giris' ||
       pathname === '/kayit' ||
       pathname === '/sifre-sifirla' ||
-      pathname === '/sifremi-unuttum'
+      pathname === '/sifremi-unuttum' ||
+      pathname === '/unsubscribe'
     ) {
       return true;
     }
