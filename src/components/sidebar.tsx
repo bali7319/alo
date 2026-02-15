@@ -29,6 +29,7 @@ import {
   X,
   Search
 } from "lucide-react"
+import { NobetciEczaneWidget } from "@/components/NobetciEczaneModule"
 
 const categoryIcons = {
   is: Briefcase,
@@ -149,6 +150,11 @@ export const Sidebar = () => {
         }`}
         aria-label="Kategoriler menüsü"
       >
+        {/* Nöbetçi Eczane – hızlı erişim (mobilde en üstte, sidebar'da dikkat çekici) */}
+        <div className="mb-4">
+          <NobetciEczaneWidget />
+        </div>
+
         {/* Arama Kutusu */}
         <div className="mb-4">
           <div className="relative">
@@ -190,7 +196,7 @@ export const Sidebar = () => {
                       className="block px-3 py-2 text-sm rounded-md transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-base">
+                        <span className="text-base" role="img" aria-label={`Çanakkale ${subcategory.name} ikonu`}>
                           {typeof subcategory.icon === 'string' ? subcategory.icon : '•'}
                         </span>
                         <span className="flex-1">{subcategory.name}</span>
@@ -211,7 +217,7 @@ export const Sidebar = () => {
                                 className="block px-2 py-1.5 text-xs rounded transition-all duration-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                               >
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-sm">
+                                  <span className="text-sm" role="img" aria-label={`Çanakkale ${subsubcategory.name} ikonu`}>
                                     {typeof subsubcategory.icon === 'string' ? subsubcategory.icon : '•'}
                                   </span>
                                   <span>{subsubcategory.name}</span>
@@ -291,7 +297,7 @@ export const Sidebar = () => {
                 href={`/kategori/${activeCategory.slug}`}
                 className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 mb-2"
               >
-                <span className="text-lg">
+                <span className="text-lg" role="img" aria-label={`Çanakkale ${activeCategory.name} ikonu`}>
                   {typeof activeCategory.icon === 'string' ? activeCategory.icon : '•'}
                 </span>
                 <span className="font-medium">{activeCategory.name}</span>
@@ -327,7 +333,7 @@ export const Sidebar = () => {
                       aria-current={isSubActive ? "page" : undefined}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-base">
+                        <span className="text-base" role="img" aria-label={`Çanakkale ${subcategory.name} ikonu`}>
                           {typeof subcategory.icon === 'string' ? subcategory.icon : '•'}
                         </span>
                         <span className="flex-1">{subcategory.name}</span>
@@ -355,7 +361,7 @@ export const Sidebar = () => {
                                 aria-current={isSubSubActive ? "page" : undefined}
                               >
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-sm">
+                                  <span className="text-sm" role="img" aria-label={`Çanakkale ${subsubcategory.name} ikonu`}>
                                     {typeof subsubcategory.icon === 'string' ? subsubcategory.icon : '•'}
                                   </span>
                                   <span>{subsubcategory.name}</span>

@@ -306,3 +306,18 @@ model PasswordResetToken {
   @@index([userId])
   @@index([expiresAt])
 }
+
+// Nöbetçi eczane listesi – günde bir kez (18:30) cron ile güncellenir; sayfa DB'den okur
+model NobetciEczaneRecord {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  phone       String
+  mapQuery    String   // Google Haritalar arama / yol tarifi
+  ilceSlug    String   // merkez, biga, can, vb.
+  validForDate String  // Hangi güne ait liste: YYYY-MM-DD (Türkiye günü)
+  createdAt   DateTime @default(now())
+
+  @@index([validForDate])
+  @@index([validForDate, ilceSlug])
+}

@@ -28,9 +28,12 @@ cd /var/www/alo17
 git pull origin main
 npm ci --include=dev --no-audit --no-fund
 npx prisma generate
+npx prisma migrate deploy
 npm run build
 pm2 restart alo17
 ```
+
+`prisma migrate deploy` bekleyen migration’ları (örn. nöbetçi eczane tablosu) veritabanına uygular.
 
 ## 4) Kontrol
 

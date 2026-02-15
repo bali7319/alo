@@ -3,9 +3,7 @@
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
   "crons": [
-    {
-      "path": "/api/cron/expire-listings",
-      "schedule": "2 0 * * *"
-    }
+    { "path": "/api/cron/expire-listings", "schedule": "2 0 * * *" },
+    { "path": "/api/cron/nobetci-eczane", "schedule": "30 15 * * *" }
   ]
 }

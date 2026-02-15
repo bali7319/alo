@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { categories } from '@/lib/categories'
+import { CANAKKALE_COLLECTIONS, CANAKKALE_ILCELER } from '@/lib/canakkale-seo'
 import { prisma } from '@/lib/prisma'
 import { createListingSlug } from '@/lib/slug'
 
@@ -38,6 +39,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/rehber`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/nobetci-eczane`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/canakkale-emlak-ofisleri`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.6,
     },
     {
       url: `${baseUrl}/sss`,
@@ -131,6 +150,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]
 
+  // İlçe hub sayfaları (alo17.tr/[ilce]) – her ilçe için merkez sayfa
+  const ilceLandingPages: MetadataRoute.Sitemap = CANAKKALE_ILCELER.map((ilce) => ({
+    url: `${baseUrl}/${ilce.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.75,
+  }))
+
+  // Nöbetçi eczane ilçe sayfaları (SEO: "Biga nöbetçi eczane" vb.)
+  const nobetciEczaneIlcePages: MetadataRoute.Sitemap = CANAKKALE_ILCELER.map((ilce) => ({
+    url: `${baseUrl}/nobetci-eczane/${ilce.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.75,
+  }))
+
+  // İlçe + kategori hub sayfaları (alo17.tr/[ilce]/[kategori]) – harita yapısı için
+  const ilceKategoriHubPages: MetadataRoute.Sitemap = CANAKKALE_ILCELER.flatMap((ilce) =>
+    categories.map((cat) => ({
+      url: `${baseUrl}/${ilce.slug}/${cat.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    }))
+  )
+
+  // Koleksiyon sayfaları (ilçe odaklı SEO)
+  const collectionPages: MetadataRoute.Sitemap = CANAKKALE_COLLECTIONS.map((col) => ({
+    url: `${baseUrl}/koleksiyon/${col.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }))
+
   // Kategori sayfaları
   const categoryPages: MetadataRoute.Sitemap = categories.map((category) => ({
     url: `${baseUrl}/kategori/${category.slug}`,
@@ -218,6 +271,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Tüm sayfaları birleştir
   const allPages = [
     ...staticPages,
+    ...ilceLandingPages,
+    ...nobetciEczaneIlcePages,
+    ...ilceKategoriHubPages,
+    ...collectionPages,
     ...categoryPages,
     ...subCategoryPages,
     ...subSubCategoryPages,

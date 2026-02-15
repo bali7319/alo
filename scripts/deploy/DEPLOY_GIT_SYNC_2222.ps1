@@ -84,6 +84,8 @@ $remoteCmd = "set -euo pipefail; " +
   "if [ -f package-lock.json ]; then npm ci --production=false --ignore-scripts; else npm install --include=dev --ignore-scripts; fi; " +
   "echo 'Prisma generate...'; " +
   "node node_modules/prisma/build/index.js generate; " +
+  "echo 'Prisma migrate deploy...'; " +
+  "node node_modules/prisma/build/index.js migrate deploy; " +
   "echo 'Sanity check (Next export module)...'; " +
   "if [ -f node_modules/next/dist/export/index.js ]; then " +
     "echo 'node_modules/next/dist/export/index.js OK'; " +
